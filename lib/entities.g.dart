@@ -17,8 +17,6 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) {
     DateTime.parse(json['LastSeen'] as String),
     (json['Addresses'] as List).map((e) => e as String).toList(),
     NetworkStats.fromJson(json['NetworkStats'] as Map<String, dynamic>),
-    (json['AllowedLocalPorts'] as List).map((e) => e as int).toList(),
-    (json['AllowedRemotePorts'] as List).map((e) => e as int).toList(),
   );
 }
 
@@ -31,8 +29,6 @@ Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
       'LastSeen': instance.lastSeen.toIso8601String(),
       'Addresses': instance.addresses,
       'NetworkStats': instance.networkStats,
-      'AllowedLocalPorts': instance.allowedLocalPorts,
-      'AllowedRemotePorts': instance.allowedRemotePorts,
     };
 
 MyPeerInfo _$MyPeerInfoFromJson(Map<String, dynamic> json) {
@@ -128,14 +124,6 @@ KnownPeerConfig _$KnownPeerConfigFromJson(Map<String, dynamic> json) {
     json['name'] as String,
     json['alias'] as String,
     json['ipAddr'] as String,
-    (json['allowedLocalPorts'] as Map<String, dynamic>).map(
-      (k, e) => MapEntry(
-          int.parse(k), LocalConnConfig.fromJson(e as Map<String, dynamic>)),
-    ),
-    (json['allowedRemotePorts'] as Map<String, dynamic>).map(
-      (k, e) => MapEntry(
-          int.parse(k), RemoteConnConfig.fromJson(e as Map<String, dynamic>)),
-    ),
   );
 }
 
@@ -144,10 +132,6 @@ Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) =>
       'peerId': instance.peerId,
       'name': instance.name,
       'alias': instance.alias,
-      'allowedLocalPorts':
-          instance.allowedLocalPorts.map((k, e) => MapEntry(k.toString(), e)),
-      'allowedRemotePorts':
-          instance.allowedRemotePorts.map((k, e) => MapEntry(k.toString(), e)),
     };
 
 UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(
@@ -155,14 +139,6 @@ UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(
   return UpdateKnownPeerConfigRequest(
     json['PeerID'] as String,
     json['Alias'] as String,
-    (json['LocalConns'] as Map<String, dynamic>).map(
-      (k, e) => MapEntry(
-          int.parse(k), LocalConnConfig.fromJson(e as Map<String, dynamic>)),
-    ),
-    (json['RemoteConns'] as Map<String, dynamic>).map(
-      (k, e) => MapEntry(
-          int.parse(k), RemoteConnConfig.fromJson(e as Map<String, dynamic>)),
-    ),
   );
 }
 
@@ -171,55 +147,4 @@ Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(
     <String, dynamic>{
       'PeerID': instance.peerID,
       'Alias': instance.alias,
-      'LocalConns':
-          instance.localConns.map((k, e) => MapEntry(k.toString(), e)),
-      'RemoteConns':
-          instance.remoteConns.map((k, e) => MapEntry(k.toString(), e)),
-    };
-
-LocalConnConfig _$LocalConnConfigFromJson(Map<String, dynamic> json) {
-  return LocalConnConfig(
-    json['port'] as int,
-    json['description'] as String,
-  );
-}
-
-Map<String, dynamic> _$LocalConnConfigToJson(LocalConnConfig instance) =>
-    <String, dynamic>{
-      'port': instance.port,
-      'description': instance.description,
-    };
-
-RemoteConnConfig _$RemoteConnConfigFromJson(Map<String, dynamic> json) {
-  return RemoteConnConfig(
-    json['remotePort'] as int,
-    json['mappedLocalPort'] as int,
-    json['forwarded'] as bool,
-    json['description'] as String,
-  );
-}
-
-Map<String, dynamic> _$RemoteConnConfigToJson(RemoteConnConfig instance) =>
-    <String, dynamic>{
-      'remotePort': instance.remotePort,
-      'mappedLocalPort': instance.mappedLocalPort,
-      'forwarded': instance.forwarded,
-      'description': instance.description,
-    };
-
-ForwardedPort _$ForwardedPortFromJson(Map<String, dynamic> json) {
-  return ForwardedPort(
-    json['RemotePort'] as int,
-    json['ListenAddress'] as String,
-    json['PeerID'] as String,
-    json['Protocol'] as String,
-  );
-}
-
-Map<String, dynamic> _$ForwardedPortToJson(ForwardedPort instance) =>
-    <String, dynamic>{
-      'RemotePort': instance.remotePort,
-      'ListenAddress': instance.listenAddress,
-      'PeerID': instance.peerID,
-      'Protocol': instance.protocol,
     };

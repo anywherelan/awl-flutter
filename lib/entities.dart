@@ -14,11 +14,9 @@ class KnownPeer {
   final DateTime lastSeen;
   final List<String> addresses;
   final NetworkStats networkStats;
-  final List<int> allowedLocalPorts;
-  final List<int> allowedRemotePorts;
 
   KnownPeer(this.peerID, this.name, this.version, this.ipAddr, this.connected, this.confirmed, this.lastSeen,
-      this.addresses, this.networkStats, this.allowedLocalPorts, this.allowedRemotePorts);
+      this.addresses, this.networkStats);
 
   factory KnownPeer.fromJson(Map<String, dynamic> json) => _$KnownPeerFromJson(json);
 
@@ -123,10 +121,8 @@ class KnownPeerConfig {
   final String name;
   final String alias;
   final String ipAddr;
-  final Map<int, LocalConnConfig> allowedLocalPorts;
-  final Map<int, RemoteConnConfig> allowedRemotePorts;
 
-  KnownPeerConfig(this.peerId, this.name, this.alias, this.ipAddr, this.allowedLocalPorts, this.allowedRemotePorts);
+  KnownPeerConfig(this.peerId, this.name, this.alias, this.ipAddr);
 
   factory KnownPeerConfig.fromJson(Map<String, dynamic> json) => _$KnownPeerConfigFromJson(json);
 
@@ -137,55 +133,11 @@ class KnownPeerConfig {
 class UpdateKnownPeerConfigRequest {
   final String peerID;
   final String alias;
-  final Map<int, LocalConnConfig> localConns;
-  final Map<int, RemoteConnConfig> remoteConns;
 
-  UpdateKnownPeerConfigRequest(this.peerID, this.alias, this.localConns, this.remoteConns);
+  UpdateKnownPeerConfigRequest(this.peerID, this.alias);
 
   factory UpdateKnownPeerConfigRequest.fromJson(Map<String, dynamic> json) =>
       _$UpdateKnownPeerConfigRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$UpdateKnownPeerConfigRequestToJson(this);
-}
-
-@JsonSerializable(nullable: false)
-class LocalConnConfig {
-  final int port;
-  final String description;
-
-  LocalConnConfig(this.port, this.description);
-
-  factory LocalConnConfig.fromJson(Map<String, dynamic> json) => _$LocalConnConfigFromJson(json);
-
-  Map<String, dynamic> toJson() => _$LocalConnConfigToJson(this);
-}
-
-@JsonSerializable(nullable: false)
-class RemoteConnConfig {
-  final int remotePort;
-  final int mappedLocalPort;
-  final bool forwarded;
-
-//  final String protocol;
-  final String description;
-
-  RemoteConnConfig(this.remotePort, this.mappedLocalPort, this.forwarded, this.description);
-
-  factory RemoteConnConfig.fromJson(Map<String, dynamic> json) => _$RemoteConnConfigFromJson(json);
-
-  Map<String, dynamic> toJson() => _$RemoteConnConfigToJson(this);
-}
-
-@JsonSerializable(nullable: false, fieldRename: FieldRename.pascal)
-class ForwardedPort {
-  final int remotePort;
-  final String listenAddress;
-  final String peerID;
-  final String protocol;
-
-  ForwardedPort(this.remotePort, this.listenAddress, this.peerID, this.protocol);
-
-  factory ForwardedPort.fromJson(Map<String, dynamic> json) => _$ForwardedPortFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ForwardedPortToJson(this);
 }

@@ -46,7 +46,6 @@ void main() async {
   var futures = <Future>[];
   futures.add(myPeerInfoDataService.fetchData());
   futures.add(knownPeersDataService.fetchData());
-  futures.add(forwardedPortsDataService.fetchData());
   await Future.wait(futures);
 
   runApp(MyApp());
@@ -138,7 +137,6 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   void _tabChangeListener() {
     myPeerInfoDataService.disableTimer();
     knownPeersDataService.disableTimer();
-    forwardedPortsDataService.disableTimer();
     switch (_tabController.index) {
       case 0:
         myPeerInfoDataService.enableTimer();
@@ -147,7 +145,6 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         knownPeersDataService.enableTimer();
         break;
       case 2:
-        forwardedPortsDataService.enableTimer();
         break;
     }
   }
@@ -159,7 +156,6 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
       case AppLifecycleState.paused:
         myPeerInfoDataService.disableTimer();
         knownPeersDataService.disableTimer();
-        forwardedPortsDataService.disableTimer();
         _notificationsService.setTimerIntervalLong();
         break;
       case AppLifecycleState.resumed:

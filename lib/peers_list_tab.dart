@@ -142,9 +142,6 @@ class _PeersListPageState extends State<PeersListPage> {
   }
 
   Widget _buildExpansionPanelBody(KnownPeer item) {
-    var localPorts = item.allowedLocalPorts.isEmpty ? "—" : item.allowedLocalPorts.join(', ');
-    var remotePorts = item.allowedRemotePorts.isEmpty ? "—" : item.allowedRemotePorts.join(', ');
-
     return Column(
       children: [
         _buildBodyItem(Icons.devices, "Peer ID  ", item.peerID),
@@ -158,7 +155,6 @@ class _PeersListPageState extends State<PeersListPage> {
           _buildBodyItem(Icons.cloud_download, "Download rate", item.networkStats.inAsString()),
         if (item.networkStats.totalOut != 0)
           _buildBodyItem(Icons.cloud_upload, "Upload rate", item.networkStats.outAsString()),
-        _buildBodyItem(Icons.device_hub, "Ports     ", "Local: $localPorts    Remote: $remotePorts"),
         Padding(
           padding: EdgeInsets.only(left: 16.0, right: 16.0, top: 5, bottom: 10),
           child: Row(

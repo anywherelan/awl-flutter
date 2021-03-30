@@ -7,10 +7,6 @@ import 'package:flutter/foundation.dart';
 
 const V0Prefix = "/api/v0/";
 
-// Connections
-const GetForwardedPortsPath = V0Prefix + "connections/forwarded_ports";
-const GetInboundConnectionsPath = V0Prefix + "connections/inbound";
-
 // Peers
 const GetKnownPeersPath = V0Prefix + "peers/get_known";
 const GetKnownPeerSettingsPath = V0Prefix + "peers/get_known_peer_settings";
@@ -159,11 +155,4 @@ Future<String> updateMySettings(http.Client client, String name) async {
   }
 
   return "";
-}
-
-Future<List<ForwardedPort>> fetchForwardedPorts(http.Client client) async {
-  final response = await client.get(serverAddress + GetForwardedPortsPath);
-  final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
-
-  return parsed.map<ForwardedPort>((json) => ForwardedPort.fromJson(json)).toList();
 }

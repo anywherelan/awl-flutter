@@ -78,7 +78,3 @@ var myPeerInfoDataService = ServerDataService<MyPeerInfo>(() {
 var knownPeersDataService = ServerDataService<List<KnownPeer>>(() {
   return fetchKnownPeers(http.Client());
 });
-
-var forwardedPortsDataService = ServerDataService<List<ForwardedPort>>(() {
-  return fetchForwardedPorts(http.Client());
-});
