@@ -6,6 +6,7 @@ import 'package:peerlanflutter/api.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 void showAddPeerDialog(BuildContext context) {
   showDialog<String>(
@@ -57,7 +58,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
     }
   }
 
-  void _scanQR() async {
+  void _scanQR(BuildContext context) async {
     // TODO: support web; there is an open PR in lib
     if (Platform.isAndroid) {
       var status = await Permission.camera.request();
@@ -68,13 +69,15 @@ class _AddPeerFormState extends State<AddPeerForm> {
       return;
     }
 
-    // TODO: reimplement with qr_code_scanner lib
-    // var result = await BarcodeScanner.scan();
-    // if (result.type == ResultType.Barcode && result.rawContent != "") {
-    //   setState(() {
-    //     _peerIdTextController.text = result.rawContent;
-    //   });
-    // }
+    var res =
+        await Navigator.of(context).push<Barcode?>(MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
+    if (res == null || res.code == '') {
+      return;
+    }
+
+    setState(() {
+      _peerIdTextController.text = res.code;
+    });
   }
 
   @override
@@ -122,7 +125,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
                   icon: Image(image: AssetImage('assets/qrcode.png')),
                   label: Text('Scan QR'),
                   onPressed: () async {
-                    _scanQR();
+                    _scanQR(context);
                   },
                 ),
               RaisedButton(
@@ -136,5 +139,74 @@ class _AddPeerFormState extends State<AddPeerForm> {
         ],
       ),
     );
+  }
+}
+
+class QRScanPage extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() => _QRScanPageState();
+}
+
+class _QRScanPageState extends State<QRScanPage> {
+  Barcode? result;
+  QRViewController? controller;
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+
+  // In order to get hot reload to work we need to pause the camera if the platform
+  // is android, or resume the camera if the platform is iOS.
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      controller!.pauseCamera();
+    }
+    controller!.resumeCamera();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (result != null) {
+      Navigator.of(context).pop(result!);
+      return Scaffold();
+    }
+    return Scaffold(
+      body: Column(
+        children: <Widget>[
+          Expanded(child: _buildQrView(context)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQrView(BuildContext context) {
+    // For this example we check how width or tall the device is and change the scanArea and overlay accordingly.
+    var scanArea =
+        (MediaQuery.of(context).size.width < 400 || MediaQuery.of(context).size.height < 400) ? 150.0 : 300.0;
+    // To ensure the Scanner view is properly sizes after rotation
+    // we need to listen for Flutter SizeChanged notification and update controller
+    return QRView(
+      key: qrKey,
+      onQRViewCreated: _onQRViewCreated,
+      overlay: QrScannerOverlayShape(
+          borderColor: Colors.red, borderRadius: 10, borderLength: 30, borderWidth: 10, cutOutSize: scanArea),
+    );
+  }
+
+  void _onQRViewCreated(QRViewController controller) {
+    setState(() {
+      this.controller = controller;
+    });
+    controller.scannedDataStream.listen((scanData) {
+      controller.stopCamera();
+      setState(() {
+        result = scanData;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
   }
 }
