@@ -3,7 +3,7 @@ import 'package:peerlanflutter/common.dart';
 
 part 'entities.g.dart';
 
-@JsonSerializable(nullable: false, fieldRename: FieldRename.pascal)
+@JsonSerializable(fieldRename: FieldRename.pascal)
 class KnownPeer {
   final String peerID;
   final String name;
@@ -23,7 +23,7 @@ class KnownPeer {
   Map<String, dynamic> toJson() => _$KnownPeerToJson(this);
 }
 
-@JsonSerializable(nullable: false, fieldRename: FieldRename.pascal)
+@JsonSerializable(fieldRename: FieldRename.pascal)
 class MyPeerInfo {
   final String peerID;
   final String name;
@@ -41,13 +41,12 @@ class MyPeerInfo {
 
   Map<String, dynamic> toJson() => _$MyPeerInfoToJson(this);
 
-  static Duration _durationFromNanoseconds(int milliseconds) =>
-      milliseconds == null ? null : Duration(microseconds: (milliseconds ~/ 1000).toInt());
+  static Duration _durationFromNanoseconds(int milliseconds) => Duration(microseconds: (milliseconds ~/ 1000).toInt());
 
-  static int _durationToNanoseconds(Duration duration) => duration == null ? null : duration.inMilliseconds * 1000;
+  static int? _durationToNanoseconds(Duration? duration) => duration == null ? null : duration.inMilliseconds * 1000;
 }
 
-@JsonSerializable(nullable: false, fieldRename: FieldRename.pascal)
+@JsonSerializable(fieldRename: FieldRename.pascal)
 class NetworkStats {
   final int totalIn;
   final int totalOut;
@@ -69,7 +68,7 @@ class NetworkStats {
   }
 }
 
-@JsonSerializable(nullable: false, fieldRename: FieldRename.pascal)
+@JsonSerializable(fieldRename: FieldRename.pascal)
 class FriendRequest {
   final String peerID;
   final String alias;
@@ -81,7 +80,7 @@ class FriendRequest {
   Map<String, dynamic> toJson() => _$FriendRequestToJson(this);
 }
 
-@JsonSerializable(nullable: false)
+@JsonSerializable()
 class ApiError {
   final String error;
 
@@ -92,7 +91,7 @@ class ApiError {
   Map<String, dynamic> toJson() => _$ApiErrorToJson(this);
 }
 
-@JsonSerializable(nullable: false, fieldRename: FieldRename.pascal)
+@JsonSerializable(fieldRename: FieldRename.pascal)
 class AuthRequest {
   final String peerID;
   final String name;
@@ -104,7 +103,7 @@ class AuthRequest {
   Map<String, dynamic> toJson() => _$AuthRequestToJson(this);
 }
 
-@JsonSerializable(nullable: false, fieldRename: FieldRename.pascal)
+@JsonSerializable(fieldRename: FieldRename.pascal)
 class PeerIDRequest {
   final String peerID;
 
@@ -115,7 +114,7 @@ class PeerIDRequest {
   Map<String, dynamic> toJson() => _$PeerIDRequestToJson(this);
 }
 
-@JsonSerializable(nullable: false)
+@JsonSerializable()
 class KnownPeerConfig {
   final String peerId;
   final String name;
@@ -129,7 +128,7 @@ class KnownPeerConfig {
   Map<String, dynamic> toJson() => _$KnownPeerConfigToJson(this);
 }
 
-@JsonSerializable(nullable: false, fieldRename: FieldRename.pascal)
+@JsonSerializable(fieldRename: FieldRename.pascal)
 class UpdateKnownPeerConfigRequest {
   final String peerID;
   final String alias;

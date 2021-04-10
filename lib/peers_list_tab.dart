@@ -1,15 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:peerlanflutter/api.dart';
 import 'package:peerlanflutter/data_service.dart';
 import 'package:peerlanflutter/entities.dart';
 import 'package:peerlanflutter/common.dart';
-import 'package:http/http.dart' as http;
 
 class PeersListPage extends StatefulWidget {
-  PeersListPage({Key key}) : super(key: key);
+  PeersListPage({Key? key}) : super(key: key);
 
   @override
   _PeersListPageState createState() => _PeersListPageState();
@@ -18,10 +14,10 @@ class PeersListPage extends StatefulWidget {
 class _PeersListPageState extends State<PeersListPage> {
   final _biggerFont = const TextStyle(fontSize: 18.0);
 
-  List<KnownPeer> _knownPeers;
-  Map<String, bool> _expandedState = Map();
+  List<KnownPeer>? _knownPeers;
+  Map<String?, bool> _expandedState = Map();
 
-  void _onNewKnownPeers(List<KnownPeer> newPeers) async {
+  void _onNewKnownPeers(List<KnownPeer>? newPeers) async {
     if (!this.mounted) {
       return;
     }
@@ -61,11 +57,11 @@ class _PeersListPageState extends State<PeersListPage> {
       expandedHeaderPadding: EdgeInsets.only(top: 5, bottom: 5),
       expansionCallback: (int index, bool isExpanded) {
         setState(() {
-          var peer = _knownPeers[index];
+          var peer = _knownPeers![index];
           _expandedState[peer.peerID] = !isExpanded;
         });
       },
-      children: _knownPeers.map<ExpansionPanel>((KnownPeer item) {
+      children: _knownPeers!.map<ExpansionPanel>((KnownPeer item) {
         var isExpanded = _expandedState[item.peerID];
         if (isExpanded == null) {
           isExpanded = false;

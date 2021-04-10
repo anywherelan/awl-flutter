@@ -9,20 +9,18 @@ import 'package:peerlanflutter/entities.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 import 'dart:convert';
-import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart' as crypto;
-import 'package:archive/archive_io.dart';
 import 'dart:typed_data';
 
 class NotificationsService {
-  FlutterLocalNotificationsPlugin _notificationsPlugin;
-  NotificationDetails _notificationDetails;
+  late FlutterLocalNotificationsPlugin _notificationsPlugin;
+  NotificationDetails? _notificationDetails;
 
-  Timer _timer;
+  late Timer _timer;
   final _timerIntervalShort = const Duration(seconds: 3);
   final _timerIntervalLong = const Duration(seconds: 8);
 
-  List<AuthRequest> _lastRequests = List();
+  List<AuthRequest> _lastRequests = [];
 
   NotificationsService();
 
@@ -32,19 +30,17 @@ class NotificationsService {
     } else {
       _notificationsPlugin = FlutterLocalNotificationsPlugin();
       var initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
-      var initializationSettingsIOS = IOSInitializationSettings();
 
-      var initializationSettings = InitializationSettings(initializationSettingsAndroid, initializationSettingsIOS);
+      var initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
       await _notificationsPlugin.initialize(initializationSettings, onSelectNotification: _onSelectMobileNotification);
 
       // TODO
       var androidPlatformChannelSpecifics = AndroidNotificationDetails(
         'channel id', 'channel name', 'channel description',
-        importance: Importance.High, priority: Priority.High, ticker: 'ticker',
+        importance: Importance.high, priority: Priority.high, ticker: 'ticker',
 //      onlyAlertOnce: true // TODO
       );
-      var iOSPlatformChannelSpecifics = IOSNotificationDetails();
-      _notificationDetails = NotificationDetails(androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
+      _notificationDetails = NotificationDetails(android: androidPlatformChannelSpecifics);
     }
 
     _timer = new Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
@@ -65,7 +61,7 @@ class NotificationsService {
   }
 
   void _checkForNotifications() async {
-    var newRequests = await fetchAuthRequests(http.Client());
+    var newRequests = await (fetchAuthRequests(http.Client()));
     if (newRequests.isEmpty) {
       _lastRequests = newRequests;
       return;
@@ -116,11 +112,11 @@ class NotificationsService {
             trailing: IconButton(
                 icon: Icon(Icons.add),
                 onPressed: () {
-                  OverlaySupportEntry.of(context).dismiss();
+                  OverlaySupportEntry.of(context)!.dismiss();
                   _showAuthRequestDialog(req);
                 }),
             onTap: () {
-              OverlaySupportEntry.of(context).dismiss();
+              OverlaySupportEntry.of(context)!.dismiss();
               _showAuthRequestDialog(req);
             },
           ),
@@ -129,7 +125,10 @@ class NotificationsService {
     }, duration: Duration(milliseconds: 0));
   }
 
-  Future _onSelectMobileNotification(String payload) async {
+  Future _onSelectMobileNotification(String? payload) async {
+    if (payload == null) {
+      return;
+    }
     var authReq = _lastRequests.firstWhere((obj) => obj.peerID == payload, orElse: () => AuthRequest(payload, ""));
     _showAuthRequestDialog(authReq);
   }
@@ -154,30 +153,30 @@ Future _showAuthRequestDialog(AuthRequest req) async {
 }
 
 class IncomingAuthRequestForm extends StatefulWidget {
-  IncomingAuthRequestForm({Key key, this.request}) : super(key: key);
+  IncomingAuthRequestForm({Key? key, this.request}) : super(key: key);
 
-  final AuthRequest request;
+  final AuthRequest? request;
 
   @override
   _IncomingAuthRequestFormState createState() => _IncomingAuthRequestFormState();
 }
 
 class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
-  TextEditingController _peerIdTextController;
+  TextEditingController? _peerIdTextController;
   final _aliasTextController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
-  String _serverError = "";
+  String? _serverError = "";
 
   void _onPressAddPeer() async {
-    var response = await acceptFriendRequest(http.Client(), _peerIdTextController.text, _aliasTextController.text);
+    var response = await acceptFriendRequest(http.Client(), _peerIdTextController!.text, _aliasTextController.text);
     if (response == "") {
       Navigator.pop(context);
       _serverError = "";
-      _formKey.currentState.validate();
+      _formKey.currentState!.validate();
     } else {
       _serverError = response;
-      _formKey.currentState.validate();
+      _formKey.currentState!.validate();
       _serverError = "";
     }
   }
@@ -186,7 +185,7 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
   void initState() {
     super.initState();
 
-    _peerIdTextController = TextEditingController(text: widget.request.peerID);
+    _peerIdTextController = TextEditingController(text: widget.request!.peerID);
   }
 
   @override
@@ -258,33 +257,33 @@ int generateNotificationId(String id) {
 }
 
 final GlobalKey<NavigatorState> navigatorKey = new GlobalKey<NavigatorState>();
-ThemeData globalTheme;
+ThemeData? globalTheme;
 
 // TODO: придумать способ без этого хака
 
 // copied from flutter to avoid passing BuildContext
-Future<T> showDialog<T>({
-  WidgetBuilder builder,
+Future<T?> showDialog<T>({
+  WidgetBuilder? builder,
   bool barrierDismissible = true,
-  Color barrierColor,
+  Color? barrierColor,
   bool useSafeArea = true,
   bool useRootNavigator = true,
-  RouteSettings routeSettings,
+  RouteSettings? routeSettings,
   @Deprecated('Instead of using the "child" argument, return the child from a closure '
       'provided to the "builder" argument. This will ensure that the BuildContext '
       'is appropriate for widgets built in the dialog. '
       'This feature was deprecated after v0.2.3.')
-      Widget child,
+      Widget? child,
 }) {
   assert(child == null || builder == null);
   assert(barrierDismissible != null);
   assert(useSafeArea != null);
   assert(useRootNavigator != null);
 
-  final ThemeData theme = globalTheme;
+  final ThemeData? theme = globalTheme;
   return showGeneralDialog(
     pageBuilder: (BuildContext buildContext, Animation<double> animation, Animation<double> secondaryAnimation) {
-      final Widget pageChild = child ?? Builder(builder: builder);
+      final Widget pageChild = child ?? Builder(builder: builder!);
       Widget dialog = Builder(builder: (BuildContext context) {
         return theme != null ? Theme(data: theme, child: pageChild) : pageChild;
       });
@@ -315,20 +314,20 @@ Widget _buildMaterialDialogTransitions(
   );
 }
 
-Future<T> showGeneralDialog<T>({
-  @required RoutePageBuilder pageBuilder,
-  bool barrierDismissible,
-  String barrierLabel,
-  Color barrierColor,
-  Duration transitionDuration,
-  RouteTransitionsBuilder transitionBuilder,
+Future<T?> showGeneralDialog<T>({
+  required RoutePageBuilder pageBuilder,
+  required bool barrierDismissible,
+  String? barrierLabel,
+  Color? barrierColor,
+  Duration? transitionDuration,
+  RouteTransitionsBuilder? transitionBuilder,
   bool useRootNavigator = true,
-  RouteSettings routeSettings,
+  RouteSettings? routeSettings,
 }) {
   assert(pageBuilder != null);
   assert(useRootNavigator != null);
   assert(!barrierDismissible || barrierLabel != null);
-  return navigatorKey.currentState.push<T>(_DialogRoute<T>(
+  return navigatorKey.currentState!.push<T>(_DialogRoute<T>(
     pageBuilder: pageBuilder,
     barrierDismissible: barrierDismissible,
     barrierLabel: barrierLabel,
@@ -341,13 +340,13 @@ Future<T> showGeneralDialog<T>({
 
 class _DialogRoute<T> extends PopupRoute<T> {
   _DialogRoute({
-    @required RoutePageBuilder pageBuilder,
+    required RoutePageBuilder pageBuilder,
     bool barrierDismissible = true,
-    String barrierLabel,
-    Color barrierColor = const Color(0x80000000),
-    Duration transitionDuration = const Duration(milliseconds: 200),
-    RouteTransitionsBuilder transitionBuilder,
-    RouteSettings settings,
+    String? barrierLabel,
+    Color? barrierColor = const Color(0x80000000),
+    Duration? transitionDuration = const Duration(milliseconds: 200),
+    RouteTransitionsBuilder? transitionBuilder,
+    RouteSettings? settings,
   })  : assert(barrierDismissible != null),
         _pageBuilder = pageBuilder,
         _barrierDismissible = barrierDismissible,
@@ -364,18 +363,18 @@ class _DialogRoute<T> extends PopupRoute<T> {
   final bool _barrierDismissible;
 
   @override
-  String get barrierLabel => _barrierLabel;
-  final String _barrierLabel;
+  String? get barrierLabel => _barrierLabel;
+  final String? _barrierLabel;
 
   @override
-  Color get barrierColor => _barrierColor;
-  final Color _barrierColor;
+  Color? get barrierColor => _barrierColor;
+  final Color? _barrierColor;
 
   @override
-  Duration get transitionDuration => _transitionDuration;
-  final Duration _transitionDuration;
+  Duration get transitionDuration => _transitionDuration!;
+  final Duration? _transitionDuration;
 
-  final RouteTransitionsBuilder _transitionBuilder;
+  final RouteTransitionsBuilder? _transitionBuilder;
 
   @override
   Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) {
@@ -397,6 +396,6 @@ class _DialogRoute<T> extends PopupRoute<T> {
           ),
           child: child);
     } // Some default transition
-    return _transitionBuilder(context, animation, secondaryAnimation, child);
+    return _transitionBuilder!(context, animation, secondaryAnimation, child);
   }
 }

@@ -4,20 +4,20 @@ import 'package:peerlanflutter/entities.dart';
 import 'package:http/http.dart' as http;
 
 class ServerDataService<T> {
-  Timer _timer;
+  Timer? _timer;
   final _timerDuration = const Duration(seconds: 3);
   bool _enabled = false;
 
   Future<T> Function() fetchDataFunc;
 
-  T _data;
-  List<void Function(T)> _subscribers = List();
+  T? _data;
+  List<void Function(T)> _subscribers = [];
 
   ServerDataService(this.fetchDataFunc);
 
   void _deactivateTimer() {
     if (_timer != null) {
-      _timer.cancel();
+      _timer!.cancel();
       _timer = null;
     }
   }
@@ -54,7 +54,7 @@ class ServerDataService<T> {
     });
   }
 
-  T getData() {
+  T? getData() {
     return _data;
   }
 
@@ -75,6 +75,6 @@ var myPeerInfoDataService = ServerDataService<MyPeerInfo>(() {
   return fetchMyPeerInfo(http.Client());
 });
 
-var knownPeersDataService = ServerDataService<List<KnownPeer>>(() {
+var knownPeersDataService = ServerDataService<List<KnownPeer>?>(() {
   return fetchKnownPeers(http.Client());
 });

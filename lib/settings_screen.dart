@@ -11,7 +11,7 @@ import 'dart:io';
 import 'package:peerlanflutter/server_interop/server_interop.dart';
 
 class AppSettingsScreen extends StatefulWidget {
-  AppSettingsScreen({Key key}) : super(key: key);
+  AppSettingsScreen({Key? key}) : super(key: key);
 
   @override
   _AppSettingsScreenState createState() => _AppSettingsScreenState();
@@ -110,7 +110,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 onTap: () async {
                   var result = await _exportSettings();
                   if (result.message != "") {
-                    _scaffoldKey.currentState.showSnackBar(SnackBar(
+                    _scaffoldKey.currentState!.showSnackBar(SnackBar(
                       backgroundColor: result.success ? Colors.green : Colors.red,
                       content: Text(result.message),
                     ));
@@ -123,16 +123,15 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   "Import settings",
                 ),
                 subtitle: Text(
-                  "This action will overwrite current settings, therefore it is recommended to export them first."
-                      " Server will be restarted automatically."
-                ),
+                    "This action will overwrite current settings, therefore it is recommended to export them first."
+                    " Server will be restarted automatically."),
                 enabled: true,
                 selected: false,
                 leading: const Icon(Icons.import_export),
                 onTap: () async {
                   var result = await _importSettings();
                   if (result.message != "") {
-                    _scaffoldKey.currentState.showSnackBar(SnackBar(
+                    _scaffoldKey.currentState!.showSnackBar(SnackBar(
                       backgroundColor: result.success ? Colors.green : Colors.red,
                       content: Text(result.message),
                     ));

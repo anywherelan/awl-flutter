@@ -2,8 +2,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:peerlanflutter/entities.dart';
 import 'dart:async';
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
 
 const V0Prefix = "/api/v0/";
 
@@ -35,21 +33,21 @@ var serverAddress = "";
 //  }
 
 Future<MyPeerInfo> fetchMyPeerInfo(http.Client client) async {
-  final response = await client.get(serverAddress + GetMyPeerInfoPath);
+  final response = await client.get(Uri.parse(serverAddress + GetMyPeerInfoPath));
   final Map<String, dynamic> parsed = jsonDecode(response.body);
 
   return MyPeerInfo.fromJson(parsed);
 }
 
-Future<List<KnownPeer>> fetchKnownPeers(http.Client client) async {
-  final response = await client.get(serverAddress + GetKnownPeersPath);
+Future<List<KnownPeer>?> fetchKnownPeers(http.Client client) async {
+  final response = await client.get(Uri.parse(serverAddress + GetKnownPeersPath));
   final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
   return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
 }
 
-Future<Map<String, dynamic>> fetchDebugInfo(http.Client client) async {
-  final response = await client.get(serverAddress + GetP2pDebugInfoPath);
+Future<Map<String, dynamic>?> fetchDebugInfo(http.Client client) async {
+  final response = await client.get(Uri.parse(serverAddress + GetP2pDebugInfoPath));
 //  final parsed = await compute(jsonDecode, response.body);
   final parsed = jsonDecode(response.body);
 
@@ -57,13 +55,13 @@ Future<Map<String, dynamic>> fetchDebugInfo(http.Client client) async {
 }
 
 Future<String> fetchLogs(http.Client client) async {
-  final response = await client.get(serverAddress + GetDebugLogPath);
+  final response = await client.get(Uri.parse(serverAddress + GetDebugLogPath));
 
   return response.body;
 }
 
 Future<List<AuthRequest>> fetchAuthRequests(http.Client client) async {
-  final response = await client.get(serverAddress + GetAuthRequestsPath);
+  final response = await client.get(Uri.parse(serverAddress + GetAuthRequestsPath));
   final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
   return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
@@ -86,7 +84,7 @@ Future<String> sendFriendRequest(http.Client client, String peerID, String alias
   return "";
 }
 
-Future<String> acceptFriendRequest(http.Client client, String peerID, String alias) async {
+Future<String?> acceptFriendRequest(http.Client client, String peerID, String alias) async {
   var payload = FriendRequest(peerID, alias);
 
   var request = http.Request("POST", Uri.parse(serverAddress + AcceptPeerInvitationPath));
@@ -104,7 +102,7 @@ Future<String> acceptFriendRequest(http.Client client, String peerID, String ali
 }
 
 Future<String> fetchExportedServerConfig(http.Client client) async {
-  final response = await client.get(serverAddress + ExportServerConfigPath);
+  final response = await client.get(Uri.parse(serverAddress + ExportServerConfigPath));
 
   return response.body;
 }
@@ -123,7 +121,7 @@ Future<KnownPeerConfig> fetchKnownPeerConfig(http.Client client, String peerID) 
   return KnownPeerConfig.fromJson(parsed);
 }
 
-Future<String> updateKnownPeerConfig(http.Client client, UpdateKnownPeerConfigRequest payload) async {
+Future<String?> updateKnownPeerConfig(http.Client client, UpdateKnownPeerConfigRequest payload) async {
   var request = http.Request("POST", Uri.parse(serverAddress + UpdatePeerSettingsPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload.toJson());
@@ -138,7 +136,7 @@ Future<String> updateKnownPeerConfig(http.Client client, UpdateKnownPeerConfigRe
   return "";
 }
 
-Future<String> updateMySettings(http.Client client, String name) async {
+Future<String?> updateMySettings(http.Client client, String name) async {
   var payload = {
     "Name": name,
   };

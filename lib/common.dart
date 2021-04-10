@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 var qrCodeImage = Image(image: AssetImage('assets/qrcode.png'));
 
-Future<void> showQRDialog(BuildContext context, String peerID, String peerName) async {
+Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName) async {
   await showDialog(
     context: context,
     builder: (context) {
@@ -22,7 +22,7 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
               children: [
                 Flexible(
                   fit: FlexFit.loose,
-                  child: SelectableText(peerID),
+                  child: SelectableText(peerID!),
                 ),
                 RawMaterialButton(
                   elevation: 0.0,

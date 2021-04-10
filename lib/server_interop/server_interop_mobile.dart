@@ -47,7 +47,7 @@ Future<String> importConfigImpl(String config) async {
     await platform.invokeMethod('import_config', {'config': config});
   } on PlatformException catch (e) {
     print("Failed to import server config: '${e.message}'.");
-    return e.message;
+    return e.message == null ? "" : e.message!;
   }
 
   return "";

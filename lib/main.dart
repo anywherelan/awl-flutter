@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:peerlanflutter/peers_list_tab.dart';
 import 'package:peerlanflutter/info_tab.dart';
@@ -93,7 +91,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
@@ -102,7 +100,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  TabController _tabController;
+  TabController? _tabController;
   final _notificationsService = NotificationsService();
 
   @override
@@ -110,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     super.initState();
 
     _notificationsService.init();
-    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance!.addObserver(this);
 
     _tabController = TabController(vsync: this, length: 3)
       ..addListener(() {
@@ -125,9 +123,9 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   @override
   void dispose() {
 //    _tabController.removeListener(_handleTabIndex);
-    _tabController.dispose();
+    _tabController!.dispose();
 
-    WidgetsBinding.instance.removeObserver(this);
+    WidgetsBinding.instance!.removeObserver(this);
     _notificationsService.close();
     super.dispose();
 
@@ -137,7 +135,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   void _tabChangeListener() {
     myPeerInfoDataService.disableTimer();
     knownPeersDataService.disableTimer();
-    switch (_tabController.index) {
+    switch (_tabController!.index) {
       case 0:
         myPeerInfoDataService.enableTimer();
         break;
@@ -169,8 +167,8 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    FloatingActionButton actionButton;
-    if (_tabController.index == 1) {
+    FloatingActionButton? actionButton;
+    if (_tabController!.index == 1) {
       actionButton = FloatingActionButton(
         tooltip: 'Add new peer',
         onPressed: () {

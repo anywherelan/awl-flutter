@@ -98,7 +98,7 @@ class _MyDrawerState extends State<MyDrawer> {
   }
 
   List<Widget> _buildAboutBox() {
-    final TextStyle textStyle = Theme.of(context).textTheme.bodyText2;
+    final TextStyle textStyle = Theme.of(context).textTheme.bodyText2!;
     return <Widget>[
       SizedBox(height: 24),
       RichText(
@@ -115,14 +115,14 @@ class _MyDrawerState extends State<MyDrawer> {
 }
 
 class DebugScreen extends StatefulWidget {
-  DebugScreen({Key key}) : super(key: key);
+  DebugScreen({Key? key}) : super(key: key);
 
   @override
   _DebugScreenState createState() => _DebugScreenState();
 }
 
 class _DebugScreenState extends State<DebugScreen> {
-  Map<String, dynamic> _debugInfo = Map();
+  Map<String, dynamic>? _debugInfo = Map();
 
   void _refreshDebugInfo() async {
     var debugInfo = await fetchDebugInfo(http.Client());
@@ -169,7 +169,7 @@ class _DebugScreenState extends State<DebugScreen> {
 }
 
 class LogsScreen extends StatefulWidget {
-  LogsScreen({Key key}) : super(key: key);
+  LogsScreen({Key? key}) : super(key: key);
 
   @override
   _LogsScreenState createState() => _LogsScreenState();
@@ -206,7 +206,7 @@ class _LogsScreenState extends State<LogsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
       _scrollToEnd();
     });
 

@@ -8,11 +8,11 @@ import 'package:flutter/material.dart';
 // TODO: добавить настройку размера текста?
 
 class JsonViewerWidget extends StatefulWidget {
-  final Map<String, dynamic> jsonObj;
-  final bool notRoot;
+  final Map<String, dynamic>? jsonObj;
+  final bool? notRoot;
   final bool openOnStart;
 
-  JsonViewerWidget(this.jsonObj, {this.notRoot, this.openOnStart}) : assert(openOnStart != null);
+  JsonViewerWidget(this.jsonObj, {this.notRoot, required this.openOnStart}) : assert(openOnStart != null);
 
   @override
   JsonViewerWidgetState createState() => new JsonViewerWidgetState();
@@ -32,11 +32,11 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
   }
 
   _getList() {
-    List<Widget> list = List();
-    for (MapEntry entry in widget.jsonObj.entries) {
+    List<Widget> list = [];
+    for (MapEntry entry in widget.jsonObj!.entries) {
       bool ex = isExtensible(entry.value);
       bool ink = isInkWell(entry.value);
-      bool open = openFlag[entry.key];
+      bool? open = openFlag[entry.key];
       if (widget.openOnStart && (open == null) && ex) {
         open = true;
       } else if (open == null) {
@@ -94,11 +94,11 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
     return list;
   }
 
-  static getContentWidget(dynamic content, bool openOnStart) {
+  static getContentWidget(dynamic content, bool? openOnStart) {
     if (content is List) {
       return JsonArrayViewerWidget(content, notRoot: true, openOnStart: openOnStart);
     } else {
-      return JsonViewerWidget(content, notRoot: true, openOnStart: openOnStart);
+      return JsonViewerWidget(content, notRoot: true, openOnStart: openOnStart!);
     }
   }
 
@@ -218,8 +218,8 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
 
 class JsonArrayViewerWidget extends StatefulWidget {
   final List<dynamic> jsonArray;
-  final bool notRoot;
-  final bool openOnStart;
+  final bool? notRoot;
+  final bool? openOnStart;
 
   JsonArrayViewerWidget(this.jsonArray, {this.notRoot, this.openOnStart});
 
@@ -228,7 +228,7 @@ class JsonArrayViewerWidget extends StatefulWidget {
 }
 
 class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
-  List<bool> openFlag;
+  late List<bool?> openFlag;
 
   @override
   Widget build(BuildContext context) {
@@ -243,11 +243,11 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
   @override
   void initState() {
     super.initState();
-    openFlag = List(widget.jsonArray.length);
+    openFlag = List.filled(widget.jsonArray.length, null, growable: false);
   }
 
   _getList() {
-    List<Widget> list = List();
+    List<Widget> list = [];
     int i = 0;
     for (dynamic content in widget.jsonArray) {
       bool ex = JsonViewerWidgetState.isExtensible(content);

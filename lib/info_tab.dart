@@ -7,14 +7,14 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 
 class MyInfoPage extends StatefulWidget {
-  MyInfoPage({Key key}) : super(key: key);
+  MyInfoPage({Key? key}) : super(key: key);
 
   @override
   _MyInfoPageState createState() => _MyInfoPageState();
 }
 
 class _MyInfoPageState extends State<MyInfoPage> {
-  MyPeerInfo _peerInfo;
+  MyPeerInfo? _peerInfo;
 
   void _onNewPeerInfo(MyPeerInfo newPeerInfo) async {
     if (!this.mounted) {
@@ -52,7 +52,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
     if (_peerInfo == null) {
       return Container();
     }
-    var displayName = _peerInfo.name != "" ? _peerInfo.name : "Unnamed";
+    var displayName = _peerInfo!.name != "" ? _peerInfo!.name : "Unnamed";
 
     return ListView(
       children: [
@@ -74,7 +74,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
                 label: Text("Show ID"),
                 onPressed: () async {
                   myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                  await showQRDialog(context, _peerInfo.peerID, _peerInfo.name);
+                  await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
                   myPeerInfoDataService.subscribe(_onNewPeerInfo);
                 },
               ),
@@ -97,13 +97,13 @@ class _MyInfoPageState extends State<MyInfoPage> {
 
   List<Widget> _buildInfo(BuildContext context) {
     return [
-      _buildBodyItem(Icons.devices, "Peer ID", _peerInfo.peerID),
-      _buildBodyItem(Icons.cloud_download, "Download rate ", _peerInfo.networkStats.inAsString()),
-      _buildBodyItem(Icons.cloud_upload, "Upload rate ", _peerInfo.networkStats.outAsString()),
+      _buildBodyItem(Icons.devices, "Peer ID", _peerInfo!.peerID),
+      _buildBodyItem(Icons.cloud_download, "Download rate ", _peerInfo!.networkStats.inAsString()),
+      _buildBodyItem(Icons.cloud_upload, "Upload rate ", _peerInfo!.networkStats.outAsString()),
       _buildBodyItem(
-          Icons.devices, "Bootstrap peers", "${_peerInfo.connectedBootstrapPeers}/${_peerInfo.totalBootstrapPeers}"),
-      _buildBodyItem(Icons.access_time, "Uptime", formatDuration(_peerInfo.uptime)),
-      _buildBodyItem(Icons.label, "Server version ", _peerInfo.serverVersion),
+          Icons.devices, "Bootstrap peers", "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}"),
+      _buildBodyItem(Icons.access_time, "Uptime", formatDuration(_peerInfo!.uptime)),
+      _buildBodyItem(Icons.label, "Server version ", _peerInfo!.serverVersion),
     ];
   }
 
@@ -131,7 +131,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
   }
 }
 
-Future<void> showSettingsDialog(BuildContext context, MyPeerInfo peerInfo) {
+Future<void> showSettingsDialog(BuildContext context, MyPeerInfo? peerInfo) {
   return showDialog(
     context: context,
     builder: (context) {
@@ -151,20 +151,20 @@ Future<void> showSettingsDialog(BuildContext context, MyPeerInfo peerInfo) {
 }
 
 class SettingsForm extends StatefulWidget {
-  final MyPeerInfo peerInfo;
+  final MyPeerInfo? peerInfo;
 
-  SettingsForm({Key key, this.peerInfo}) : super(key: key);
+  SettingsForm({Key? key, this.peerInfo}) : super(key: key);
 
   @override
   _SettingsFormState createState() => _SettingsFormState();
 }
 
 class _SettingsFormState extends State<SettingsForm> {
-  TextEditingController _peerNameTextController;
+  TextEditingController? _peerNameTextController;
   final _formKey = GlobalKey<FormState>();
 
-  Future<String> _onPressSave() async {
-    var response = await updateMySettings(http.Client(), _peerNameTextController.text);
+  Future<String?> _onPressSave() async {
+    var response = await updateMySettings(http.Client(), _peerNameTextController!.text);
     return response;
   }
 
@@ -172,7 +172,7 @@ class _SettingsFormState extends State<SettingsForm> {
   void initState() {
     super.initState();
 
-    _peerNameTextController = TextEditingController(text: widget.peerInfo.name);
+    _peerNameTextController = TextEditingController(text: widget.peerInfo!.name);
   }
 
   @override

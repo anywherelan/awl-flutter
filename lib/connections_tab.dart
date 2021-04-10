@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:peerlanflutter/entities.dart';
-import 'package:peerlanflutter/data_service.dart';
 
 class ConnectionsPage extends StatefulWidget {
-  ConnectionsPage({Key key}) : super(key: key);
+  ConnectionsPage({Key? key}) : super(key: key);
 
   @override
   _ConnectionsPageState createState() => _ConnectionsPageState();

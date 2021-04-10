@@ -3,10 +3,9 @@ import 'package:peerlanflutter/entities.dart';
 import 'package:peerlanflutter/api.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
-import 'dart:io';
 
 class KnownPeerSettingsScreen extends StatefulWidget {
-  KnownPeerSettingsScreen({Key key}) : super(key: key);
+  KnownPeerSettingsScreen({Key? key}) : super(key: key);
 
   @override
   _KnownPeerSettingsScreenState createState() => _KnownPeerSettingsScreenState();
@@ -15,8 +14,8 @@ class KnownPeerSettingsScreen extends StatefulWidget {
 class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   TextEditingController _aliasTextController = TextEditingController();
 
-  String _peerID;
-  KnownPeerConfig _peerConfig;
+  late String _peerID;
+  KnownPeerConfig? _peerConfig;
 
   var _scaffoldKey = new GlobalKey<ScaffoldState>();
 
@@ -35,8 +34,8 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
     });
   }
 
-  Future<String> _sendNewPeerConfig() async {
-    var payload = UpdateKnownPeerConfigRequest(_peerConfig.peerId, _aliasTextController.text);
+  Future<String?> _sendNewPeerConfig() async {
+    var payload = UpdateKnownPeerConfigRequest(_peerConfig!.peerId, _aliasTextController.text);
 
     var response = await updateKnownPeerConfig(http.Client(), payload);
     return response;
@@ -45,7 +44,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_peerConfig == null) {
-      _peerID = ModalRoute.of(context).settings.arguments;
+      _peerID = ModalRoute.of(context)!.settings.arguments as String;
 
       _refreshPeerConfig();
       return Container();
@@ -78,14 +77,14 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
                   onPressed: () async {
                     var result = await _sendNewPeerConfig();
                     if (result == "") {
-                      _scaffoldKey.currentState.showSnackBar(SnackBar(
+                      _scaffoldKey.currentState!.showSnackBar(SnackBar(
                         backgroundColor: Colors.green,
                         content: Text("Successfully saved"),
                       ));
                     } else {
-                      _scaffoldKey.currentState.showSnackBar(SnackBar(
+                      _scaffoldKey.currentState!.showSnackBar(SnackBar(
                         backgroundColor: Colors.red,
-                        content: Text(result),
+                        content: Text(result!),
                       ));
                     }
                   },
@@ -107,7 +106,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           Padding(
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
-              initialValue: _peerConfig.peerId,
+              initialValue: _peerConfig!.peerId,
               decoration: InputDecoration(labelText: 'Peer ID', enabled: false),
               maxLines: 2,
               minLines: 1,
@@ -117,7 +116,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           Padding(
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
-              initialValue: _peerConfig.ipAddr,
+              initialValue: _peerConfig!.ipAddr,
               decoration: InputDecoration(labelText: 'Local address', enabled: false),
               maxLines: 2,
               minLines: 1,
@@ -127,7 +126,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           Padding(
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
-              initialValue: _peerConfig.name,
+              initialValue: _peerConfig!.name,
               decoration: InputDecoration(labelText: 'Name', enabled: false),
               readOnly: true,
             ),

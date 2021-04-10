@@ -3,12 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:peerlanflutter/api.dart';
-import 'package:peerlanflutter/entities.dart';
-import 'package:peerlanflutter/common.dart';
 import 'package:http/http.dart' as http;
-import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:barcode_scan/barcode_scan.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 void showAddPeerDialog(BuildContext context) {
@@ -44,7 +40,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
   String _serverError = "";
 
   void _onPressInvite() async {
-    if (!_formKey.currentState.validate()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -53,10 +49,10 @@ class _AddPeerFormState extends State<AddPeerForm> {
       // "Invitation was sent"
       Navigator.pop(context);
       _serverError = "";
-      _formKey.currentState.validate();
+      _formKey.currentState!.validate();
     } else {
       _serverError = response;
-      _formKey.currentState.validate();
+      _formKey.currentState!.validate();
       _serverError = "";
     }
   }
@@ -72,12 +68,13 @@ class _AddPeerFormState extends State<AddPeerForm> {
       return;
     }
 
-    var result = await BarcodeScanner.scan();
-    if (result.type == ResultType.Barcode && result.rawContent != "") {
-      setState(() {
-        _peerIdTextController.text = result.rawContent;
-      });
-    }
+    // TODO: reimplement with qr_code_scanner lib
+    // var result = await BarcodeScanner.scan();
+    // if (result.type == ResultType.Barcode && result.rawContent != "") {
+    //   setState(() {
+    //     _peerIdTextController.text = result.rawContent;
+    //   });
+    // }
   }
 
   @override
@@ -91,7 +88,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
               validator: (value) {
-                if (value.isEmpty) {
+                if (value!.isEmpty) {
                   return 'Please enter some text';
                 } else if (_serverError != "") {
                   return _serverError;
