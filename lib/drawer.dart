@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:peerlanflutter/api.dart';
-import 'package:peerlanflutter/json_widget/json_widget.dart';
+import 'package:anywherelan/api.dart';
+import 'package:anywherelan/json_widget/json_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:peerlanflutter/server_interop/server_interop.dart';
+import 'package:anywherelan/server_interop/server_interop.dart';
 
 class MyDrawer extends StatefulWidget {
   @override
@@ -18,15 +18,9 @@ class _MyDrawerState extends State<MyDrawer> {
       child: SafeArea(
         child: ListView(
           children: [
-//            DrawerHeader(
-//              child: Text(
-//                "Peerlan",
-//                style: textTheme.headline5,
-//              ),
-//            ),
             ListTile(
               title: Text(
-                "Peerlan",
+                "Anywherelan",
                 style: textTheme.headline5,
               ),
             ),
@@ -86,9 +80,9 @@ class _MyDrawerState extends State<MyDrawer> {
             AboutListTile(
               icon: Icon(Icons.info),
               applicationIcon: FlutterLogo(),
-              applicationName: 'Peerlan',
-              applicationVersion: 'May 2020',
-              applicationLegalese: '© 2020 The Peerlan Authors',
+              applicationName: 'Anywherelan',
+              applicationVersion: 'April 2021',
+              applicationLegalese: '© 2021 The Anywherelan Authors',
               aboutBoxChildren: _buildAboutBox(),
             ),
           ],
@@ -104,8 +98,8 @@ class _MyDrawerState extends State<MyDrawer> {
       RichText(
         text: TextSpan(
           children: <TextSpan>[
-            TextSpan(style: textStyle, text: 'Peerlan is lala lalala. Learn more about Peerlan at '),
-            TextSpan(style: textStyle.copyWith(color: Theme.of(context).accentColor), text: 'https://peerlan.net'),
+            TextSpan(style: textStyle, text: 'TODO'),
+            TextSpan(style: textStyle.copyWith(color: Theme.of(context).accentColor), text: 'https://anywherelan.com'),
             TextSpan(style: textStyle, text: '.'),
           ],
         ),

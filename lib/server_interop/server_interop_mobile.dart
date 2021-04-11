@@ -1,6 +1,6 @@
 import 'dart:io' as io;
 import 'package:flutter/services.dart';
-import 'package:peerlanflutter/api.dart';
+import 'package:anywherelan/api.dart';
 import 'package:flutter/material.dart';
 
 Future<void> initAppImpl() async {
@@ -14,7 +14,7 @@ Future<void> initAppImpl() async {
 //  serverAddress = "http://192.168.1.19:8000?address=http://localhost:8640";
 }
 
-const platform = const MethodChannel('peerlan.net');
+const platform = const MethodChannel('anywherelan');
 var serverRunning = false; // REMOVE
 
 Future<void> initServerImpl() async {

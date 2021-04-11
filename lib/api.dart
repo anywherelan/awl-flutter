@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:peerlanflutter/entities.dart';
+import 'package:anywherelan/entities.dart';
 import 'dart:async';
 
 const V0Prefix = "/api/v0/";

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:peerlanflutter/entities.dart';
-import 'package:peerlanflutter/api.dart';
+import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/api.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 

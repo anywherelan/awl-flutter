@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:peerlanflutter/api.dart';
-import 'package:peerlanflutter/entities.dart';
+import 'package:anywherelan/api.dart';
+import 'package:anywherelan/entities.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 import 'dart:convert';

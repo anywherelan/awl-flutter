@@ -1,5 +1,5 @@
 import 'dart:html';
-import 'package:peerlanflutter/api.dart';
+import 'package:anywherelan/api.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kProfileMode;
 
 Future<void> initAppImpl() async {

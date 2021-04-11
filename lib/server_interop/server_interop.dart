@@ -1,8 +1,8 @@
 import 'server_interop_stub.dart'
 // ignore: uri_does_not_exist
-    if (dart.library.io) 'package:peerlanflutter/server_interop/server_interop_mobile.dart'
+    if (dart.library.io) 'package:anywherelan/server_interop/server_interop_mobile.dart'
 // ignore: uri_does_not_exist
-    if (dart.library.html) 'package:peerlanflutter/server_interop/server_interop_web.dart';
+    if (dart.library.html) 'package:anywherelan/server_interop/server_interop_web.dart';
 
 Future<void> initApp() async {
   return initAppImpl();

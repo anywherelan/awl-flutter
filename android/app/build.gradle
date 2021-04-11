@@ -37,8 +37,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.peerlan.peerlanflutter"
+        applicationId "com.anywherelan.awl"
         minSdkVersion 20
         targetSdkVersion 30
         versionCode flutterVersionCode.toInteger()
@@ -68,5 +67,5 @@ repositories{
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    api(name:'peerlan', ext:'aar') // Added
+    api(name:'anywherelan', ext:'aar')
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:peerlanflutter/api.dart';
+import 'package:anywherelan/api.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -8,7 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:peerlanflutter/server_interop/server_interop.dart';
+import 'package:anywherelan/server_interop/server_interop.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   AppSettingsScreen({Key? key}) : super(key: key);
@@ -89,13 +89,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       body: SafeArea(
         child: ListView(
           children: [
-//            ListTile(
-//              title: Text(
-//                "Peerlan",
-//                style: textTheme.bodyText2,
-//              ),
-//            ),
-//            const Divider(),
             if (!kIsWeb)
               ListTile(
                 title: Text(

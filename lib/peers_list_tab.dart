@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:peerlanflutter/data_service.dart';
-import 'package:peerlanflutter/entities.dart';
-import 'package:peerlanflutter/common.dart';
+import 'package:anywherelan/data_service.dart';
+import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/common.dart';
 
 class PeersListPage extends StatefulWidget {
   PeersListPage({Key? key}) : super(key: key);

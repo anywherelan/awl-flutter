@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:peerlanflutter/api.dart';
-import 'package:peerlanflutter/entities.dart';
+import 'package:anywherelan/api.dart';
+import 'package:anywherelan/entities.dart';
 import 'package:http/http.dart' as http;
 
 class ServerDataService<T> {

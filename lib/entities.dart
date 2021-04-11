@@ -1,5 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:peerlanflutter/common.dart';
+import 'package:anywherelan/common.dart';
 
 part 'entities.g.dart';
 

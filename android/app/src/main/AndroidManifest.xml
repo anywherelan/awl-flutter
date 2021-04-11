@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.peerlan.peerlanflutter">
+    package="com.anywherelan.awl">
     <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-permission android:name="android.permission.CAMERA" />
@@ -20,7 +20,7 @@
              FlutterApplication and put your custom class here. -->
     <application
         android:name="io.flutter.app.FlutterApplication"
-        android:label="peerlanflutter"
+        android:label="Anywherelan"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

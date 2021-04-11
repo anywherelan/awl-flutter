@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:peerlanflutter/peers_list_tab.dart';
-import 'package:peerlanflutter/info_tab.dart';
-import 'package:peerlanflutter/connections_tab.dart';
-import 'package:peerlanflutter/drawer.dart';
-import 'package:peerlanflutter/add_peer.dart';
-import 'package:peerlanflutter/settings_screen.dart';
-import 'package:peerlanflutter/peer_settings_screen.dart';
-import 'package:peerlanflutter/notifications.dart';
-import 'package:peerlanflutter/data_service.dart';
-import 'package:peerlanflutter/server_interop/server_interop.dart';
+import 'package:anywherelan/peers_list_tab.dart';
+import 'package:anywherelan/info_tab.dart';
+import 'package:anywherelan/connections_tab.dart';
+import 'package:anywherelan/drawer.dart';
+import 'package:anywherelan/add_peer.dart';
+import 'package:anywherelan/settings_screen.dart';
+import 'package:anywherelan/peer_settings_screen.dart';
+import 'package:anywherelan/notifications.dart';
+import 'package:anywherelan/data_service.dart';
+import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:overlay_support/overlay_support.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -67,13 +67,13 @@ class MyApp extends StatelessWidget {
 //    globalTheme = ThemeData.light().copyWith(primatextTheme: TextTheme());
 
     final app = MaterialApp(
-      title: 'Peerlan Demo',
+      title: 'Anywherelan',
       navigatorKey: navigatorKey,
 //      onUnknownRoute:,
       theme: globalTheme,
       initialRoute: '/',
       routes: {
-        '/': (context) => MyHomePage(title: 'Peerlan Demo'),
+        '/': (context) => MyHomePage(title: 'Anywherelan'),
         '/debug': (context) => DebugScreen(),
         '/logs': (context) => LogsScreen(),
         '/settings': (context) => AppSettingsScreen(),
