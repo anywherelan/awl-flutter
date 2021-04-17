@@ -28,6 +28,30 @@ class _MyDrawerState extends State<MyDrawer> {
             if (!kIsWeb)
               ListTile(
                 title: Text(
+                  isServerRunning() ? "Stop server" : "Start server",
+                ),
+                enabled: true,
+                selected: false,
+                leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
+                onTap: () async {
+                  var message = "";
+                  if (isServerRunning()) {
+                    await stopServer();
+                    message = "Server stopped";
+                  } else {
+                    await initServer();
+                    message = "Server started";
+                  }
+                  Navigator.of(context).pop();
+                  Scaffold.of(context).showSnackBar(SnackBar(
+                    backgroundColor: Colors.green,
+                    content: Text(message),
+                  ));
+                },
+              ),
+            if (!kIsWeb && isServerRunning())
+              ListTile(
+                title: Text(
                   "Restart server",
                 ),
                 enabled: true,
