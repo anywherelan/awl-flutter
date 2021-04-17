@@ -19,25 +19,31 @@ var serverRunning = false; // REMOVE
 
 Future<void> initServerImpl() async {
   assert(!serverRunning, "calling initServer to running server");
-  serverRunning = true;
 
   try {
     final int port = await platform.invokeMethod('start_server');
     serverAddress = "http://127.0.0.1:$port";
+    serverRunning = true;
   } on PlatformException catch (e) {
+    print("Failed to init server: '${e.message}'.");
+  } on MissingPluginException catch (e) {
     print("Failed to init server: '${e.message}'.");
   }
 }
 
 Future<void> stopServerImpl() async {
   assert(serverRunning, "calling stopServer to not running server");
-  serverRunning = false;
 
   try {
     await platform.invokeMethod('stop_server');
   } on PlatformException catch (e) {
     print("Failed to stop server: '${e.message}'.");
   }
+  serverRunning = false;
+}
+
+bool isServerRunningImpl() {
+  return serverRunning;
 }
 
 Future<String> importConfigImpl(String config) async {

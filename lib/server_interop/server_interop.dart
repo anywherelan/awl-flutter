@@ -16,6 +16,10 @@ Future<void> stopServer() async {
   return stopServerImpl();
 }
 
+bool isServerRunning() {
+  return isServerRunningImpl();
+}
+
 Future<String> importConfig(String config) async {
   return importConfigImpl(config);
 }

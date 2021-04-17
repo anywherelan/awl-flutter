@@ -33,17 +33,27 @@ var serverAddress = "";
 //  }
 
 Future<MyPeerInfo> fetchMyPeerInfo(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + GetMyPeerInfoPath));
-  final Map<String, dynamic> parsed = jsonDecode(response.body);
+  try {
+    final response = await client.get(Uri.parse(serverAddress + GetMyPeerInfoPath));
+    final Map<String, dynamic> parsed = jsonDecode(response.body);
 
-  return MyPeerInfo.fromJson(parsed);
+    return MyPeerInfo.fromJson(parsed);
+  } catch (e) {
+    print("error in fetchMyPeerInfo: '${e.toString()}'.");
+    return MyPeerInfo("", "", Duration(), "", NetworkStats(0, 0, 0, 0), 1, 0);
+  }
 }
 
 Future<List<KnownPeer>?> fetchKnownPeers(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + GetKnownPeersPath));
-  final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
+  try {
+    final response = await client.get(Uri.parse(serverAddress + GetKnownPeersPath));
+    final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
-  return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
+    return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
+  } catch (e) {
+    print("error in fetchKnownPeers: '${e.toString()}'.");
+    return null;
+  }
 }
 
 Future<Map<String, dynamic>?> fetchDebugInfo(http.Client client) async {
@@ -61,10 +71,15 @@ Future<String> fetchLogs(http.Client client) async {
 }
 
 Future<List<AuthRequest>> fetchAuthRequests(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + GetAuthRequestsPath));
-  final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
+  try {
+    final response = await client.get(Uri.parse(serverAddress + GetAuthRequestsPath));
+    final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
-  return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
+    return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
+  } catch (e) {
+    print("error in fetchAuthRequests: '${e.toString()}'.");
+    return [];
+  }
 }
 
 Future<String> sendFriendRequest(http.Client client, String peerID, String alias) async {

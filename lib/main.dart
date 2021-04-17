@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:anywherelan/peers_list_tab.dart';
 import 'package:anywherelan/info_tab.dart';
@@ -6,7 +7,7 @@ import 'package:anywherelan/drawer.dart';
 import 'package:anywherelan/add_peer.dart';
 import 'package:anywherelan/settings_screen.dart';
 import 'package:anywherelan/peer_settings_screen.dart';
-import 'package:anywherelan/notifications.dart';
+import 'package:anywherelan/notifications.dart' as notif;
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:overlay_support/overlay_support.dart';
@@ -39,7 +40,11 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 //  -
 
 void main() async {
-  await initApp();
+  if (kIsWeb) {
+    await initApp();
+  } else {
+    initAndroid();
+  }
 
   var futures = <Future>[];
   futures.add(myPeerInfoDataService.fetchData());
@@ -49,11 +54,48 @@ void main() async {
   runApp(MyApp());
 }
 
+Future<void> initAndroid() async {
+  await initApp();
+  if (isServerRunning()) {
+    return;
+  }
+
+  while (true) {
+    await Future.delayed(Duration(seconds: 10));
+    if (isServerRunning()) {
+      return;
+    }
+
+    await notif.showDialog(
+      builder: (context) {
+        return SimpleDialog(
+          title: Text("You need to accept vpn connection to use this app"),
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                RaisedButton(
+                  child: Text('OK'),
+                  onPressed: () async {
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            )
+          ],
+        );
+      },
+    );
+
+    await initApp();
+  }
+}
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    globalTheme = ThemeData.light();
-    globalTheme = ThemeData(
+    notif.globalTheme = ThemeData.light();
+    notif.globalTheme = ThemeData(
       primarySwatch: Colors.green,
       visualDensity: VisualDensity.adaptivePlatformDensity,
 //      textTheme: TextTheme(
@@ -68,9 +110,9 @@ class MyApp extends StatelessWidget {
 
     final app = MaterialApp(
       title: 'Anywherelan',
-      navigatorKey: navigatorKey,
+      navigatorKey: notif.navigatorKey,
 //      onUnknownRoute:,
-      theme: globalTheme,
+      theme: notif.globalTheme,
       initialRoute: '/',
       routes: {
         '/': (context) => MyHomePage(title: 'Anywherelan'),
@@ -101,7 +143,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   TabController? _tabController;
-  final _notificationsService = NotificationsService();
+  final _notificationsService = notif.NotificationsService();
 
   @override
   void initState() {

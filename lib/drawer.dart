@@ -34,7 +34,9 @@ class _MyDrawerState extends State<MyDrawer> {
                 selected: false,
                 leading: const Icon(Icons.refresh),
                 onTap: () async {
-                  await stopServer();
+                  if (isServerRunning()) {
+                    await stopServer();
+                  }
                   await initServer();
                   Navigator.of(context).pop();
                   Scaffold.of(context).showSnackBar(SnackBar(

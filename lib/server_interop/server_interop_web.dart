@@ -19,6 +19,10 @@ Future<void> stopServerImpl() async {
   throw UnsupportedError('Unsupported for web');
 }
 
+bool isServerRunningImpl() {
+  throw UnsupportedError('Unsupported for web');
+}
+
 Future<String> importConfigImpl(String config) async {
   throw UnsupportedError('Unsupported for web');
 }

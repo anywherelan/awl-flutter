@@ -4,6 +4,7 @@ import 'package:anywherelan/api.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
@@ -127,6 +128,29 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     _scaffoldKey.currentState!.showSnackBar(SnackBar(
                       backgroundColor: result.success ? Colors.green : Colors.red,
                       content: Text(result.message),
+                    ));
+                  }
+                },
+              ),
+            if (!kIsWeb)
+              ListTile(
+                title: Text(
+                  "Request ignore battery optimizations",
+                ),
+                enabled: true,
+                selected: false,
+                leading: const Icon(Icons.adb),
+                onTap: () async {
+                  var status = await Permission.ignoreBatteryOptimizations.request();
+                  if (status == PermissionStatus.granted) {
+                    _scaffoldKey.currentState!.showSnackBar(SnackBar(
+                      backgroundColor: Colors.green,
+                      content: Text("Permission granted"),
+                    ));
+                  } else if (status == PermissionStatus.denied) {
+                    _scaffoldKey.currentState!.showSnackBar(SnackBar(
+                      backgroundColor: Colors.red,
+                      content: Text("Permission denied"),
                     ));
                   }
                 },
