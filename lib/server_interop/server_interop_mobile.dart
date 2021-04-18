@@ -21,8 +21,8 @@ Future<void> initServerImpl() async {
   assert(!serverRunning, "calling initServer to running server");
 
   try {
-    final int port = await platform.invokeMethod('start_server');
-    serverAddress = "http://127.0.0.1:$port";
+    final String apiAddress = await platform.invokeMethod('start_server');
+    serverAddress = "http://$apiAddress";
     serverRunning = true;
   } on PlatformException catch (e) {
     print("Failed to init server: '${e.message}'.");

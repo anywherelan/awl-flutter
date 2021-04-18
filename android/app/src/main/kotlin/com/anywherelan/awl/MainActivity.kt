@@ -52,8 +52,8 @@ class MainActivity : FlutterActivity() {
                     }
 
                     Anywherelan.initServer(this.filesDir.absolutePath, tunFd)
-                    val port = Anywherelan.getPort()
-                    result.success(port)
+                    val apiAddress = Anywherelan.getApiAddress()
+                    result.success(apiAddress)
                 }
                 "stop_server" -> {
                     Anywherelan.stopServer()
