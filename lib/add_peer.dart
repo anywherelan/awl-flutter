@@ -45,7 +45,8 @@ class _AddPeerFormState extends State<AddPeerForm> {
       return;
     }
 
-    var response = await sendFriendRequest(http.Client(), _peerIdTextController.text, _aliasTextController.text);
+    var response = await sendFriendRequest(
+        http.Client(), _peerIdTextController.text, _aliasTextController.text);
     if (response == "") {
       // "Invitation was sent"
       Navigator.pop(context);
@@ -59,8 +60,9 @@ class _AddPeerFormState extends State<AddPeerForm> {
   }
 
   void _scanQR(BuildContext context) async {
-    // TODO: support web; there is an open PR in lib
-    if (Platform.isAndroid) {
+    if (kIsWeb) {
+      // supported
+    } else if (Platform.isAndroid) {
       var status = await Permission.camera.request();
       if (status != PermissionStatus.granted) {
         return;
@@ -69,8 +71,8 @@ class _AddPeerFormState extends State<AddPeerForm> {
       return;
     }
 
-    var res =
-        await Navigator.of(context).push<Barcode?>(MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
+    var res = await Navigator.of(context).push<Barcode?>(
+        MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
     if (res == null || res.code == '') {
       return;
     }
@@ -120,14 +122,13 @@ class _AddPeerFormState extends State<AddPeerForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              if (!kIsWeb)
-                RaisedButton.icon(
-                  icon: Image(image: AssetImage('assets/qrcode.png')),
-                  label: Text('Scan QR'),
-                  onPressed: () async {
-                    _scanQR(context);
-                  },
-                ),
+              RaisedButton.icon(
+                icon: Image(image: AssetImage('assets/qrcode.png')),
+                label: Text('Scan QR'),
+                onPressed: () async {
+                  _scanQR(context);
+                },
+              ),
               RaisedButton(
                 child: Text('Invite peer'),
                 onPressed: () async {
@@ -180,15 +181,21 @@ class _QRScanPageState extends State<QRScanPage> {
 
   Widget _buildQrView(BuildContext context) {
     // For this example we check how width or tall the device is and change the scanArea and overlay accordingly.
-    var scanArea =
-        (MediaQuery.of(context).size.width < 400 || MediaQuery.of(context).size.height < 400) ? 150.0 : 300.0;
+    var scanArea = (MediaQuery.of(context).size.width < 400 ||
+            MediaQuery.of(context).size.height < 400)
+        ? 150.0
+        : 300.0;
     // To ensure the Scanner view is properly sizes after rotation
     // we need to listen for Flutter SizeChanged notification and update controller
     return QRView(
       key: qrKey,
       onQRViewCreated: _onQRViewCreated,
       overlay: QrScannerOverlayShape(
-          borderColor: Colors.red, borderRadius: 10, borderLength: 30, borderWidth: 10, cutOutSize: scanArea),
+          borderColor: Colors.red,
+          borderRadius: 10,
+          borderLength: 30,
+          borderWidth: 10,
+          cutOutSize: scanArea),
     );
   }
 
@@ -197,7 +204,10 @@ class _QRScanPageState extends State<QRScanPage> {
       this.controller = controller;
     });
     controller.scannedDataStream.listen((scanData) {
-      controller.stopCamera();
+      // TODO: remove condition when qr_code_scanner will support stopCamera()
+      if (!kIsWeb) {
+        controller.stopCamera();
+      }
       setState(() {
         result = scanData;
       });
