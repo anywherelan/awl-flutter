@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:share/share.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 var qrCodeImage = Image(image: AssetImage('assets/qrcode.png'));
 
-Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName) async {
+Future<void> showQRDialog(
+    BuildContext context, String? peerID, String? peerName) async {
   await showDialog(
     context: context,
     builder: (context) {
@@ -37,19 +37,18 @@ Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName
                     Clipboard.setData(data);
                   },
                 ),
-                if (!kIsWeb)
-                  RawMaterialButton(
-                    elevation: 0.0,
-                    child: Icon(Icons.share),
-                    constraints: BoxConstraints.tightFor(
-                      width: 40.0,
-                      height: 50.0,
-                    ),
-                    shape: CircleBorder(),
-                    onPressed: () {
-                      Share.share(peerID);
-                    },
+                RawMaterialButton(
+                  elevation: 0.0,
+                  child: Icon(Icons.share),
+                  constraints: BoxConstraints.tightFor(
+                    width: 40.0,
+                    height: 50.0,
                   ),
+                  shape: CircleBorder(),
+                  onPressed: () {
+                    Share.share(peerID);
+                  },
+                ),
               ],
             ),
           ),
@@ -92,10 +91,12 @@ Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName
   );
 }
 
-final zeroGoTime = DateTime.fromMicrosecondsSinceEpoch(-62135596800000000, isUtc: true);
+final zeroGoTime =
+    DateTime.fromMicrosecondsSinceEpoch(-62135596800000000, isUtc: true);
 
 String formatDuration(Duration duration) {
-  var seconds = duration.inSeconds > 0 ? duration.inSeconds : duration.inSeconds * -1;
+  var seconds =
+      duration.inSeconds > 0 ? duration.inSeconds : duration.inSeconds * -1;
   final days = seconds ~/ Duration.secondsPerDay;
   seconds -= days * Duration.secondsPerDay;
   final hours = seconds ~/ Duration.secondsPerHour;
