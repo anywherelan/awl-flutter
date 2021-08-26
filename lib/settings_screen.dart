@@ -1,15 +1,16 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:anywherelan/api.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:permission_handler/permission_handler.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:io';
+
+import 'package:anywherelan/api.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   AppSettingsScreen({Key? key}) : super(key: key);
@@ -78,12 +79,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    var _scaffoldKey = new GlobalKey<ScaffoldState>();
-
     return Scaffold(
-      key: _scaffoldKey,
       appBar: AppBar(
         title: const Text('Settings'),
       ),
@@ -104,7 +100,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 onTap: () async {
                   var result = await _exportSettings();
                   if (result.message != "") {
-                    _scaffoldKey.currentState!.showSnackBar(SnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       backgroundColor: result.success ? Colors.green : Colors.red,
                       content: Text(result.message),
                     ));
@@ -125,7 +121,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 onTap: () async {
                   var result = await _importSettings();
                   if (result.message != "") {
-                    _scaffoldKey.currentState!.showSnackBar(SnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       backgroundColor: result.success ? Colors.green : Colors.red,
                       content: Text(result.message),
                     ));
@@ -143,12 +139,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 onTap: () async {
                   var status = await Permission.ignoreBatteryOptimizations.request();
                   if (status == PermissionStatus.granted) {
-                    _scaffoldKey.currentState!.showSnackBar(SnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       backgroundColor: Colors.green,
                       content: Text("Permission granted"),
                     ));
                   } else if (status == PermissionStatus.denied) {
-                    _scaffoldKey.currentState!.showSnackBar(SnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       backgroundColor: Colors.red,
                       content: Text("Permission denied"),
                     ));

@@ -1,10 +1,10 @@
-import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/json_widget/json_widget.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:anywherelan/server_interop/server_interop.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 class MyDrawer extends StatefulWidget {
@@ -45,7 +45,7 @@ class _MyDrawerState extends State<MyDrawer> {
                     message = "Server started";
                   }
                   Navigator.of(context).pop();
-                  Scaffold.of(context).showSnackBar(SnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     backgroundColor: Colors.green,
                     content: Text(message),
                   ));
@@ -65,7 +65,7 @@ class _MyDrawerState extends State<MyDrawer> {
                   }
                   await initServer();
                   Navigator.of(context).pop();
-                  Scaffold.of(context).showSnackBar(SnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     backgroundColor: Colors.green,
                     content: Text("Server restarted"),
                   ));

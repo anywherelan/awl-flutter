@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:anywherelan/entities.dart';
-import 'package:anywherelan/api.dart';
-import 'package:http/http.dart' as http;
 import 'dart:async';
+
+import 'package:anywherelan/api.dart';
+import 'package:anywherelan/entities.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class KnownPeerSettingsScreen extends StatefulWidget {
   KnownPeerSettingsScreen({Key? key}) : super(key: key);
@@ -16,8 +17,6 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
 
   late String _peerID;
   KnownPeerConfig? _peerConfig;
-
-  var _scaffoldKey = new GlobalKey<ScaffoldState>();
 
   final _generalFormKey = GlobalKey<FormState>();
 
@@ -51,7 +50,6 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
     }
 
     return Scaffold(
-      key: _scaffoldKey,
       appBar: AppBar(
         title: const Text('Settings'),
       ),
@@ -77,12 +75,12 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
                   onPressed: () async {
                     var result = await _sendNewPeerConfig();
                     if (result == "") {
-                      _scaffoldKey.currentState!.showSnackBar(SnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         backgroundColor: Colors.green,
                         content: Text("Successfully saved"),
                       ));
                     } else {
-                      _scaffoldKey.currentState!.showSnackBar(SnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         backgroundColor: Colors.red,
                         content: Text(result!),
                       ));
