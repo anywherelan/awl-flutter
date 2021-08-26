@@ -1,9 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/json_widget/json_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:anywherelan/server_interop/server_interop.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MyDrawer extends StatefulWidget {
   @override
@@ -118,14 +120,22 @@ class _MyDrawerState extends State<MyDrawer> {
   }
 
   List<Widget> _buildAboutBox() {
-    final TextStyle textStyle = Theme.of(context).textTheme.bodyText2!;
+    final TextStyle textStyle = Theme.of(context).textTheme.bodyText1!;
+    const url = "https://anywherelan.com";
     return <Widget>[
       SizedBox(height: 24),
       RichText(
         text: TextSpan(
           children: <TextSpan>[
-            TextSpan(style: textStyle, text: 'TODO'),
-            TextSpan(style: textStyle.copyWith(color: Theme.of(context).accentColor), text: 'https://anywherelan.com'),
+            TextSpan(style: textStyle, text: 'TODO '),
+            TextSpan(
+              style: textStyle.copyWith(color: Theme.of(context).colorScheme.primary),
+              text: url,
+              recognizer: TapGestureRecognizer()
+                ..onTap = () async {
+                  await canLaunch(url) ? await launch(url) : "";
+                },
+            ),
             TextSpan(style: textStyle, text: '.'),
           ],
         ),
