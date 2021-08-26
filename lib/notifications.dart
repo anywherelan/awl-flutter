@@ -257,7 +257,7 @@ int generateNotificationId(String id) {
 }
 
 final GlobalKey<NavigatorState> navigatorKey = new GlobalKey<NavigatorState>();
-ThemeData? globalTheme;
+late ThemeData globalTheme;
 
 // TODO: придумать способ без этого хака
 
