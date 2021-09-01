@@ -1,14 +1,14 @@
+import 'package:anywherelan/add_peer.dart';
+import 'package:anywherelan/data_service.dart';
+import 'package:anywherelan/drawer.dart';
+import 'package:anywherelan/info_tab.dart';
+import 'package:anywherelan/notifications.dart' as notif;
+import 'package:anywherelan/peer_settings_screen.dart';
+import 'package:anywherelan/peers_list_tab.dart';
+import 'package:anywherelan/server_interop/server_interop.dart';
+import 'package:anywherelan/settings_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:anywherelan/peers_list_tab.dart';
-import 'package:anywherelan/info_tab.dart';
-import 'package:anywherelan/drawer.dart';
-import 'package:anywherelan/add_peer.dart';
-import 'package:anywherelan/settings_screen.dart';
-import 'package:anywherelan/peer_settings_screen.dart';
-import 'package:anywherelan/notifications.dart' as notif;
-import 'package:anywherelan/data_service.dart';
-import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 void main() async {
@@ -116,12 +116,12 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     _notificationsService.init();
     WidgetsBinding.instance!.addObserver(this);
 
-    _tabController = TabController(vsync: this, length: 2)
-      ..addListener(() {
-        _tabChangeListener();
-        // хак, чтобы вызвать build и обновить FloatingActionButton
-        setState(() {});
-      });
+    _tabController = TabController(vsync: this, length: 2, initialIndex: 1);
+    _tabController.addListener(() {
+      _tabChangeListener();
+      // хак, чтобы вызвать build и обновить FloatingActionButton
+      setState(() {});
+    });
 
     _tabChangeListener();
   }
