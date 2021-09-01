@@ -1,7 +1,8 @@
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:anywherelan/entities.dart';
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:anywherelan/entities.dart';
+import 'package:http/http.dart' as http;
 
 const V0Prefix = "/api/v0/";
 
@@ -40,7 +41,7 @@ Future<MyPeerInfo> fetchMyPeerInfo(http.Client client) async {
     return MyPeerInfo.fromJson(parsed);
   } catch (e) {
     print("error in fetchMyPeerInfo: '${e.toString()}'.");
-    return MyPeerInfo("", "", Duration(), "", NetworkStats(0, 0, 0, 0), 1, 0);
+    return MyPeerInfo("", "", Duration(), "", NetworkStats(0, 0, 0, 0), 1, 0, "", "", false);
   }
 }
 

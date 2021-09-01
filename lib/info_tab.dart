@@ -62,8 +62,8 @@ class _MyInfoPageState extends State<MyInfoPage> {
         SizedBox(height: 10),
         Align(
           alignment: Alignment.centerLeft,
-          child:
-              ConstrainedBox(constraints: BoxConstraints(maxWidth: 620), child: Column(children: _buildInfo(context))),
+          child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 620), child: Column(children: _buildInfo(context))),
         ),
         Padding(
           padding: EdgeInsets.only(left: 16.0, right: 16.0, top: 10, bottom: 10),
@@ -97,12 +97,27 @@ class _MyInfoPageState extends State<MyInfoPage> {
   }
 
   List<Widget> _buildInfo(BuildContext context) {
+    var reachabilityText = "unknown";
+    switch (_peerInfo!.reachability) {
+      case "Public":
+        reachabilityText = "public address";
+        break;
+      case "Private":
+        reachabilityText = "private address";
+        break;
+      default:
+        reachabilityText = "unknown";
+    }
+
     return [
       _buildBodyItem(Icons.devices, "Peer ID", _peerInfo!.peerID),
       _buildBodyItem(Icons.cloud_download, "Download rate ", _peerInfo!.networkStats.inAsString()),
       _buildBodyItem(Icons.cloud_upload, "Upload rate ", _peerInfo!.networkStats.outAsString()),
-      _buildBodyItem(
-          Icons.devices, "Bootstrap peers", "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}"),
+      _buildBodyItem(Icons.devices, "Bootstrap peers",
+          "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}"),
+      _buildBodyItem(Icons.dns, "DNS",
+          _peerInfo!.isAwlDNSSetAsSystem && _peerInfo!.awlDNSAddress != "" ? "working" : "not working"),
+      _buildBodyItem(Icons.my_location, "Reachability", reachabilityText),
       _buildBodyItem(Icons.access_time, "Uptime", formatDuration(_peerInfo!.uptime)),
       _buildBodyItem(Icons.label, "Server version ", _peerInfo!.serverVersion),
     ];

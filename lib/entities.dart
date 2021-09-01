@@ -1,5 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import 'package:anywherelan/common.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'entities.g.dart';
 
@@ -33,17 +33,31 @@ class MyPeerInfo {
   final NetworkStats networkStats;
   final int totalBootstrapPeers;
   final int connectedBootstrapPeers;
+  final String reachability;
+  final String awlDNSAddress;
+  final bool isAwlDNSSetAsSystem;
 
-  MyPeerInfo(this.peerID, this.name, this.uptime, this.serverVersion, this.networkStats, this.totalBootstrapPeers,
-      this.connectedBootstrapPeers);
+  MyPeerInfo(
+      this.peerID,
+      this.name,
+      this.uptime,
+      this.serverVersion,
+      this.networkStats,
+      this.totalBootstrapPeers,
+      this.connectedBootstrapPeers,
+      this.reachability,
+      this.awlDNSAddress,
+      this.isAwlDNSSetAsSystem);
 
   factory MyPeerInfo.fromJson(Map<String, dynamic> json) => _$MyPeerInfoFromJson(json);
 
   Map<String, dynamic> toJson() => _$MyPeerInfoToJson(this);
 
-  static Duration _durationFromNanoseconds(int milliseconds) => Duration(microseconds: (milliseconds ~/ 1000).toInt());
+  static Duration _durationFromNanoseconds(int milliseconds) =>
+      Duration(microseconds: (milliseconds ~/ 1000).toInt());
 
-  static int? _durationToNanoseconds(Duration? duration) => duration == null ? null : duration.inMilliseconds * 1000;
+  static int? _durationToNanoseconds(Duration? duration) =>
+      duration == null ? null : duration.inMilliseconds * 1000;
 }
 
 @JsonSerializable(fieldRename: FieldRename.pascal)

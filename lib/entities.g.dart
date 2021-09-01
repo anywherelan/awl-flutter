@@ -41,6 +41,9 @@ MyPeerInfo _$MyPeerInfoFromJson(Map<String, dynamic> json) {
     NetworkStats.fromJson(json['NetworkStats'] as Map<String, dynamic>),
     json['TotalBootstrapPeers'] as int,
     json['ConnectedBootstrapPeers'] as int,
+    json['Reachability'] as String,
+    json['AwlDNSAddress'] as String,
+    json['IsAwlDNSSetAsSystem'] as bool,
   );
 }
 
@@ -53,6 +56,9 @@ Map<String, dynamic> _$MyPeerInfoToJson(MyPeerInfo instance) =>
       'NetworkStats': instance.networkStats,
       'TotalBootstrapPeers': instance.totalBootstrapPeers,
       'ConnectedBootstrapPeers': instance.connectedBootstrapPeers,
+      'Reachability': instance.reachability,
+      'AwlDNSAddress': instance.awlDNSAddress,
+      'IsAwlDNSSetAsSystem': instance.isAwlDNSSetAsSystem,
     };
 
 NetworkStats _$NetworkStatsFromJson(Map<String, dynamic> json) {
