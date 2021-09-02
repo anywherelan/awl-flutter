@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:anywherelan/entities.dart';
 import 'package:http/http.dart' as http;
@@ -117,10 +118,10 @@ Future<String?> acceptFriendRequest(http.Client client, String peerID, String al
   return "";
 }
 
-Future<String> fetchExportedServerConfig(http.Client client) async {
+Future<Uint8List> fetchExportedServerConfig(http.Client client) async {
   final response = await client.get(Uri.parse(serverAddress + ExportServerConfigPath));
 
-  return response.body;
+  return response.bodyBytes;
 }
 
 Future<KnownPeerConfig> fetchKnownPeerConfig(http.Client client, String peerID) async {

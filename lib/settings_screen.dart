@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class AppSettingsScreen extends StatefulWidget {
@@ -21,29 +21,26 @@ class AppSettingsScreen extends StatefulWidget {
 
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
   Future<PickerResponse> _exportSettings() async {
-    var tempDir = await getTemporaryDirectory();
-
-    var f = File('${tempDir.path}/config.json');
-    var exportedSettings = await fetchExportedServerConfig(http.Client());
-
-    var newFile = await f.writeAsString(exportedSettings);
-
-    final params = SaveFileDialogParams(
-      sourceFilePath: f.path,
-    );
-
+    final exportedSettings = await fetchExportedServerConfig(http.Client());
     try {
-      final filePath = await FlutterFileDialog.saveFile(params: params);
-
-      newFile.deleteSync();
-      if (filePath == null) {
-        return PickerResponse(true, "");
+      String response;
+      if (kIsWeb) {
+        response = await FileSaver.instance.saveFile("config_awl", exportedSettings, "json", mimeType: MimeType.JSON);
+      } else {
+        response = await FileSaver.instance.saveAs("config_awl.json", exportedSettings, "json", MimeType.JSON);
       }
 
-      return PickerResponse(true, "Settings have been exported");
-    } on PlatformException catch (e) {
-      newFile.deleteSync();
-      return PickerResponse(false, "Failed pick config file path: ${e.message}, ${e.details}");
+      if (response == "Downloads") {
+        // web
+        return PickerResponse(true, "");
+      } else if (response.startsWith("File Successfully Saved")) {
+        // android
+        return PickerResponse(true, "Settings have been exported");
+      }
+
+      return PickerResponse(false, response);
+    } on Exception catch (e) {
+      return PickerResponse(false, "Failed to save config: ${e.toString()}");
     }
   }
 
@@ -86,27 +83,23 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       body: SafeArea(
         child: ListView(
           children: [
-            if (!kIsWeb)
-              ListTile(
-                title: Text(
-                  "Export settings",
-                ),
-//                subtitle: Text(
-//                    "You can restore them later."
-//                ),
-                enabled: true,
-                selected: false,
-                leading: const Icon(Icons.import_export),
-                onTap: () async {
-                  var result = await _exportSettings();
-                  if (result.message != "") {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      backgroundColor: result.success ? Colors.green : Colors.red,
-                      content: Text(result.message),
-                    ));
-                  }
-                },
+            ListTile(
+              title: Text(
+                "Export settings",
               ),
+              enabled: true,
+              selected: false,
+              leading: const Icon(Icons.import_export),
+              onTap: () async {
+                var result = await _exportSettings();
+                if (result.message != "") {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    backgroundColor: result.success ? Colors.green : Colors.red,
+                    content: Text(result.message),
+                  ));
+                }
+              },
+            ),
             if (!kIsWeb)
               ListTile(
                 title: Text(
@@ -114,7 +107,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 ),
                 subtitle: Text(
                     "This action will overwrite current settings, therefore it is recommended to export them first."
-                    " Server will be restarted automatically."),
+                    " Server will be restarted automatically with new configuration."),
                 enabled: true,
                 selected: false,
                 leading: const Icon(Icons.import_export),
