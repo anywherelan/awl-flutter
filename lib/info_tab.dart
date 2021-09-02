@@ -55,7 +55,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
     }
 
     return ListView(
-      padding: EdgeInsets.all(15),
+      padding: EdgeInsets.all(16),
       children: [
         Column(children: _buildInfo(context)),
         SizedBox(height: 10),
@@ -151,7 +151,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
               Icon(icon),
               SizedBox(width: 10),
               Text(label),
-              SizedBox(width: 65),
+              SizedBox(width: 45),
             ],
           ),
           Flexible(
