@@ -53,44 +53,41 @@ class _MyInfoPageState extends State<MyInfoPage> {
     if (_peerInfo == null) {
       return Container();
     }
-    var displayName = _peerInfo!.name != "" ? _peerInfo!.name : "Unnamed";
 
     return ListView(
+      padding: EdgeInsets.all(15),
       children: [
-        SizedBox(height: 16),
-        Center(child: Text(displayName, style: Theme.of(context).textTheme.headline5)),
+        Column(children: _buildInfo(context)),
         SizedBox(height: 10),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 620), child: Column(children: _buildInfo(context))),
-        ),
-        Padding(
-          padding: EdgeInsets.only(left: 16.0, right: 16.0, top: 10, bottom: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              RaisedButton.icon(
-                icon: qrCodeImage,
-                label: Text("Show ID"),
-                onPressed: () async {
-                  myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                  await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
-                  myPeerInfoDataService.subscribe(_onNewPeerInfo);
-                },
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            OutlinedButton.icon(
+              icon: Icon(
+                Icons.qr_code,
+                color: Colors.black87,
               ),
-              SizedBox(width: 15),
-              RaisedButton.icon(
-                icon: Icon(Icons.settings),
-                label: Text("Settings"),
-                onPressed: () async {
-                  myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                  await showSettingsDialog(context, _peerInfo);
-                  myPeerInfoDataService.subscribe(_onNewPeerInfo);
-                },
+              label: Text("SHOW ID"),
+              onPressed: () async {
+                myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
+                await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
+                myPeerInfoDataService.subscribe(_onNewPeerInfo);
+              },
+            ),
+            SizedBox(width: 15),
+            OutlinedButton.icon(
+              icon: Icon(
+                Icons.settings,
+                color: Colors.black87,
               ),
-            ],
-          ),
+              label: Text("SETTINGS"),
+              onPressed: () async {
+                myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
+                await showSettingsDialog(context, _peerInfo);
+                myPeerInfoDataService.subscribe(_onNewPeerInfo);
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -98,34 +95,54 @@ class _MyInfoPageState extends State<MyInfoPage> {
 
   List<Widget> _buildInfo(BuildContext context) {
     var reachabilityText = "unknown";
+    var reachabilityColor = unknownColor;
     switch (_peerInfo!.reachability) {
       case "Public":
         reachabilityText = "public address";
+        reachabilityColor = greenColor;
         break;
       case "Private":
         reachabilityText = "private address";
+        reachabilityColor = warnColor;
         break;
       default:
         reachabilityText = "unknown";
     }
 
+    String dnsText;
+    Color dnsColor;
+    if (_peerInfo!.isAwlDNSSetAsSystem && _peerInfo!.awlDNSAddress != "") {
+      dnsText = "working";
+      dnsColor = greenColor;
+    } else {
+      dnsText = "not working";
+      dnsColor = redColor;
+    }
+
+    String bootstrapText = "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}";
+    Color bootstrapColor;
+    if (_peerInfo!.connectedBootstrapPeers == 0) {
+      bootstrapColor = redColor;
+    } else if (_peerInfo!.connectedBootstrapPeers <= _peerInfo!.totalBootstrapPeers * 0.8) {
+      bootstrapColor = warnColor;
+    } else {
+      bootstrapColor = greenColor;
+    }
+
     return [
-      _buildBodyItem(Icons.devices, "Peer ID", _peerInfo!.peerID),
-      _buildBodyItem(Icons.cloud_download, "Download rate ", _peerInfo!.networkStats.inAsString()),
-      _buildBodyItem(Icons.cloud_upload, "Upload rate ", _peerInfo!.networkStats.outAsString()),
-      _buildBodyItem(Icons.devices, "Bootstrap peers",
-          "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}"),
-      _buildBodyItem(Icons.dns, "DNS",
-          _peerInfo!.isAwlDNSSetAsSystem && _peerInfo!.awlDNSAddress != "" ? "working" : "not working"),
-      _buildBodyItem(Icons.my_location, "Reachability", reachabilityText),
+      _buildBodyItem(Icons.cloud_download_outlined, "Download rate ", _peerInfo!.networkStats.inAsString()),
+      _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate ", _peerInfo!.networkStats.outAsString()),
+      _buildBodyItem(Icons.devices, "Bootstrap peers", bootstrapText, textColor: bootstrapColor),
+      _buildBodyItem(Icons.dns_outlined, "DNS", dnsText, textColor: dnsColor),
+      _buildBodyItem(Icons.my_location, "Reachability", reachabilityText, textColor: reachabilityColor),
       _buildBodyItem(Icons.access_time, "Uptime", formatDuration(_peerInfo!.uptime)),
-      _buildBodyItem(Icons.label, "Server version ", _peerInfo!.serverVersion),
+      _buildBodyItem(Icons.label_outlined, "Server version ", _peerInfo!.serverVersion),
     ];
   }
 
-  Widget _buildBodyItem(IconData icon, String label, String text) {
+  Widget _buildBodyItem(IconData icon, String label, String text, {Color? textColor}) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 0, vertical: 7),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -139,7 +156,10 @@ class _MyInfoPageState extends State<MyInfoPage> {
           ),
           Flexible(
             fit: FlexFit.loose,
-            child: SelectableText(text),
+            child: SelectableText(
+              text,
+              style: TextStyle(color: textColor),
+            ),
           )
         ],
       ),

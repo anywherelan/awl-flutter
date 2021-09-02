@@ -189,8 +189,8 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           controller: _tabController,
           isScrollable: false,
           tabs: [
-            Tab(text: 'Info'),
-            Tab(text: 'Peers'),
+            Tab(text: 'INFO'),
+            Tab(text: 'PEERS'),
           ],
         ),
       ),

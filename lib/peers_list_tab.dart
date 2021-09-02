@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:anywherelan/common.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/entities.dart';
-import 'package:anywherelan/common.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 class PeersListPage extends StatefulWidget {
   PeersListPage({Key? key}) : super(key: key);
@@ -157,7 +157,10 @@ class _PeersListPageState extends State<PeersListPage> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               RaisedButton.icon(
-                icon: qrCodeImage,
+                icon: Icon(
+                  Icons.qr_code,
+                  color: Colors.black87,
+                ),
                 label: Text("Show ID"),
                 onPressed: () async {
                   knownPeersDataService.unsubscribe(_onNewKnownPeers);

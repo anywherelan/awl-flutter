@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:flutter/services.dart';
 
-var qrCodeImage = Image(image: AssetImage('assets/qrcode.png'));
+const redColor = Color.fromRGBO(214, 37, 69, 1);
+const warnColor = Color.fromRGBO(231, 163, 45, 1);
+const greenColor = Color.fromRGBO(82, 189, 44, 1);
+const unknownColor = Color.fromRGBO(136, 77, 185, 1);
 
-Future<void> showQRDialog(
-    BuildContext context, String? peerID, String? peerName) async {
+Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName) async {
   await showDialog(
     context: context,
     builder: (context) {

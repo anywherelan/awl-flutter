@@ -1,11 +1,11 @@
 import 'dart:io';
 
+import 'package:anywherelan/api.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:anywherelan/api.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 void showAddPeerDialog(BuildContext context) {
@@ -123,7 +123,10 @@ class _AddPeerFormState extends State<AddPeerForm> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
               RaisedButton.icon(
-                icon: Image(image: AssetImage('assets/qrcode.png')),
+                icon: Icon(
+                  Icons.qr_code_scanner,
+                  color: Colors.black87,
+                ),
                 label: Text('Scan QR'),
                 onPressed: () async {
                   _scanQR(context);
