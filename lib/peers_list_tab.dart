@@ -12,8 +12,6 @@ class PeersListPage extends StatefulWidget {
 }
 
 class _PeersListPageState extends State<PeersListPage> {
-  final _biggerFont = const TextStyle(fontSize: 18.0);
-
   List<KnownPeer>? _knownPeers;
   Map<String?, bool> _expandedState = Map();
 
@@ -38,7 +36,6 @@ class _PeersListPageState extends State<PeersListPage> {
   @override
   void deactivate() {
     super.deactivate();
-    // TODO: что делать в случае `In some cases, the framework will reinsert the State object into another part of the tree`
   }
 
   @override
@@ -70,11 +67,11 @@ class _PeersListPageState extends State<PeersListPage> {
 
         return ExpansionPanel(
           headerBuilder: (BuildContext context, bool isExpanded) {
-            return _buildRowTitle(item);
+            return _buildRowTitle(context, item);
           },
-          body: Align(
-            alignment: Alignment.centerLeft,
-            child: ConstrainedBox(constraints: BoxConstraints(maxWidth: 600), child: _buildExpansionPanelBody(item)),
+          body: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 24, 24),
+            child: _buildExpansionPanelBody(item),
           ),
           isExpanded: isExpanded,
           canTapOnHeader: true,
@@ -87,53 +84,28 @@ class _PeersListPageState extends State<PeersListPage> {
         child: expansionList,
       ),
     );
-
-//    return ListView.builder(
-//        padding: const EdgeInsets.all(8.0),
-//        itemCount: itemsCount,
-//        itemBuilder: (context, i) {
-//          if (i.isOdd) return Divider();
-//
-//          final index = i ~/ 2;
-//          if (index == _knownPeers.length) {
-//            // Чтобы 'Add new peer' кнопка не перегораживала последний элемент
-//            return SizedBox(height: 30);
-//          } else if (index > _knownPeers.length) {
-//            print("WARN: index > _knownPeers.length");
-//            return null;
-//          }
-//          return _buildRow(_knownPeers[index]);
-//        });
   }
 
-  Widget _buildRowTitle(KnownPeer peer) {
-    var connected = peer.connected && peer.confirmed;
-    var statusColor = connected ? Colors.green : Colors.red;
+  Widget _buildRowTitle(BuildContext context, KnownPeer peer) {
+    Text trailingText;
+    if (!peer.confirmed) {
+      trailingText = Text("Not accepted", style: TextStyle(color: unknownColor));
+    } else if (!peer.connected) {
+      trailingText = Text("Disconnected", style: TextStyle(color: redColor));
+    } else {
+      trailingText = Text("Connected", style: TextStyle(color: greenColor));
+    }
 
     return ListTile(
-      title: Row(children: <Widget>[
-        Text(
-          peer.name,
-          style: _biggerFont,
-        ),
-        SizedBox(width: 5),
-        Container(
-          width: 8.0,
-          height: 8.0,
-          decoration: new BoxDecoration(
-            color: statusColor,
-            shape: BoxShape.circle,
-          ),
-        )
-      ]),
-      subtitle: connected
-          ? null
-          : Text(
-              peer.lastSeen.isAtSameMomentAs(zeroGoTime)
-                  ? "Last seen never"
-                  : "Last seen ${formatDuration(peer.lastSeen.difference(DateTime.now()))} ago",
-            ),
-//      trailing: _buildPopupMenu(peer),
+      title: Text(
+        peer.name,
+        style: Theme.of(context).textTheme.headline6,
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(peer.ipAddr),
+      ),
+      trailing: trailingText,
     );
   }
 
@@ -141,46 +113,46 @@ class _PeersListPageState extends State<PeersListPage> {
     return Column(
       children: [
         _buildBodyItem(Icons.devices, "Peer ID  ", item.peerID),
-        _buildBodyItem(Icons.location_on, "Local address", item.ipAddr),
-//        Wrap(
-//          children: item.addresses.map((e) => SelectableText(e)).toList(),
-//        ),
-        if (item.addresses.isNotEmpty) _buildBodyItem(Icons.my_location, "Address", item.addresses.join('\n\n')),
-        if (item.version.isNotEmpty) _buildBodyItem(Icons.label, "Version", item.version),
+        if (!item.connected && item.confirmed)
+          _buildBodyItem(Icons.visibility_outlined, "Last seen",
+              "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"),
+        if (item.addresses.isNotEmpty) _buildBodyItem(Icons.place_outlined, "Address", item.addresses.join('\n\n')),
+        if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", item.version),
         if (item.networkStats.totalIn != 0)
-          _buildBodyItem(Icons.cloud_download, "Download rate", item.networkStats.inAsString()),
+          _buildBodyItem(Icons.cloud_download_outlined, "Download rate", item.networkStats.inAsString()),
         if (item.networkStats.totalOut != 0)
-          _buildBodyItem(Icons.cloud_upload, "Upload rate", item.networkStats.outAsString()),
-        Padding(
-          padding: EdgeInsets.only(left: 16.0, right: 16.0, top: 5, bottom: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              RaisedButton.icon(
-                icon: Icon(
-                  Icons.qr_code,
-                  color: Colors.black87,
-                ),
-                label: Text("Show ID"),
-                onPressed: () async {
-                  knownPeersDataService.unsubscribe(_onNewKnownPeers);
-                  await showQRDialog(context, item.peerID, item.name);
-                  knownPeersDataService.subscribe(_onNewKnownPeers);
-                },
+          _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate", item.networkStats.outAsString()),
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            OutlinedButton.icon(
+              icon: Icon(
+                Icons.qr_code,
+                color: Colors.black87,
               ),
-              SizedBox(width: 15),
-              RaisedButton.icon(
-                icon: Icon(Icons.settings),
-                label: Text("Settings"),
-                onPressed: () async {
-                  // TODO: пробрасывать peerID через путь, чтобы был абсолютный адрес
-                  knownPeersDataService.unsubscribe(_onNewKnownPeers);
-                  await Navigator.of(context).pushNamed('/peer_settings', arguments: item.peerID);
-                  knownPeersDataService.subscribe(_onNewKnownPeers);
-                },
+              label: Text("SHOW ID"),
+              onPressed: () async {
+                knownPeersDataService.unsubscribe(_onNewKnownPeers);
+                await showQRDialog(context, item.peerID, item.name);
+                knownPeersDataService.subscribe(_onNewKnownPeers);
+              },
+            ),
+            SizedBox(width: 15),
+            OutlinedButton.icon(
+              icon: Icon(
+                Icons.settings,
+                color: Colors.black87,
               ),
-            ],
-          ),
+              label: Text("SETTINGS"),
+              onPressed: () async {
+                // TODO: пробрасывать peerID через путь, чтобы был абсолютный адрес
+                knownPeersDataService.unsubscribe(_onNewKnownPeers);
+                await Navigator.of(context).pushNamed('/peer_settings', arguments: item.peerID);
+                knownPeersDataService.subscribe(_onNewKnownPeers);
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -188,7 +160,7 @@ class _PeersListPageState extends State<PeersListPage> {
 
   Widget _buildBodyItem(IconData icon, String label, String text) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 0, vertical: 7),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -197,7 +169,6 @@ class _PeersListPageState extends State<PeersListPage> {
               Icon(icon),
               SizedBox(width: 10),
               Text(label),
-              // TODO: может быть неровный отступ т.к текст слева разной длины, например если строка с портами длинная
               SizedBox(width: 65),
             ],
           ),
