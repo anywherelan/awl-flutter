@@ -112,11 +112,10 @@ class _PeersListPageState extends State<PeersListPage> {
   Widget _buildExpansionPanelBody(KnownPeer item) {
     return Column(
       children: [
-        _buildBodyItem(Icons.devices, "Peer ID  ", item.peerID),
         if (!item.connected && item.confirmed)
           _buildBodyItem(Icons.visibility_outlined, "Last seen",
               "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"),
-        if (item.addresses.isNotEmpty) _buildBodyItem(Icons.place_outlined, "Address", item.addresses.join('\n\n')),
+        if (item.addresses.isNotEmpty) _buildBodyItem(Icons.place_outlined, "Address    ", item.addresses.join('\n\n')),
         if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", item.version),
         if (item.networkStats.totalIn != 0)
           _buildBodyItem(Icons.cloud_download_outlined, "Download rate", item.networkStats.inAsString()),
@@ -169,7 +168,7 @@ class _PeersListPageState extends State<PeersListPage> {
               Icon(icon),
               SizedBox(width: 10),
               Text(label),
-              SizedBox(width: 65),
+              SizedBox(width: 45),
             ],
           ),
           Flexible(
