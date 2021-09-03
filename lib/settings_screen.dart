@@ -46,8 +46,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   Future<PickerResponse> _importSettings() async {
     final params = OpenFileDialogParams(
-      dialogType: OpenFileDialogType.document,
-      sourceType: SourceType.photoLibrary,
       fileExtensionsFilter: <String>["json"],
     );
 
@@ -73,6 +71,40 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       return PickerResponse(false, "Failed to pick config file: ${e.message}, ${e.details}");
     }
   }
+
+  // web + android implementation by file_picker package. one downside is that it requests storage permission on android
+  // while flutter_file_dialog does not.
+  // Future<PickerResponse> _importSettingsFlutterPicker() async {
+  //   try {
+  //     FilePickerResult? result;
+  //     if (kIsWeb) {
+  //       result =
+  //           await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ["json"], withData: true);
+  //     } else {
+  //       result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
+  //     }
+  //
+  //     if (result == null) {
+  //       return PickerResponse(true, "");
+  //     }
+  //
+  //     final fileBytes = result.files.first.bytes;
+  //     final fileString = utf8.decode(fileBytes!.toList());
+  //     final fileName = result.files.first.name;
+  //
+  //     await stopServer();
+  //     var response = await importConfig(fileString);
+  //     await initServer();
+  //
+  //     if (response != "") {
+  //       return PickerResponse(false, response);
+  //     }
+  //
+  //     return PickerResponse(true, "Imported file $fileName");
+  //   } on Exception catch (e) {
+  //     return PickerResponse(false, "Failed to import config file: ${e.toString()}");
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
