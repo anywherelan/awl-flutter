@@ -1,16 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/entities.dart';
-import 'package:overlay_support/overlay_support.dart';
-
-import 'dart:convert';
 import 'package:crypto/crypto.dart' as crypto;
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http;
+import 'package:overlay_support/overlay_support.dart';
 
 class NotificationsService {
   late FlutterLocalNotificationsPlugin _notificationsPlugin;
@@ -135,7 +134,9 @@ class NotificationsService {
 }
 
 Future _showAuthRequestDialog(AuthRequest req) async {
+  if (navigatorKey.currentContext == null) return;
   showDialog(
+    context: navigatorKey.currentContext!,
     builder: (context) {
       return SimpleDialog(
         title: req.name != "" ? Text("Incoming friend request from '${req.name}'") : Text("Incoming friend request"),
@@ -257,145 +258,3 @@ int generateNotificationId(String id) {
 }
 
 final GlobalKey<NavigatorState> navigatorKey = new GlobalKey<NavigatorState>();
-late ThemeData globalTheme;
-
-// TODO: придумать способ без этого хака
-
-// copied from flutter to avoid passing BuildContext
-Future<T?> showDialog<T>({
-  WidgetBuilder? builder,
-  bool barrierDismissible = true,
-  Color? barrierColor,
-  bool useSafeArea = true,
-  bool useRootNavigator = true,
-  RouteSettings? routeSettings,
-  @Deprecated('Instead of using the "child" argument, return the child from a closure '
-      'provided to the "builder" argument. This will ensure that the BuildContext '
-      'is appropriate for widgets built in the dialog. '
-      'This feature was deprecated after v0.2.3.')
-      Widget? child,
-}) {
-  assert(child == null || builder == null);
-  assert(barrierDismissible != null);
-  assert(useSafeArea != null);
-  assert(useRootNavigator != null);
-
-  final ThemeData? theme = globalTheme;
-  return showGeneralDialog(
-    pageBuilder: (BuildContext buildContext, Animation<double> animation, Animation<double> secondaryAnimation) {
-      final Widget pageChild = child ?? Builder(builder: builder!);
-      Widget dialog = Builder(builder: (BuildContext context) {
-        return theme != null ? Theme(data: theme, child: pageChild) : pageChild;
-      });
-      if (useSafeArea) {
-        dialog = SafeArea(child: dialog);
-      }
-      return dialog;
-    },
-    barrierDismissible: barrierDismissible,
-    barrierLabel: "",
-    // TODO
-    barrierColor: barrierColor ?? Colors.black54,
-    transitionDuration: const Duration(milliseconds: 150),
-    transitionBuilder: _buildMaterialDialogTransitions,
-    useRootNavigator: useRootNavigator,
-    routeSettings: routeSettings,
-  );
-}
-
-Widget _buildMaterialDialogTransitions(
-    BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-  return FadeTransition(
-    opacity: CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOut,
-    ),
-    child: child,
-  );
-}
-
-Future<T?> showGeneralDialog<T>({
-  required RoutePageBuilder pageBuilder,
-  required bool barrierDismissible,
-  String? barrierLabel,
-  Color? barrierColor,
-  Duration? transitionDuration,
-  RouteTransitionsBuilder? transitionBuilder,
-  bool useRootNavigator = true,
-  RouteSettings? routeSettings,
-}) {
-  assert(pageBuilder != null);
-  assert(useRootNavigator != null);
-  assert(!barrierDismissible || barrierLabel != null);
-  return navigatorKey.currentState!.push<T>(_DialogRoute<T>(
-    pageBuilder: pageBuilder,
-    barrierDismissible: barrierDismissible,
-    barrierLabel: barrierLabel,
-    barrierColor: barrierColor,
-    transitionDuration: transitionDuration,
-    transitionBuilder: transitionBuilder,
-    settings: routeSettings,
-  ));
-}
-
-class _DialogRoute<T> extends PopupRoute<T> {
-  _DialogRoute({
-    required RoutePageBuilder pageBuilder,
-    bool barrierDismissible = true,
-    String? barrierLabel,
-    Color? barrierColor = const Color(0x80000000),
-    Duration? transitionDuration = const Duration(milliseconds: 200),
-    RouteTransitionsBuilder? transitionBuilder,
-    RouteSettings? settings,
-  })  : assert(barrierDismissible != null),
-        _pageBuilder = pageBuilder,
-        _barrierDismissible = barrierDismissible,
-        _barrierLabel = barrierLabel,
-        _barrierColor = barrierColor,
-        _transitionDuration = transitionDuration,
-        _transitionBuilder = transitionBuilder,
-        super(settings: settings);
-
-  final RoutePageBuilder _pageBuilder;
-
-  @override
-  bool get barrierDismissible => _barrierDismissible;
-  final bool _barrierDismissible;
-
-  @override
-  String? get barrierLabel => _barrierLabel;
-  final String? _barrierLabel;
-
-  @override
-  Color? get barrierColor => _barrierColor;
-  final Color? _barrierColor;
-
-  @override
-  Duration get transitionDuration => _transitionDuration!;
-  final Duration? _transitionDuration;
-
-  final RouteTransitionsBuilder? _transitionBuilder;
-
-  @override
-  Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) {
-    return Semantics(
-      child: _pageBuilder(context, animation, secondaryAnimation),
-      scopesRoute: true,
-      explicitChildNodes: true,
-    );
-  }
-
-  @override
-  Widget buildTransitions(
-      BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    if (_transitionBuilder == null) {
-      return FadeTransition(
-          opacity: CurvedAnimation(
-            parent: animation,
-            curve: Curves.linear,
-          ),
-          child: child);
-    } // Some default transition
-    return _transitionBuilder!(context, animation, secondaryAnimation, child);
-  }
-}

@@ -12,7 +12,7 @@ class JsonViewerWidget extends StatefulWidget {
   final bool? notRoot;
   final bool openOnStart;
 
-  JsonViewerWidget(this.jsonObj, {this.notRoot, required this.openOnStart}) : assert(openOnStart != null);
+  JsonViewerWidget(this.jsonObj, {this.notRoot, required this.openOnStart});
 
   @override
   JsonViewerWidgetState createState() => new JsonViewerWidgetState();

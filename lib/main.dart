@@ -38,7 +38,8 @@ Future<void> initAndroid() async {
       return;
     }
 
-    await notif.showDialog(
+    await showDialog(
+      context: notif.navigatorKey.currentContext!,
       builder: (context) {
         return SimpleDialog(
           title: Text("You need to accept vpn connection to use this app"),
@@ -66,17 +67,15 @@ Future<void> initAndroid() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    notif.globalTheme = ThemeData(
-      brightness: Brightness.light,
-      primarySwatch: Colors.green,
-      visualDensity: VisualDensity.adaptivePlatformDensity,
-    );
-
     final app = MaterialApp(
       title: 'Anywherelan',
       navigatorKey: notif.navigatorKey,
 //      onUnknownRoute:,
-      theme: notif.globalTheme,
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.green,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
       initialRoute: '/',
       routes: {
         '/': (context) => MyHomePage(title: 'Anywherelan'),
