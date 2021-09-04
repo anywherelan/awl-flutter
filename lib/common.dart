@@ -9,22 +9,21 @@ const warnColor = Color.fromRGBO(231, 163, 45, 1);
 const greenColor = Color.fromRGBO(82, 189, 44, 1);
 const unknownColor = Color.fromRGBO(136, 77, 185, 1);
 
-Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName) async {
+Future<void> showQRDialog(BuildContext context, String peerID, String peerName) async {
   await showDialog(
     context: context,
     builder: (context) {
-      final double size = 350;
       return SimpleDialog(
-        title: Text("Peer ID for '$peerName'"),
+        title: Text('Peer ID for "$peerName"'),
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5),
+            padding: EdgeInsets.symmetric(horizontal: 22.0, vertical: 5),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Flexible(
                   fit: FlexFit.loose,
-                  child: SelectableText(peerID!),
+                  child: SelectableText(peerID),
                 ),
                 RawMaterialButton(
                   elevation: 0.0,
@@ -37,6 +36,9 @@ Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName
                   onPressed: () {
                     var data = ClipboardData(text: peerID);
                     Clipboard.setData(data);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text("Peer ID copied to clipboard"),
+                    ));
                   },
                 ),
                 RawMaterialButton(
@@ -57,15 +59,12 @@ Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
             child: Center(
-              // TODO: слишком вытянутый на мобильном
               child: Container(
-//                constraints: BoxConstraints.loose(Size(size, size)),
-                height: size,
-                width: size,
+                constraints: BoxConstraints.tightFor(width: 350),
+                alignment: Alignment.center,
                 child: QrImage(
                   data: peerID,
                   version: QrVersions.auto,
-                  size: size,
                 ),
               ),
             ),
@@ -75,10 +74,10 @@ Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName
             children: [
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-                child: FlatButton(
+                child: TextButton(
                   child: Text(
-                    "HIDE",
-                    style: TextStyle(fontSize: 20.0),
+                    "CLOSE",
+                    style: Theme.of(context).textTheme.headline6,
                   ),
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -93,12 +92,10 @@ Future<void> showQRDialog(BuildContext context, String? peerID, String? peerName
   );
 }
 
-final zeroGoTime =
-    DateTime.fromMicrosecondsSinceEpoch(-62135596800000000, isUtc: true);
+final zeroGoTime = DateTime.fromMicrosecondsSinceEpoch(-62135596800000000, isUtc: true);
 
 String formatDuration(Duration duration) {
-  var seconds =
-      duration.inSeconds > 0 ? duration.inSeconds : duration.inSeconds * -1;
+  var seconds = duration.inSeconds > 0 ? duration.inSeconds : duration.inSeconds * -1;
   final days = seconds ~/ Duration.secondsPerDay;
   seconds -= days * Duration.secondsPerDay;
   final hours = seconds ~/ Duration.secondsPerHour;
