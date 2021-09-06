@@ -150,7 +150,7 @@ class _MyDrawerState extends State<MyDrawer> {
               text: url,
               recognizer: TapGestureRecognizer()
                 ..onTap = () async {
-                  await canLaunch(url) ? await launch(url) : "";
+                  if (await canLaunch(url)) await launch(url);
                 },
             ),
             TextSpan(style: textStyle, text: '.'),
@@ -259,8 +259,23 @@ class _LogsScreenState extends State<LogsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Logs'),
+        title: const Text('Server logs'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.arrow_downward),
+            tooltip: "Scroll to bottom",
+            onPressed: () {
+              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.arrow_upward),
+            tooltip: "Scroll to top",
+            onPressed: () {
+              _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+            },
+          ),
+          SizedBox(width: 20),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: "Refresh log",
@@ -268,9 +283,12 @@ class _LogsScreenState extends State<LogsScreen> {
               _refreshLogsText();
             },
           ),
+          SizedBox(width: 10),
         ],
       ),
       body: SafeArea(
+        bottom: false,
+        right: false,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
