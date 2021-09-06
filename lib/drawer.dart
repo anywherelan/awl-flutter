@@ -8,6 +8,10 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 class MyDrawer extends StatefulWidget {
+  final bool isRetractable;
+
+  MyDrawer({Key? key, this.isRetractable = true}) : super(key: key);
+
   @override
   _MyDrawerState createState() => _MyDrawerState();
 }
@@ -16,107 +20,120 @@ class _MyDrawerState extends State<MyDrawer> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Drawer(
-      child: SafeArea(
-        child: ListView(
-          children: [
-            ListTile(
-              title: Text(
-                "Anywherelan",
-                style: textTheme.headline5,
-              ),
+
+    var listView = ListView(
+      children: [
+        if (widget.isRetractable) ...[
+          ListTile(
+            title: Text(
+              "Anywherelan",
+              style: textTheme.headline5,
             ),
-            const Divider(),
-            if (!kIsWeb)
-              ListTile(
-                title: Text(
-                  isServerRunning() ? "Stop server" : "Start server",
-                ),
-                enabled: true,
-                selected: false,
-                leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
-                onTap: () async {
-                  var message = "";
-                  if (isServerRunning()) {
-                    await stopServer();
-                    message = "Server stopped";
-                  } else {
-                    await initServer();
-                    message = "Server started";
-                  }
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    backgroundColor: Colors.green,
-                    content: Text(message),
-                  ));
-                },
-              ),
-            if (!kIsWeb && isServerRunning())
-              ListTile(
-                title: Text(
-                  "Restart server",
-                ),
-                enabled: true,
-                selected: false,
-                leading: const Icon(Icons.refresh),
-                onTap: () async {
-                  if (isServerRunning()) {
-                    await stopServer();
-                  }
-                  await initServer();
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    backgroundColor: Colors.green,
-                    content: Text("Server restarted"),
-                  ));
-                },
-              ),
-            ListTile(
-              title: Text(
-                "Settings",
-              ),
-              enabled: true,
-              selected: false,
-              leading: const Icon(Icons.settings),
-              onTap: () {
-                Navigator.of(context).pushNamed('/settings');
-              },
+          ),
+          const Divider(),
+        ],
+        if (!kIsWeb)
+          ListTile(
+            title: Text(
+              isServerRunning() ? "Stop server" : "Start server",
             ),
-            ListTile(
-              title: Text(
-                "Debug info",
-              ),
-              enabled: true,
-              selected: false,
-              leading: const Icon(Icons.developer_mode),
-              onTap: () {
-                Navigator.of(context).pushNamed('/debug');
-              },
+            enabled: true,
+            selected: false,
+            leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
+            onTap: () async {
+              var message = "";
+              if (isServerRunning()) {
+                await stopServer();
+                message = "Server stopped";
+              } else {
+                await initServer();
+                message = "Server started";
+              }
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                backgroundColor: Colors.green,
+                content: Text(message),
+              ));
+            },
+          ),
+        if (!kIsWeb && isServerRunning())
+          ListTile(
+            title: Text(
+              "Restart server",
             ),
-            ListTile(
-              title: Text(
-                "Logs",
-              ),
-              enabled: true,
-              selected: false,
-              leading: const Icon(Icons.insert_drive_file),
-              onTap: () {
-                Navigator.of(context).pushNamed('/logs');
-              },
-            ),
-            // TODO update text
-            AboutListTile(
-              icon: Icon(Icons.info),
-              applicationIcon: FlutterLogo(),
-              applicationName: 'Anywherelan',
-              applicationVersion: 'April 2021',
-              applicationLegalese: '© 2021 The Anywherelan Authors',
-              aboutBoxChildren: _buildAboutBox(),
-            ),
-          ],
+            enabled: true,
+            selected: false,
+            leading: const Icon(Icons.refresh),
+            onTap: () async {
+              if (isServerRunning()) {
+                await stopServer();
+              }
+              await initServer();
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                backgroundColor: Colors.green,
+                content: Text("Server restarted"),
+              ));
+            },
+          ),
+        ListTile(
+          title: Text(
+            "Settings",
+          ),
+          enabled: true,
+          selected: false,
+          leading: const Icon(Icons.settings),
+          onTap: () {
+            Navigator.of(context).pushNamed('/settings');
+          },
         ),
-      ),
+        ListTile(
+          title: Text(
+            "Debug info",
+          ),
+          enabled: true,
+          selected: false,
+          leading: const Icon(Icons.developer_mode),
+          onTap: () {
+            Navigator.of(context).pushNamed('/debug');
+          },
+        ),
+        ListTile(
+          title: Text(
+            "Server logs",
+          ),
+          enabled: true,
+          selected: false,
+          leading: const Icon(Icons.insert_drive_file),
+          onTap: () {
+            Navigator.of(context).pushNamed('/logs');
+          },
+        ),
+        // TODO update text
+        AboutListTile(
+          icon: Icon(Icons.info),
+          applicationIcon: FlutterLogo(),
+          applicationName: 'Anywherelan',
+          applicationVersion: 'April 2021',
+          applicationLegalese: '© 2021 The Anywherelan Authors',
+          aboutBoxChildren: _buildAboutBox(),
+        ),
+      ],
     );
+
+    if (widget.isRetractable) {
+      return Drawer(
+          child: SafeArea(
+        child: listView,
+      ));
+    } else {
+      return ConstrainedBox(
+        constraints: const BoxConstraints.expand(width: 250),
+        child: Drawer(
+          child: listView,
+        ),
+      );
+    }
   }
 
   List<Widget> _buildAboutBox() {

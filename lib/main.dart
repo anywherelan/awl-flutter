@@ -170,39 +170,138 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    FloatingActionButton? actionButton;
-    if (_tabController.index == 1) {
-      actionButton = FloatingActionButton(
-        tooltip: 'Add new peer',
-        onPressed: () {
-          showAddPeerDialog(context);
-        },
-        child: Icon(Icons.add),
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth > 750) {
+        return _buildWideAdaptiveScreen(constraints, context);
+      }
+
+      FloatingActionButton? actionButton;
+      if (_tabController.index == 1) {
+        actionButton = FloatingActionButton(
+          tooltip: 'Add new peer',
+          onPressed: () {
+            showAddPeerDialog(context);
+          },
+          child: Icon(Icons.add),
+        );
+      }
+
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(widget.title),
+          bottom: TabBar(
+            controller: _tabController,
+            isScrollable: false,
+            tabs: [
+              Tab(text: 'INFO'),
+              Tab(text: 'PEERS'),
+            ],
+          ),
+        ),
+        drawer: MyDrawer(),
+        body: SafeArea(
+            bottom: false,
+            child: TabBarView(controller: _tabController, children: [
+              MyInfoPage(),
+              PeersListPage(),
+            ])),
+        floatingActionButton: actionButton,
       );
+    });
+  }
+
+  Widget _buildWideAdaptiveScreen(BoxConstraints constraints, BuildContext context) {
+    var hasScaffoldDrawer = true;
+    var spaceBetweenItems = 15.0;
+
+    if (constraints.maxWidth > 1000) {
+      hasScaffoldDrawer = false;
     }
 
+    if (constraints.maxWidth > 1800) {
+      spaceBetweenItems = 180.0;
+    } else if (constraints.maxWidth > 1700) {
+      spaceBetweenItems = 160.0;
+    } else if (constraints.maxWidth > 1600) {
+      spaceBetweenItems = 140.0;
+    } else if (constraints.maxWidth > 1500) {
+      spaceBetweenItems = 120.0;
+    } else if (constraints.maxWidth > 1400) {
+      spaceBetweenItems = 100.0;
+    } else if (constraints.maxWidth > 1300) {
+      spaceBetweenItems = 70.0;
+    } else if (constraints.maxWidth > 1200) {
+      spaceBetweenItems = 50.0;
+    } else if (constraints.maxWidth > 1100) {
+      spaceBetweenItems = 40.0;
+    } else if (constraints.maxWidth > 850) {
+      spaceBetweenItems = 20.0;
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: false,
-          tabs: [
-            Tab(text: 'INFO'),
-            Tab(text: 'PEERS'),
+      ),
+      drawer: hasScaffoldDrawer ? MyDrawer() : null,
+      body: SafeArea(
+        bottom: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!hasScaffoldDrawer) MyDrawer(isRetractable: false),
+            SizedBox(width: spaceBetweenItems),
+            Flexible(
+              flex: 4,
+              child: decorateAsCard(PeersListPage()),
+            ),
+            SizedBox(width: spaceBetweenItems),
+            Flexible(
+              flex: 3,
+              child: Column(
+                children: [
+                  decorateAsCard(MyInfoPage()),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        icon: Icon(
+                          Icons.add,
+                          color: Colors.black87,
+                        ),
+                        label: Text("NEW PEER"),
+                        onPressed: () {
+                          showAddPeerDialog(context);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: spaceBetweenItems),
           ],
         ),
       ),
-      drawer: MyDrawer(),
-      body: SafeArea(
-          bottom: false,
-          child: TabBarView(controller: _tabController, children: [
-            MyInfoPage(),
-            PeersListPage(),
-          ])),
-      // TODO: попробовать перенести в PeersListPage, отображая как-нибудь поверх
-      // https://stackoverflow.com/a/53399707
-      floatingActionButton: actionButton,
+    );
+  }
+
+  Container decorateAsCard(Widget child) {
+    return Container(
+      child: child,
+      padding: EdgeInsets.all(16),
+      margin: EdgeInsets.only(top: 20, bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.all(Radius.circular(10)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 5,
+            blurRadius: 7,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
     );
   }
 }
