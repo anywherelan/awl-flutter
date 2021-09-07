@@ -1,6 +1,7 @@
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/json_widget/json_widget.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
+import 'package:anywherelan/settings_screen.dart' show AppSettingsScreen;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -84,7 +85,7 @@ class _MyDrawerState extends State<MyDrawer> {
           selected: false,
           leading: const Icon(Icons.settings),
           onTap: () {
-            Navigator.of(context).pushNamed('/settings');
+            Navigator.of(context).pushNamed(AppSettingsScreen.routeName);
           },
         ),
         ListTile(
@@ -95,7 +96,7 @@ class _MyDrawerState extends State<MyDrawer> {
           selected: false,
           leading: const Icon(Icons.developer_mode),
           onTap: () {
-            Navigator.of(context).pushNamed('/debug');
+            Navigator.of(context).pushNamed(DebugScreen.routeName);
           },
         ),
         ListTile(
@@ -106,7 +107,7 @@ class _MyDrawerState extends State<MyDrawer> {
           selected: false,
           leading: const Icon(Icons.insert_drive_file),
           onTap: () {
-            Navigator.of(context).pushNamed('/logs');
+            Navigator.of(context).pushNamed(LogsScreen.routeName);
           },
         ),
         // TODO update text
@@ -162,6 +163,8 @@ class _MyDrawerState extends State<MyDrawer> {
 }
 
 class DebugScreen extends StatefulWidget {
+  static String routeName = "/debug";
+
   DebugScreen({Key? key}) : super(key: key);
 
   @override
@@ -216,6 +219,8 @@ class _DebugScreenState extends State<DebugScreen> {
 }
 
 class LogsScreen extends StatefulWidget {
+  static String routeName = "/logs";
+
   LogsScreen({Key? key}) : super(key: key);
 
   @override

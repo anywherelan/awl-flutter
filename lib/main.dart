@@ -76,13 +76,13 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.green,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/',
+      initialRoute: HomeScreen.routeName,
       routes: {
-        '/': (context) => MyHomePage(title: 'Anywherelan'),
-        '/debug': (context) => DebugScreen(),
-        '/logs': (context) => LogsScreen(),
-        '/settings': (context) => AppSettingsScreen(),
-        '/peer_settings': (context) => KnownPeerSettingsScreen(),
+        HomeScreen.routeName: (context) => HomeScreen(title: 'Anywherelan'),
+        DebugScreen.routeName: (context) => DebugScreen(),
+        LogsScreen.routeName: (context) => LogsScreen(),
+        AppSettingsScreen.routeName: (context) => AppSettingsScreen(),
+        KnownPeerSettingsScreen.routeName: (context) => KnownPeerSettingsScreen(),
       },
 //      navigatorObservers: [],
 //      onGenerateRoute:,
@@ -95,16 +95,18 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, required this.title}) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  static String routeName = "/";
+
+  HomeScreen({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   final _notificationsService = notif.NotificationsService();
 

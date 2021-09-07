@@ -1,6 +1,7 @@
 import 'package:anywherelan/common.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/peer_settings_screen.dart' show KnownPeerSettingsScreen;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -147,7 +148,7 @@ class _PeersListPageState extends State<PeersListPage> {
               onPressed: () async {
                 // TODO: пробрасывать peerID через путь, чтобы был абсолютный адрес
                 knownPeersDataService.unsubscribe(_onNewKnownPeers);
-                await Navigator.of(context).pushNamed('/peer_settings', arguments: item.peerID);
+                await Navigator.of(context).pushNamed(KnownPeerSettingsScreen.routeName, arguments: item.peerID);
                 knownPeersDataService.subscribe(_onNewKnownPeers);
               },
             ),

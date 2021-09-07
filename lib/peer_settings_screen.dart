@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class KnownPeerSettingsScreen extends StatefulWidget {
+  static String routeName = "/peer_settings";
+
   KnownPeerSettingsScreen({Key? key}) : super(key: key);
 
   @override

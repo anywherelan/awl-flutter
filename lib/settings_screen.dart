@@ -13,6 +13,8 @@ import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 
 class AppSettingsScreen extends StatefulWidget {
+  static String routeName = "/settings";
+
   AppSettingsScreen({Key? key}) : super(key: key);
 
   @override
