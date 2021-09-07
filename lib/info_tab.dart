@@ -74,7 +74,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
                 myPeerInfoDataService.subscribe(_onNewPeerInfo);
               },
             ),
-            SizedBox(width: 15),
+            SizedBox(width: 14),
             OutlinedButton.icon(
               icon: Icon(
                 Icons.settings,

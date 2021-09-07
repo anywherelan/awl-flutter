@@ -22,7 +22,7 @@ class _MyDrawerState extends State<MyDrawer> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    var listView = ListView(
+    var listView = Column(
       children: [
         if (widget.isRetractable) ...[
           ListTile(

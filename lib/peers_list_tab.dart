@@ -81,9 +81,7 @@ class _PeersListPageState extends State<PeersListPage> {
     );
 
     return SingleChildScrollView(
-      child: Container(
-        child: expansionList,
-      ),
+      child: expansionList,
     );
   }
 
