@@ -47,8 +47,18 @@ class _PeersListPageState extends State<PeersListPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_knownPeers == null) {
-      return Container();
+    if (_knownPeers == null || _knownPeers!.isEmpty) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints.expand(height: 80),
+        child: Container(
+          margin: EdgeInsets.only(top: 10),
+          alignment: Alignment.topCenter,
+          child: Text(
+            "No known peers",
+            style: Theme.of(context).textTheme.headline6,
+          ),
+        ),
+      );
     }
 
     var expansionList = ExpansionPanelList(
