@@ -39,7 +39,6 @@ class _MyDrawerState extends State<MyDrawer> {
               isServerRunning() ? "Stop server" : "Start server",
             ),
             enabled: true,
-            selected: false,
             leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
             onTap: () async {
               var message = "";
@@ -63,7 +62,6 @@ class _MyDrawerState extends State<MyDrawer> {
               "Restart server",
             ),
             enabled: true,
-            selected: false,
             leading: const Icon(Icons.refresh),
             onTap: () async {
               if (isServerRunning()) {
@@ -82,7 +80,6 @@ class _MyDrawerState extends State<MyDrawer> {
             "Settings",
           ),
           enabled: true,
-          selected: false,
           leading: const Icon(Icons.settings),
           onTap: () {
             Navigator.of(context).pushNamed(AppSettingsScreen.routeName);
@@ -92,8 +89,7 @@ class _MyDrawerState extends State<MyDrawer> {
           title: Text(
             "Debug info",
           ),
-          enabled: true,
-          selected: false,
+          enabled: kIsWeb || isServerRunning(),
           leading: const Icon(Icons.developer_mode),
           onTap: () {
             Navigator.of(context).pushNamed(DebugScreen.routeName);
@@ -103,7 +99,7 @@ class _MyDrawerState extends State<MyDrawer> {
           title: Text(
             "Server logs",
           ),
-          enabled: true,
+          enabled: kIsWeb || isServerRunning(),
           selected: false,
           leading: const Icon(Icons.insert_drive_file),
           onTap: () {
