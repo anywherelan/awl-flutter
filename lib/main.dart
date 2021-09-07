@@ -202,7 +202,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         body: SafeArea(
             bottom: false,
             child: TabBarView(controller: _tabController, children: [
-              MyInfoPage(),
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: MyInfoPage(),
+              ),
               PeersListPage(),
             ])),
         floatingActionButton: actionButton,
