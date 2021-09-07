@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:http/http.dart' as http;
@@ -78,3 +79,11 @@ var myPeerInfoDataService = ServerDataService<MyPeerInfo>(() {
 var knownPeersDataService = ServerDataService<List<KnownPeer>?>(() {
   return fetchKnownPeers(http.Client());
 });
+
+Future<void> fetchAllData() async {
+  var futures = <Future>[
+    myPeerInfoDataService.fetchData(),
+    knownPeersDataService.fetchData(),
+  ];
+  await Future.wait(futures);
+}

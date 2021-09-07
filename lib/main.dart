@@ -14,14 +14,10 @@ import 'package:overlay_support/overlay_support.dart';
 void main() async {
   if (kIsWeb) {
     await initApp();
+    await fetchAllData();
   } else {
     initAndroid();
   }
-
-  var futures = <Future>[];
-  futures.add(myPeerInfoDataService.fetchData());
-  futures.add(knownPeersDataService.fetchData());
-  await Future.wait(futures);
 
   runApp(MyApp());
 }
@@ -29,12 +25,14 @@ void main() async {
 Future<void> initAndroid() async {
   await initApp();
   if (isServerRunning()) {
+    await fetchAllData();
     return;
   }
 
   while (true) {
     await Future.delayed(Duration(seconds: 10));
     if (isServerRunning()) {
+      await fetchAllData();
       return;
     }
 
