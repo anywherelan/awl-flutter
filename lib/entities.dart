@@ -9,6 +9,7 @@ class KnownPeer {
   final String name;
   final String version;
   final String ipAddr;
+  final String domainName;
   final bool connected;
   final bool confirmed;
   final DateTime lastSeen;
@@ -16,7 +17,7 @@ class KnownPeer {
   final NetworkStats networkStats;
 
   KnownPeer(this.peerID, this.name, this.version, this.ipAddr, this.connected, this.confirmed, this.lastSeen,
-      this.addresses, this.networkStats);
+      this.addresses, this.networkStats, this.domainName);
 
   factory KnownPeer.fromJson(Map<String, dynamic> json) => _$KnownPeerFromJson(json);
 
@@ -37,27 +38,16 @@ class MyPeerInfo {
   final String awlDNSAddress;
   final bool isAwlDNSSetAsSystem;
 
-  MyPeerInfo(
-      this.peerID,
-      this.name,
-      this.uptime,
-      this.serverVersion,
-      this.networkStats,
-      this.totalBootstrapPeers,
-      this.connectedBootstrapPeers,
-      this.reachability,
-      this.awlDNSAddress,
-      this.isAwlDNSSetAsSystem);
+  MyPeerInfo(this.peerID, this.name, this.uptime, this.serverVersion, this.networkStats, this.totalBootstrapPeers,
+      this.connectedBootstrapPeers, this.reachability, this.awlDNSAddress, this.isAwlDNSSetAsSystem);
 
   factory MyPeerInfo.fromJson(Map<String, dynamic> json) => _$MyPeerInfoFromJson(json);
 
   Map<String, dynamic> toJson() => _$MyPeerInfoToJson(this);
 
-  static Duration _durationFromNanoseconds(int milliseconds) =>
-      Duration(microseconds: (milliseconds ~/ 1000).toInt());
+  static Duration _durationFromNanoseconds(int milliseconds) => Duration(microseconds: (milliseconds ~/ 1000).toInt());
 
-  static int? _durationToNanoseconds(Duration? duration) =>
-      duration == null ? null : duration.inMilliseconds * 1000;
+  static int? _durationToNanoseconds(Duration? duration) => duration == null ? null : duration.inMilliseconds * 1000;
 }
 
 @JsonSerializable(fieldRename: FieldRename.pascal)
@@ -134,8 +124,9 @@ class KnownPeerConfig {
   final String name;
   final String alias;
   final String ipAddr;
+  final String domainName;
 
-  KnownPeerConfig(this.peerId, this.name, this.alias, this.ipAddr);
+  KnownPeerConfig(this.peerId, this.name, this.alias, this.ipAddr, this.domainName);
 
   factory KnownPeerConfig.fromJson(Map<String, dynamic> json) => _$KnownPeerConfigFromJson(json);
 
@@ -146,8 +137,9 @@ class KnownPeerConfig {
 class UpdateKnownPeerConfigRequest {
   final String peerID;
   final String alias;
+  final String domainName;
 
-  UpdateKnownPeerConfigRequest(this.peerID, this.alias);
+  UpdateKnownPeerConfigRequest(this.peerID, this.alias, this.domainName);
 
   factory UpdateKnownPeerConfigRequest.fromJson(Map<String, dynamic> json) =>
       _$UpdateKnownPeerConfigRequestFromJson(json);

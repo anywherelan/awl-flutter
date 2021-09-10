@@ -15,10 +15,12 @@ class KnownPeerSettingsScreen extends StatefulWidget {
 }
 
 class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
-  TextEditingController _aliasTextController = TextEditingController();
+  late TextEditingController _aliasTextController;
+  late TextEditingController _domainNameTextController;
 
+  bool _hasPeerConfig = false;
   late String _peerID;
-  KnownPeerConfig? _peerConfig;
+  late KnownPeerConfig _peerConfig;
 
   final _generalFormKey = GlobalKey<FormState>();
 
@@ -29,14 +31,16 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
     }
 
     _aliasTextController = TextEditingController(text: peerConfig.alias);
+    _domainNameTextController = TextEditingController(text: peerConfig.domainName);
 
     setState(() {
       _peerConfig = peerConfig;
     });
   }
 
-  Future<String?> _sendNewPeerConfig() async {
-    var payload = UpdateKnownPeerConfigRequest(_peerConfig!.peerId, _aliasTextController.text);
+  Future<String> _sendNewPeerConfig() async {
+    var payload =
+        UpdateKnownPeerConfigRequest(_peerConfig.peerId, _aliasTextController.text, _domainNameTextController.text);
 
     var response = await updateKnownPeerConfig(http.Client(), payload);
     return response;
@@ -44,36 +48,36 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_peerConfig == null) {
+    if (!_hasPeerConfig) {
       _peerID = ModalRoute.of(context)!.settings.arguments as String;
 
       _refreshPeerConfig();
+      _hasPeerConfig = true;
       return Container();
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text('Peer settings'),
       ),
       body: SafeArea(
         child: ListView(
           padding: EdgeInsets.all(16.0),
           children: [
-            Center(child: Text('General', style: Theme.of(context).textTheme.headline5)),
             _buildGeneralForm(),
             SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                RaisedButton(
-                  child: Text('Cancel'),
+                ElevatedButton(
+                  child: Text('CANCEL'),
                   onPressed: () async {
                     Navigator.pop(context);
                   },
                 ),
                 SizedBox(width: 20),
-                RaisedButton(
-                  child: Text('Save'),
+                ElevatedButton(
+                  child: Text('SAVE'),
                   onPressed: () async {
                     var result = await _sendNewPeerConfig();
                     if (result == "") {
@@ -84,7 +88,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         backgroundColor: Colors.red,
-                        content: Text(result!),
+                        content: Text(result),
                       ));
                     }
                   },
@@ -106,7 +110,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           Padding(
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
-              initialValue: _peerConfig!.peerId,
+              initialValue: _peerConfig.peerId,
               decoration: InputDecoration(labelText: 'Peer ID', enabled: false),
               maxLines: 2,
               minLines: 1,
@@ -116,7 +120,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           Padding(
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
-              initialValue: _peerConfig!.ipAddr,
+              initialValue: _peerConfig.ipAddr,
               decoration: InputDecoration(labelText: 'Local address', enabled: false),
               maxLines: 2,
               minLines: 1,
@@ -126,7 +130,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           Padding(
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
-              initialValue: _peerConfig!.name,
+              initialValue: _peerConfig.name,
               decoration: InputDecoration(labelText: 'Name', enabled: false),
               readOnly: true,
             ),
@@ -136,6 +140,28 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
             child: TextFormField(
               controller: _aliasTextController,
               decoration: InputDecoration(labelText: 'Alias'),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(8.0),
+            child: TextFormField(
+              controller: _domainNameTextController,
+              autovalidateMode: AutovalidateMode.always,
+              validator: (String? value) {
+                if (value == null || value.isEmpty) {
+                  return null;
+                }
+                var filteredValue = value.trim().replaceAll(RegExp(r'\s'), "").toLowerCase();
+                if (value != filteredValue) {
+                  return "should be lowercase and without whitespace";
+                }
+
+                return null;
+              },
+              decoration: InputDecoration(
+                labelText: 'Domain name',
+                helperText: 'domain name without ".awl" suffix, like "tvbox.home" or "workstation"',
+              ),
             ),
           ),
         ],

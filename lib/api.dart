@@ -138,7 +138,7 @@ Future<KnownPeerConfig> fetchKnownPeerConfig(http.Client client, String peerID) 
   return KnownPeerConfig.fromJson(parsed);
 }
 
-Future<String?> updateKnownPeerConfig(http.Client client, UpdateKnownPeerConfigRequest payload) async {
+Future<String> updateKnownPeerConfig(http.Client client, UpdateKnownPeerConfigRequest payload) async {
   var request = http.Request("POST", Uri.parse(serverAddress + UpdatePeerSettingsPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload.toJson());

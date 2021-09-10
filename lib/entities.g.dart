@@ -17,14 +17,17 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) {
     DateTime.parse(json['LastSeen'] as String),
     (json['Addresses'] as List<dynamic>).map((e) => e as String).toList(),
     NetworkStats.fromJson(json['NetworkStats'] as Map<String, dynamic>),
+    json['DomainName'] as String,
   );
 }
 
-Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
+Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) =>
+    <String, dynamic>{
       'PeerID': instance.peerID,
       'Name': instance.name,
       'Version': instance.version,
       'IpAddr': instance.ipAddr,
+      'DomainName': instance.domainName,
       'Connected': instance.connected,
       'Confirmed': instance.confirmed,
       'LastSeen': instance.lastSeen.toIso8601String(),
@@ -131,6 +134,7 @@ KnownPeerConfig _$KnownPeerConfigFromJson(Map<String, dynamic> json) {
     json['name'] as String,
     json['alias'] as String,
     json['ipAddr'] as String,
+    json['domainName'] as String,
   );
 }
 
@@ -140,6 +144,7 @@ Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) =>
       'name': instance.name,
       'alias': instance.alias,
       'ipAddr': instance.ipAddr,
+      'domainName': instance.domainName,
     };
 
 UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(
@@ -147,6 +152,7 @@ UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(
   return UpdateKnownPeerConfigRequest(
     json['PeerID'] as String,
     json['Alias'] as String,
+    json['DomainName'] as String,
   );
 }
 
@@ -155,4 +161,5 @@ Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(
     <String, dynamic>{
       'PeerID': instance.peerID,
       'Alias': instance.alias,
+      'DomainName': instance.domainName,
     };

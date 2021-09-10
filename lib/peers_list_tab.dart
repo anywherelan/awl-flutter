@@ -105,6 +105,13 @@ class _PeersListPageState extends State<PeersListPage> {
       trailingText = Text("Connected", style: TextStyle(color: greenColor));
     }
 
+    var isThreeLine = false;
+    var subtitle = peer.ipAddr;
+    if (peer.domainName.isNotEmpty) {
+      subtitle = subtitle + "\n" + peer.domainName + ".awl";
+      isThreeLine = true;
+    }
+
     return ListTile(
       title: Text(
         peer.name,
@@ -112,8 +119,9 @@ class _PeersListPageState extends State<PeersListPage> {
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Text(peer.ipAddr),
+        child: Text(subtitle),
       ),
+      isThreeLine: isThreeLine,
       trailing: trailingText,
     );
   }
