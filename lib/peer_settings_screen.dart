@@ -60,42 +60,47 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
       appBar: AppBar(
         title: const Text('Peer settings'),
       ),
-      body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.all(16.0),
-          children: [
-            _buildGeneralForm(),
-            SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                ElevatedButton(
-                  child: Text('CANCEL'),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                  },
-                ),
-                SizedBox(width: 20),
-                ElevatedButton(
-                  child: Text('SAVE'),
-                  onPressed: () async {
-                    var result = await _sendNewPeerConfig();
-                    if (result == "") {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        backgroundColor: Colors.green,
-                        content: Text("Successfully saved"),
-                      ));
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        backgroundColor: Colors.red,
-                        content: Text(result),
-                      ));
-                    }
-                  },
-                ),
-              ],
-            ),
-          ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 800,
+          ),
+          child: ListView(
+            padding: EdgeInsets.all(16.0),
+            children: [
+              _buildGeneralForm(),
+              SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  ElevatedButton(
+                    child: Text('CANCEL'),
+                    onPressed: () async {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  SizedBox(width: 20),
+                  ElevatedButton(
+                    child: Text('SAVE'),
+                    onPressed: () async {
+                      var result = await _sendNewPeerConfig();
+                      if (result == "") {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          backgroundColor: Colors.green,
+                          content: Text("Successfully saved"),
+                        ));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          backgroundColor: Colors.red,
+                          content: Text(result),
+                        ));
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
