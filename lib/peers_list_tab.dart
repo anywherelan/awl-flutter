@@ -122,7 +122,12 @@ class _PeersListPageState extends State<PeersListPage> {
         child: Text(subtitle),
       ),
       isThreeLine: isThreeLine,
-      trailing: trailingText,
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          trailingText,
+        ],
+      ),
     );
   }
 
