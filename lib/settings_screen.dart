@@ -61,11 +61,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       var f = File(filePath);
       String content = await f.readAsString();
       await stopServer();
-      var response = await importConfig(content);
-      await initServer();
+      var importResponse = await importConfig(content);
+      var startResponse = await initServer();
 
-      if (response != "") {
-        return PickerResponse(false, response);
+      if (importResponse != "") {
+        return PickerResponse(false, importResponse);
+      } else if (startResponse != "") {
+        return PickerResponse(false, startResponse);
       }
 
       return PickerResponse(true, "Imported file $filePath");

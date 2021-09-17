@@ -2,16 +2,17 @@ import 'dart:html';
 import 'package:anywherelan/api.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kProfileMode;
 
-Future<void> initAppImpl() async {
+Future<String> initAppImpl() async {
   if (kDebugMode) {
     // REMOVE ?
     serverAddress = "http://192.168.1.19:8000?address=http://localhost:8640";
   } else {
     serverAddress = window.location.origin;
   }
+  return "";
 }
 
-Future<void> initServerImpl() async {
+Future<String> initServerImpl() async {
   throw UnsupportedError('Unsupported for web');
 }
 

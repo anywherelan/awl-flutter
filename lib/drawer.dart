@@ -42,16 +42,22 @@ class _MyDrawerState extends State<MyDrawer> {
             leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
             onTap: () async {
               var message = "";
+              var color = Colors.green;
               if (isServerRunning()) {
                 await stopServer();
                 message = "Server stopped";
               } else {
-                await initServer();
-                message = "Server started";
+                var startResponse = await initServer();
+                if (startResponse == "") {
+                  message = "Server started";
+                } else {
+                  message = "Failed to start server: $startResponse";
+                  color = Colors.red;
+                }
               }
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                backgroundColor: Colors.green,
+                backgroundColor: color,
                 content: Text(message),
               ));
             },
@@ -67,12 +73,19 @@ class _MyDrawerState extends State<MyDrawer> {
               if (isServerRunning()) {
                 await stopServer();
               }
-              await initServer();
+              var startResponse = await initServer();
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                backgroundColor: Colors.green,
-                content: Text("Server restarted"),
-              ));
+              if (startResponse == "") {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  backgroundColor: Colors.green,
+                  content: Text("Server restarted"),
+                ));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  backgroundColor: Colors.red,
+                  content: Text("Failed to start server: $startResponse"),
+                ));
+              }
             },
           ),
         ListTile(

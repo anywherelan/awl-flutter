@@ -23,29 +23,35 @@ void main() async {
 }
 
 Future<void> initAndroid() async {
-  await initApp();
-  if (isServerRunning()) {
-    await fetchAllData();
-    return;
-  }
-
   while (true) {
-    await Future.delayed(Duration(seconds: 10));
+    var dialogTitle = "";
+    var dialogBody = "";
+    var stopLoop = false;
+    var startError = await initApp();
     if (isServerRunning()) {
       await fetchAllData();
       return;
+    } else if (startError.contains("vpn not authorized")) {
+      dialogTitle = "You need to accept vpn connection to use this app";
+    } else {
+      dialogTitle = "Failed to start server";
+      dialogBody = startError;
+      stopLoop = true;
     }
 
     await showDialog(
       context: notif.navigatorKey.currentContext!,
       builder: (context) {
         return SimpleDialog(
-          title: Text("You need to accept vpn connection to use this app"),
+          title: Text(dialogTitle),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
           children: [
+            if (dialogBody != "") SelectableText(dialogBody),
+            if (dialogBody != "") SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-                RaisedButton(
+                ElevatedButton(
                   child: Text('OK'),
                   onPressed: () async {
                     Navigator.pop(context);
@@ -58,7 +64,8 @@ Future<void> initAndroid() async {
       },
     );
 
-    await initApp();
+    if (stopLoop) return;
+    await Future.delayed(Duration(seconds: 6));
   }
 }
 

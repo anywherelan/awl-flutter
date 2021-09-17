@@ -1,12 +1,13 @@
 import 'dart:io' as io;
-import 'package:flutter/services.dart';
+
 import 'package:anywherelan/api.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-Future<void> initAppImpl() async {
+Future<String> initAppImpl() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (io.Platform.isAndroid) {
-    await initServerImpl();
+    return await initServerImpl();
   } else {
     throw UnsupportedError('Unsupported platform ${io.Platform.operatingSystem}');
   }
@@ -17,18 +18,18 @@ Future<void> initAppImpl() async {
 const platform = const MethodChannel('anywherelan');
 var serverRunning = false; // REMOVE
 
-Future<void> initServerImpl() async {
+Future<String> initServerImpl() async {
   assert(!serverRunning, "calling initServer to running server");
 
   try {
     final String apiAddress = await platform.invokeMethod('start_server');
     serverAddress = "http://$apiAddress";
     serverRunning = true;
-  } on PlatformException catch (e) {
-    print("Failed to init server: '${e.message}'.");
-  } on MissingPluginException catch (e) {
-    print("Failed to init server: '${e.message}'.");
+  } catch (e) {
+    print("Failed to start server: '${e.toString()}'");
+    return e.toString();
   }
+  return "";
 }
 
 Future<void> stopServerImpl() async {
@@ -36,8 +37,8 @@ Future<void> stopServerImpl() async {
 
   try {
     await platform.invokeMethod('stop_server');
-  } on PlatformException catch (e) {
-    print("Failed to stop server: '${e.message}'.");
+  } catch (e) {
+    print("Failed to stop server: '${e.toString()}'.");
   }
   serverRunning = false;
 }
@@ -51,9 +52,9 @@ Future<String> importConfigImpl(String config) async {
 
   try {
     await platform.invokeMethod('import_config', {'config': config});
-  } on PlatformException catch (e) {
-    print("Failed to import server config: '${e.message}'.");
-    return e.message == null ? "" : e.message!;
+  } catch (e) {
+    print("Failed to import server config: '${e.toString()}'");
+    return e.toString();
   }
 
   return "";

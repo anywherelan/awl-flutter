@@ -23,6 +23,7 @@ class MainActivity : FlutterActivity() {
                     if (requestPermissionIntent != null) {
                         result.error("error", "vpn not authorized", null)
                         this.startActivityForResult(requestPermissionIntent, 4444)
+                        return@setMethodCallHandler
                     }
                     context.startService(Intent(context, MyVpnService::class.java))
 
@@ -51,9 +52,13 @@ class MainActivity : FlutterActivity() {
                         tunFd = tun.detachFd()
                     }
 
-                    Anywherelan.initServer(this.filesDir.absolutePath, tunFd)
-                    val apiAddress = Anywherelan.getApiAddress()
-                    result.success(apiAddress)
+                    try {
+                        Anywherelan.initServer(this.filesDir.absolutePath, tunFd)
+                        val apiAddress = Anywherelan.getApiAddress()
+                        result.success(apiAddress)
+                    } catch (e: Exception) {
+                        result.error("error", e.message, null)
+                    }
                 }
                 "stop_server" -> {
                     Anywherelan.stopServer()

@@ -1,8 +1,8 @@
-Future<void> initAppImpl() async {
+Future<String> initAppImpl() async {
   throw UnsupportedError('Unsupported platform');
 }
 
-Future<void> initServerImpl() async {
+Future<String> initServerImpl() async {
   throw UnsupportedError('Unsupported platform');
 }
 
