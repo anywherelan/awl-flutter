@@ -15,14 +15,13 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) {
     json['Connected'] as bool,
     json['Confirmed'] as bool,
     DateTime.parse(json['LastSeen'] as String),
-    (json['Addresses'] as List<dynamic>).map((e) => e as String).toList(),
+    (json['Connections'] as List<dynamic>).map((e) => ConnectionInfo.fromJson(e as Map<String, dynamic>)).toList(),
     NetworkStats.fromJson(json['NetworkStats'] as Map<String, dynamic>),
     json['DomainName'] as String,
   );
 }
 
-Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
       'PeerID': instance.peerID,
       'Name': instance.name,
       'Version': instance.version,
@@ -31,8 +30,26 @@ Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) =>
       'Connected': instance.connected,
       'Confirmed': instance.confirmed,
       'LastSeen': instance.lastSeen.toIso8601String(),
-      'Addresses': instance.addresses,
+      'Connections': instance.connections,
       'NetworkStats': instance.networkStats,
+    };
+
+ConnectionInfo _$ConnectionInfoFromJson(Map<String, dynamic> json) {
+  return ConnectionInfo(
+    json['Multiaddr'] as String,
+    json['ThroughRelay'] as bool,
+    json['RelayPeerID'] as String,
+    json['Address'] as String,
+    json['Protocol'] as String,
+  );
+}
+
+Map<String, dynamic> _$ConnectionInfoToJson(ConnectionInfo instance) => <String, dynamic>{
+      'Multiaddr': instance.multiaddr,
+      'ThroughRelay': instance.throughRelay,
+      'RelayPeerID': instance.relayPeerID,
+      'Address': instance.address,
+      'Protocol': instance.protocol,
     };
 
 MyPeerInfo _$MyPeerInfoFromJson(Map<String, dynamic> json) {

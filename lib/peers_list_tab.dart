@@ -137,7 +137,8 @@ class _PeersListPageState extends State<PeersListPage> {
         if (!item.connected && item.confirmed)
           _buildBodyItem(Icons.visibility_outlined, "Last seen",
               "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"),
-        if (item.addresses.isNotEmpty) _buildBodyItem(Icons.place_outlined, "Address    ", item.addresses.join('\n\n')),
+        if (item.connections.isNotEmpty)
+          _buildBodyItem(Icons.place_outlined, "Connection", item.connections.join('\n\n')),
         if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", item.version),
         if (item.networkStats.totalIn != 0)
           _buildBodyItem(Icons.cloud_download_outlined, "Download rate", item.networkStats.inAsString()),
@@ -181,7 +182,7 @@ class _PeersListPageState extends State<PeersListPage> {
 
   Widget _buildBodyItem(IconData icon, String label, String text) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 0, vertical: 7),
+      padding: EdgeInsets.symmetric(horizontal: 0, vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -190,7 +191,7 @@ class _PeersListPageState extends State<PeersListPage> {
               Icon(icon),
               SizedBox(width: 10),
               Text(label),
-              SizedBox(width: 45),
+              SizedBox(width: 35),
             ],
           ),
           Flexible(

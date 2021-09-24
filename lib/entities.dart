@@ -13,15 +13,40 @@ class KnownPeer {
   final bool connected;
   final bool confirmed;
   final DateTime lastSeen;
-  final List<String> addresses;
+  final List<ConnectionInfo> connections;
   final NetworkStats networkStats;
 
   KnownPeer(this.peerID, this.name, this.version, this.ipAddr, this.connected, this.confirmed, this.lastSeen,
-      this.addresses, this.networkStats, this.domainName);
+      this.connections, this.networkStats, this.domainName);
 
   factory KnownPeer.fromJson(Map<String, dynamic> json) => _$KnownPeerFromJson(json);
 
   Map<String, dynamic> toJson() => _$KnownPeerToJson(this);
+}
+
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class ConnectionInfo {
+  final String multiaddr;
+  final bool throughRelay;
+  final String relayPeerID;
+  final String address;
+  final String protocol;
+
+  ConnectionInfo(this.multiaddr, this.throughRelay, this.relayPeerID, this.address, this.protocol);
+
+  factory ConnectionInfo.fromJson(Map<String, dynamic> json) => _$ConnectionInfoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ConnectionInfoToJson(this);
+
+  String toString() {
+    if (throughRelay) {
+      return "through public relay";
+    } else if (address.isNotEmpty) {
+      return "$protocol $address";
+    }
+
+    return multiaddr;
+  }
 }
 
 @JsonSerializable(fieldRename: FieldRename.pascal)
