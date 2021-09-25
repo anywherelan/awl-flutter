@@ -1,11 +1,12 @@
 import 'dart:html';
+
 import 'package:anywherelan/api.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, kProfileMode;
+import 'package:anywherelan/server_interop/config.dart' as conf;
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 Future<String> initAppImpl() async {
   if (kDebugMode) {
-    // REMOVE ?
-    serverAddress = "http://192.168.1.19:8000?address=http://localhost:8640";
+    serverAddress = conf.getServerAddress();
   } else {
     serverAddress = window.location.origin;
   }

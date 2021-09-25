@@ -33,13 +33,6 @@ class _MyInfoPageState extends State<MyInfoPage> {
 
     _peerInfo = myPeerInfoDataService.getData();
     myPeerInfoDataService.subscribe(_onNewPeerInfo);
-    print("init MyInfoPage"); // REMOVE
-  }
-
-  @override
-  void deactivate() {
-    super.deactivate();
-    // TODO: что делать в случае `In some cases, the framework will reinsert the State object into another part of the tree`
   }
 
   @override

@@ -11,12 +11,10 @@ Future<String> initAppImpl() async {
   } else {
     throw UnsupportedError('Unsupported platform ${io.Platform.operatingSystem}');
   }
-  // REMOVE
-//  serverAddress = "http://192.168.1.19:8000?address=http://localhost:8640";
 }
 
 const platform = const MethodChannel('anywherelan');
-var serverRunning = false; // REMOVE
+var serverRunning = false;
 
 Future<String> initServerImpl() async {
   assert(!serverRunning, "calling initServer to running server");

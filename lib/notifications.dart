@@ -154,9 +154,9 @@ Future _showAuthRequestDialog(AuthRequest req) async {
 }
 
 class IncomingAuthRequestForm extends StatefulWidget {
-  IncomingAuthRequestForm({Key? key, this.request}) : super(key: key);
+  final AuthRequest request;
 
-  final AuthRequest? request;
+  IncomingAuthRequestForm({Key? key, required this.request}) : super(key: key);
 
   @override
   _IncomingAuthRequestFormState createState() => _IncomingAuthRequestFormState();
@@ -186,7 +186,7 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
   void initState() {
     super.initState();
 
-    _peerIdTextController = TextEditingController(text: widget.request!.peerID);
+    _peerIdTextController = TextEditingController(text: widget.request.peerID);
   }
 
   @override

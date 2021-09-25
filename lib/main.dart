@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _tabController = TabController(vsync: this, length: 2, initialIndex: 1);
     _tabController.addListener(() {
       _tabChangeListener();
-      // хак, чтобы вызвать build и обновить FloatingActionButton
+      // to trigger build and refresh FloatingActionButton
       setState(() {});
     });
 
@@ -134,14 +134,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   void dispose() {
-//    _tabController.removeListener(_handleTabIndex);
     _tabController.dispose();
 
     WidgetsBinding.instance!.removeObserver(this);
     _notificationsService.close();
     super.dispose();
-
-    print("dispose MyHomePage"); // REMOVE
   }
 
   void _tabChangeListener() {

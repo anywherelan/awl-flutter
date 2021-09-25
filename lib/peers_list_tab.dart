@@ -31,7 +31,6 @@ class _PeersListPageState extends State<PeersListPage> {
 
     _knownPeers = knownPeersDataService.getData();
     knownPeersDataService.subscribe(_onNewKnownPeers);
-    print("init PeersListPage"); // REMOVE
   }
 
   @override
