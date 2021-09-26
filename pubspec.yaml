@@ -24,13 +24,13 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^0.13.3
-  json_serializable: ^4.1.4
+  json_serializable: ^5.0.2
   permission_handler: ^8.1.4
   qr_flutter: ^4.0.0
   share_plus: ^2.1.4
   flutter_file_dialog: ^2.1.1
   path_provider: ^2.0.2
-  flutter_local_notifications: ^6.1.1
+  flutter_local_notifications: ^8.2.0
   overlay_support: ^1.2.1
   qr_code_scanner: ^0.5.2
   file_saver: ^0.0.10
