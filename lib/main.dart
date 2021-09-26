@@ -158,24 +158,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     switch (state) {
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
       case AppLifecycleState.paused:
         myPeerInfoDataService.disableTimer();
         knownPeersDataService.disableTimer();
         _notificationsService.setTimerIntervalLong();
         break;
       case AppLifecycleState.resumed:
-        _tabChangeListener();
+        myPeerInfoDataService.enableTimer();
+        knownPeersDataService.enableTimer();
         _notificationsService.setTimerIntervalShort();
         break;
     }
-
-    print("didChangeAppLifecycleState $state"); // REMOVE
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       if (constraints.maxWidth > 750) {
+        myPeerInfoDataService.enableTimer();
+        knownPeersDataService.enableTimer();
         return _buildWideAdaptiveScreen(constraints, context);
       }
 
