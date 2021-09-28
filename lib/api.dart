@@ -14,6 +14,7 @@ const GetKnownPeerSettingsPath = V0Prefix + "peers/get_known_peer_settings";
 const SendFriendRequestPath = V0Prefix + "peers/invite_peer";
 const AcceptPeerInvitationPath = V0Prefix + "peers/accept_peer";
 const UpdatePeerSettingsPath = V0Prefix + "peers/update_settings";
+const RemovePeerSettingsPath = V0Prefix + "peers/remove";
 const GetAuthRequestsPath = V0Prefix + "peers/auth_requests";
 
 // Settings
@@ -101,7 +102,7 @@ Future<String> sendFriendRequest(http.Client client, String peerID, String alias
   return "";
 }
 
-Future<String?> acceptFriendRequest(http.Client client, String peerID, String alias) async {
+Future<String> acceptFriendRequest(http.Client client, String peerID, String alias) async {
   var payload = FriendRequest(peerID, alias);
 
   var request = http.Request("POST", Uri.parse(serverAddress + AcceptPeerInvitationPath));
@@ -153,7 +154,7 @@ Future<String> updateKnownPeerConfig(http.Client client, UpdateKnownPeerConfigRe
   return "";
 }
 
-Future<String?> updateMySettings(http.Client client, String name) async {
+Future<String> updateMySettings(http.Client client, String name) async {
   var payload = {
     "Name": name,
   };
@@ -161,6 +162,23 @@ Future<String?> updateMySettings(http.Client client, String name) async {
   var request = http.Request("POST", Uri.parse(serverAddress + UpdateMyInfoPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload);
+
+  final response = await client.send(request);
+  var responseBody = await response.stream.bytesToString();
+  if (response.statusCode != 200) {
+    final Map<String, dynamic> parsed = jsonDecode(responseBody);
+    return ApiError.fromJson(parsed).error;
+  }
+
+  return "";
+}
+
+Future<String> removePeer(http.Client client, String peerID) async {
+  var payload = PeerIDRequest(peerID);
+
+  var request = http.Request("POST", Uri.parse(serverAddress + RemovePeerSettingsPath));
+  request.headers.addAll(<String, String>{"Content-Type": "application/json"});
+  request.body = jsonEncode(payload.toJson());
 
   final response = await client.send(request);
   var responseBody = await response.stream.bytesToString();

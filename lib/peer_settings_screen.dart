@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:anywherelan/api.dart';
+import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -21,6 +22,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   bool _hasPeerConfig = false;
   late String _peerID;
   late KnownPeerConfig _peerConfig;
+  late String _peerDisplayName;
 
   final _generalFormKey = GlobalKey<FormState>();
 
@@ -35,12 +37,12 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
 
     setState(() {
       _peerConfig = peerConfig;
+      _peerDisplayName = _peerConfig.alias != "" ? _peerConfig.alias : _peerConfig.name;
     });
   }
 
   Future<String> _sendNewPeerConfig() async {
-    var payload =
-        UpdateKnownPeerConfigRequest(_peerConfig.peerId, _aliasTextController.text, _domainNameTextController.text);
+    var payload = UpdateKnownPeerConfigRequest(_peerConfig.peerId, _aliasTextController.text, _domainNameTextController.text);
 
     var response = await updateKnownPeerConfig(http.Client(), payload);
     return response;
@@ -73,6 +75,13 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
+                  TextButton(
+                    child: Text('REMOVE PEER'),
+                    onPressed: () async {
+                      _removePeer(context);
+                    },
+                  ),
+                  SizedBox(width: 80),
                   ElevatedButton(
                     child: Text('CANCEL'),
                     onPressed: () async {
@@ -172,5 +181,42 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
         ],
       ),
     );
+  }
+
+  void _removePeer(BuildContext context) async {
+    var permitted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Remove Peer'),
+        content: Text('Are you sure you want to remove peer "$_peerDisplayName"?'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    if (permitted == null || permitted == false) {
+      return;
+    }
+
+    var response = await removePeer(http.Client(), _peerID);
+    if (response != "") {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Colors.red,
+        content: Text("Failed to remove peer: $response"),
+      ));
+      return;
+    }
+
+    knownPeersDataService.fetchData();
+    Navigator.pop(context);
   }
 }

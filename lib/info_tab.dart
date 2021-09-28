@@ -192,7 +192,7 @@ class _SettingsFormState extends State<SettingsForm> {
   TextEditingController? _peerNameTextController;
   final _formKey = GlobalKey<FormState>();
 
-  Future<String?> _onPressSave() async {
+  Future<String> _onPressSave() async {
     var response = await updateMySettings(http.Client(), _peerNameTextController!.text);
     return response;
   }
