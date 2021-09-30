@@ -12,12 +12,13 @@ class KnownPeer {
   final String domainName;
   final bool connected;
   final bool confirmed;
+  final bool declined;
   final DateTime lastSeen;
   final List<ConnectionInfo> connections;
   final NetworkStats networkStats;
 
   KnownPeer(this.peerID, this.name, this.version, this.ipAddr, this.connected, this.confirmed, this.lastSeen,
-      this.connections, this.networkStats, this.domainName);
+      this.connections, this.networkStats, this.domainName, this.declined);
 
   factory KnownPeer.fromJson(Map<String, dynamic> json) => _$KnownPeerFromJson(json);
 

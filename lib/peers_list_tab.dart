@@ -96,7 +96,9 @@ class _PeersListPageState extends State<PeersListPage> {
 
   Widget _buildRowTitle(BuildContext context, KnownPeer peer) {
     Text trailingText;
-    if (!peer.confirmed) {
+    if (peer.declined) {
+      trailingText = Text("Rejected", style: TextStyle(color: redColor));
+    } else if (!peer.confirmed) {
       trailingText = Text("Not accepted", style: TextStyle(color: unknownColor));
     } else if (!peer.connected) {
       trailingText = Text("Disconnected", style: TextStyle(color: redColor));

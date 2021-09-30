@@ -17,9 +17,11 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) => KnownPeer(
       (json['Connections'] as List<dynamic>).map((e) => ConnectionInfo.fromJson(e as Map<String, dynamic>)).toList(),
       NetworkStats.fromJson(json['NetworkStats'] as Map<String, dynamic>),
       json['DomainName'] as String,
+      json['Declined'] as bool,
     );
 
-Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
+Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) =>
+    <String, dynamic>{
       'PeerID': instance.peerID,
       'Name': instance.name,
       'Version': instance.version,
@@ -27,6 +29,7 @@ Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
       'DomainName': instance.domainName,
       'Connected': instance.connected,
       'Confirmed': instance.confirmed,
+      'Declined': instance.declined,
       'LastSeen': instance.lastSeen.toIso8601String(),
       'Connections': instance.connections,
       'NetworkStats': instance.networkStats,
