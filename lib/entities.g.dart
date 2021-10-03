@@ -20,8 +20,7 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) => KnownPeer(
       json['Declined'] as bool,
     );
 
-Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
       'PeerID': instance.peerID,
       'Name': instance.name,
       'Version': instance.version,
@@ -98,10 +97,21 @@ FriendRequest _$FriendRequestFromJson(Map<String, dynamic> json) => FriendReques
       json['Alias'] as String,
     );
 
-Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) => <String, dynamic>{
       'PeerID': instance.peerID,
       'Alias': instance.alias,
+    };
+
+FriendRequestReply _$FriendRequestReplyFromJson(Map<String, dynamic> json) => FriendRequestReply(
+      json['PeerID'] as String,
+      json['Alias'] as String,
+      json['Decline'] as bool,
+    );
+
+Map<String, dynamic> _$FriendRequestReplyToJson(FriendRequestReply instance) => <String, dynamic>{
+      'PeerID': instance.peerID,
+      'Alias': instance.alias,
+      'Decline': instance.decline,
     };
 
 ApiError _$ApiErrorFromJson(Map<String, dynamic> json) => ApiError(

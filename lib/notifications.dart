@@ -169,14 +169,15 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
   final _formKey = GlobalKey<FormState>();
   String? _serverError = "";
 
-  void _onPressAddPeer() async {
-    var response = await acceptFriendRequest(http.Client(), _peerIdTextController!.text, _aliasTextController.text);
+  void _sendRequest(bool decline) async {
+    var response =
+        await replyFriendRequest(http.Client(), _peerIdTextController!.text, _aliasTextController.text, decline);
     if (response == "") {
       Navigator.pop(context);
       _serverError = "";
       _formKey.currentState!.validate();
     } else {
-      _serverError = response;
+      _serverError = "server error: $response";
       _formKey.currentState!.validate();
       _serverError = "";
     }
@@ -217,19 +218,26 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
               decoration: InputDecoration(hintText: 'Alias'),
             ),
           ),
+          SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+                "If you decline the invitation, it will no longer be shown. You can still add the peer yourself later if you want."),
+          ),
+          SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              RaisedButton(
-                child: Text('Ignore'),
+              ElevatedButton(
+                child: Text('DECLINE'),
                 onPressed: () async {
-                  Navigator.pop(context);
+                  _sendRequest(true);
                 },
               ),
-              RaisedButton(
-                child: Text('Accept'),
+              ElevatedButton(
+                child: Text('ACCEPT'),
                 onPressed: () async {
-                  _onPressAddPeer();
+                  _sendRequest(false);
                 },
               ),
             ],

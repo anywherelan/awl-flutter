@@ -102,8 +102,8 @@ Future<String> sendFriendRequest(http.Client client, String peerID, String alias
   return "";
 }
 
-Future<String> acceptFriendRequest(http.Client client, String peerID, String alias) async {
-  var payload = FriendRequest(peerID, alias);
+Future<String> replyFriendRequest(http.Client client, String peerID, String alias, bool decline) async {
+  var payload = FriendRequestReply(peerID, alias, decline);
 
   var request = http.Request("POST", Uri.parse(serverAddress + AcceptPeerInvitationPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});

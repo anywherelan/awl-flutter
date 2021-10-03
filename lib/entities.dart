@@ -110,6 +110,19 @@ class FriendRequest {
   Map<String, dynamic> toJson() => _$FriendRequestToJson(this);
 }
 
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class FriendRequestReply {
+  final String peerID;
+  final String alias;
+  final bool decline;
+
+  FriendRequestReply(this.peerID, this.alias, this.decline);
+
+  factory FriendRequestReply.fromJson(Map<String, dynamic> json) => _$FriendRequestReplyFromJson(json);
+
+  Map<String, dynamic> toJson() => _$FriendRequestReplyToJson(this);
+}
+
 @JsonSerializable()
 class ApiError {
   final String error;
