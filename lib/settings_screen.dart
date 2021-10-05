@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:anywherelan/api.dart';
+import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -70,6 +71,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         return PickerResponse(false, startResponse);
       }
 
+      fetchAllData();
       return PickerResponse(true, "Imported file $filePath");
     } on PlatformException catch (e) {
       return PickerResponse(false, "Failed to pick config file: ${e.message}, ${e.details}");

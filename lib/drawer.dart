@@ -1,4 +1,5 @@
 import 'package:anywherelan/api.dart';
+import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/json_widget/json_widget.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:anywherelan/settings_screen.dart' show AppSettingsScreen;
@@ -50,6 +51,7 @@ class _MyDrawerState extends State<MyDrawer> {
                 var startResponse = await initServer();
                 if (startResponse == "") {
                   message = "Server started";
+                  fetchAllData();
                 } else {
                   message = "Failed to start server: $startResponse";
                   color = Colors.red;
@@ -76,6 +78,7 @@ class _MyDrawerState extends State<MyDrawer> {
               var startResponse = await initServer();
               Navigator.of(context).pop();
               if (startResponse == "") {
+                fetchAllData();
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   backgroundColor: Colors.green,
                   content: Text("Server restarted"),
