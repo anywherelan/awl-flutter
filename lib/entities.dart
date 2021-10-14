@@ -185,3 +185,16 @@ class UpdateKnownPeerConfigRequest {
 
   Map<String, dynamic> toJson() => _$UpdateKnownPeerConfigRequestToJson(this);
 }
+
+@JsonSerializable()
+class DeclinedPeer {
+  final String peerId;
+  final String displayName;
+  final DateTime createdAt;
+
+  DeclinedPeer(this.peerId, this.displayName, this.createdAt);
+
+  factory DeclinedPeer.fromJson(Map<String, dynamic> json) => _$DeclinedPeerFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DeclinedPeerToJson(this);
+}

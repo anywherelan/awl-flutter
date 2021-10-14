@@ -1,4 +1,5 @@
 import 'package:anywherelan/add_peer.dart';
+import 'package:anywherelan/blocked_peers_screen.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/drawer.dart';
 import 'package:anywherelan/info_tab.dart';
@@ -88,6 +89,7 @@ class MyApp extends StatelessWidget {
         LogsScreen.routeName: (context) => LogsScreen(),
         AppSettingsScreen.routeName: (context) => AppSettingsScreen(),
         KnownPeerSettingsScreen.routeName: (context) => KnownPeerSettingsScreen(),
+        BlockedPeersScreen.routeName: (context) => BlockedPeersScreen(),
       },
 //      navigatorObservers: [],
 //      onGenerateRoute:,

@@ -1,4 +1,5 @@
 import 'package:anywherelan/api.dart';
+import 'package:anywherelan/blocked_peers_screen.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/json_widget/json_widget.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
@@ -91,6 +92,14 @@ class _MyDrawerState extends State<MyDrawer> {
               }
             },
           ),
+        ListTile(
+          title: Text("Blocked peers"),
+          enabled: true,
+          leading: const Icon(Icons.app_blocking),
+          onTap: () {
+            Navigator.of(context).pushNamed(BlockedPeersScreen.routeName);
+          },
+        ),
         ListTile(
           title: Text(
             "Settings",
