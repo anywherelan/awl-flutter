@@ -36,7 +36,8 @@ class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: SelectableText(
-                      "This is a list of peers, all incoming requests from which are blocked. You can remove a peer from this list if you send them a friend invitation.",
+                      "All incoming requests from these peers are blocked. "
+                      "Send friend invitation to a peer to remove it from the list.",
                       style: Theme.of(context).textTheme.headline6,
                     ),
                   ),
