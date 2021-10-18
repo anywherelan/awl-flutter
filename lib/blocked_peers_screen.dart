@@ -21,8 +21,8 @@ class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
         title: const Text('Blocked peers'),
       ),
       body: SafeArea(
-        child: FutureBuilder<List<DeclinedPeer>>(
-          future: fetchDeclinedPeers(http.Client()),
+        child: FutureBuilder<List<BlockedPeer>>(
+          future: fetchBlockedPeers(http.Client()),
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               final declinedPeers = snapshot.data!;
@@ -67,7 +67,7 @@ class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
     );
   }
 
-  Widget _buildPeerCard(BuildContext context, DeclinedPeer peer) {
+  Widget _buildPeerCard(BuildContext context, BlockedPeer peer) {
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16.0),

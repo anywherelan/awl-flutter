@@ -172,13 +172,13 @@ Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(UpdateKnownPeerConfigR
       'DomainName': instance.domainName,
     };
 
-DeclinedPeer _$DeclinedPeerFromJson(Map<String, dynamic> json) => DeclinedPeer(
+BlockedPeer _$BlockedPeerFromJson(Map<String, dynamic> json) => BlockedPeer(
       json['peerId'] as String,
       json['displayName'] as String,
       DateTime.parse(json['createdAt'] as String),
     );
 
-Map<String, dynamic> _$DeclinedPeerToJson(DeclinedPeer instance) => <String, dynamic>{
+Map<String, dynamic> _$BlockedPeerToJson(BlockedPeer instance) => <String, dynamic>{
       'peerId': instance.peerId,
       'displayName': instance.displayName,
       'createdAt': instance.createdAt.toIso8601String(),
