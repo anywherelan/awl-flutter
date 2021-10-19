@@ -13,7 +13,7 @@ const GetKnownPeerSettingsPath = V0Prefix + "peers/get_known_peer_settings";
 const UpdatePeerSettingsPath = V0Prefix + "peers/update_settings";
 const RemovePeerSettingsPath = V0Prefix + "peers/remove";
 
-const GetDeclinedPeersPath = V0Prefix + "peers/get_declined";
+const GetBlockedPeersPath = V0Prefix + "peers/get_blocked";
 
 const SendFriendRequestPath = V0Prefix + "peers/invite_peer";
 const AcceptPeerInvitationPath = V0Prefix + "peers/accept_peer";
@@ -192,9 +192,9 @@ Future<String> removePeer(http.Client client, String peerID) async {
   return "";
 }
 
-Future<List<DeclinedPeer>> fetchDeclinedPeers(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + GetDeclinedPeersPath));
+Future<List<BlockedPeer>> fetchBlockedPeers(http.Client client) async {
+  final response = await client.get(Uri.parse(serverAddress + GetBlockedPeersPath));
   final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
-  return parsed.map<DeclinedPeer>((json) => DeclinedPeer.fromJson(json)).toList();
+  return parsed.map<BlockedPeer>((json) => BlockedPeer.fromJson(json)).toList();
 }

@@ -187,14 +187,14 @@ class UpdateKnownPeerConfigRequest {
 }
 
 @JsonSerializable()
-class DeclinedPeer {
+class BlockedPeer {
   final String peerId;
   final String displayName;
   final DateTime createdAt;
 
-  DeclinedPeer(this.peerId, this.displayName, this.createdAt);
+  BlockedPeer(this.peerId, this.displayName, this.createdAt);
 
-  factory DeclinedPeer.fromJson(Map<String, dynamic> json) => _$DeclinedPeerFromJson(json);
+  factory BlockedPeer.fromJson(Map<String, dynamic> json) => _$BlockedPeerFromJson(json);
 
-  Map<String, dynamic> toJson() => _$DeclinedPeerToJson(this);
+  Map<String, dynamic> toJson() => _$BlockedPeerToJson(this);
 }
