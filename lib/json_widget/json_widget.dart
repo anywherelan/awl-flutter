@@ -43,13 +43,20 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           ex
-              ? ((open)
-                  ? Icon(Icons.arrow_drop_down, size: 14, color: Colors.grey[700])
-                  : Icon(Icons.arrow_right, size: 14, color: Colors.grey[700]))
+              ? GestureDetector(
+                  child: ((open)
+                      ? Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey[700])
+                      : Icon(Icons.arrow_right, size: 16, color: Colors.grey[700])),
+                  onTap: () {
+                    setState(() {
+                      openFlag[entry.key] = !(openFlag[entry.key] ?? false);
+                    });
+                  },
+                )
               : const Icon(
                   Icons.arrow_right,
                   color: Color.fromARGB(0, 0, 0, 0),
-                  size: 14,
+                  size: 16,
                 ),
           (ex && ink)
               ? Flexible(
@@ -245,23 +252,30 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
         open = false;
       }
       openFlag[i] = open;
+      var currentIndex = i;
 
       list.add(Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           ex
-              ? ((open)
-                  ? Icon(Icons.arrow_drop_down, size: 14, color: Colors.grey[700])
-                  : Icon(Icons.arrow_right, size: 14, color: Colors.grey[700]))
+              ? GestureDetector(
+                  child: ((open)
+                      ? Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey[700])
+                      : Icon(Icons.arrow_right, size: 16, color: Colors.grey[700])),
+                  onTap: () {
+                    setState(() {
+                      openFlag[currentIndex] = !(openFlag[currentIndex] ?? false);
+                    });
+                  },
+                )
               : const Icon(
                   Icons.arrow_right,
                   color: Color.fromARGB(0, 0, 0, 0),
-                  size: 14,
+                  size: 16,
                 ),
           (ex && ink)
               ? getInkWell(i)
-              : SelectableText('[$i]',
-                  style: TextStyle(color: content == null ? Colors.grey : Colors.purple[900])),
+              : SelectableText('[$i]', style: TextStyle(color: content == null ? Colors.grey : Colors.purple[900])),
           SelectableText(
             ':',
             style: TextStyle(color: Colors.grey),
