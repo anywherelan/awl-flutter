@@ -193,7 +193,7 @@ class DebugScreen extends StatefulWidget {
 }
 
 class _DebugScreenState extends State<DebugScreen> {
-  Map<String, dynamic>? _debugInfo = Map();
+  late Map<String, dynamic> _debugInfo = Map();
 
   void _refreshDebugInfo() async {
     var debugInfo = await fetchDebugInfo(http.Client());
@@ -201,7 +201,7 @@ class _DebugScreenState extends State<DebugScreen> {
       return;
     }
     setState(() {
-      _debugInfo = debugInfo;
+      _debugInfo = debugInfo!;
     });
   }
 
