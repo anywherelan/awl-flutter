@@ -3,7 +3,6 @@ package com.anywherelan.awl
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
-import android.system.OsConstants
 import androidx.annotation.NonNull
 import anywherelan.Anywherelan
 import io.flutter.embedding.android.FlutterActivity
@@ -18,6 +17,12 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "start_server" -> {
+                    val startedApiAddress = Anywherelan.getApiAddress()
+                    if (startedApiAddress != "") {
+                        result.success(startedApiAddress)
+                        return@setMethodCallHandler
+                    }
+
                     val service = MyVpnService()
                     val requestPermissionIntent = VpnService.prepare(this.context)
                     if (requestPermissionIntent != null) {
@@ -79,7 +84,6 @@ class MainActivity : FlutterActivity() {
             }
         }
     }
-
 }
 
 class MyVpnService : android.net.VpnService() {
@@ -87,8 +91,7 @@ class MyVpnService : android.net.VpnService() {
         get() = Builder()
 
     override fun onDestroy() {
-        // TODO
+        Anywherelan.stopServer()
         super.onDestroy()
     }
-
 }
