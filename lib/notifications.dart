@@ -33,11 +33,13 @@ class NotificationsService {
       var initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
       await _notificationsPlugin.initialize(initializationSettings, onSelectNotification: _onSelectMobileNotification);
 
-      // TODO
       var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'channel id', 'channel name', 'channel description',
-        importance: Importance.high, priority: Priority.high, ticker: 'ticker',
-//      onlyAlertOnce: true // TODO
+        'friend_requests',
+        'Friend requests',
+        '',
+        importance: Importance.high,
+        priority: Priority.high,
+        ticker: 'ticker',
       );
       _notificationDetails = NotificationDetails(android: androidPlatformChannelSpecifics);
     }
