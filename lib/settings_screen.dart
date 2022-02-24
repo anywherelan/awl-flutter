@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class AppSettingsScreen extends StatefulWidget {
@@ -36,9 +37,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       if (response == "Downloads") {
         // web
         return PickerResponse(true, "");
-      } else if (response.startsWith("File Successfully Saved")) {
+      } else if (response != "") {
         // android
-        return PickerResponse(true, "Settings have been exported");
+        return PickerResponse(true, "Settings have been exported to file ${basename(response)}");
       }
 
       return PickerResponse(false, response);
