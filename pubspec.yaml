@@ -1,5 +1,9 @@
 name: anywherelan
-description: A new Flutter application.
+description: Securely connect your devices into a private network.
+
+homepage: "https://github.com/anywherelan/awl"
+repository: "https://github.com/anywherelan/awl-flutter"
+issue_tracker: "https://github.com/anywherelan/awl/issues"
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
