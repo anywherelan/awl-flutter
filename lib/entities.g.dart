@@ -8,7 +8,7 @@ part of 'entities.dart';
 
 KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) => KnownPeer(
       json['PeerID'] as String,
-      json['Name'] as String,
+      json['DisplayName'] as String,
       json['Version'] as String,
       json['IpAddr'] as String,
       json['Connected'] as bool,
@@ -20,9 +20,10 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) => KnownPeer(
       json['Declined'] as bool,
     );
 
-Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
+Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) =>
+    <String, dynamic>{
       'PeerID': instance.peerID,
-      'Name': instance.name,
+      'DisplayName': instance.displayName,
       'Version': instance.version,
       'IpAddr': instance.ipAddr,
       'DomainName': instance.domainName,
@@ -63,8 +64,7 @@ MyPeerInfo _$MyPeerInfoFromJson(Map<String, dynamic> json) => MyPeerInfo(
       json['IsAwlDNSSetAsSystem'] as bool,
     );
 
-Map<String, dynamic> _$MyPeerInfoToJson(MyPeerInfo instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$MyPeerInfoToJson(MyPeerInfo instance) => <String, dynamic>{
       'PeerID': instance.peerID,
       'Name': instance.name,
       'Uptime': MyPeerInfo._durationToNanoseconds(instance.uptime),
@@ -84,8 +84,7 @@ NetworkStats _$NetworkStatsFromJson(Map<String, dynamic> json) => NetworkStats(
       (json['RateOut'] as num).toDouble(),
     );
 
-Map<String, dynamic> _$NetworkStatsToJson(NetworkStats instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$NetworkStatsToJson(NetworkStats instance) => <String, dynamic>{
       'TotalIn': instance.totalIn,
       'TotalOut': instance.totalOut,
       'RateIn': instance.rateIn,
@@ -127,8 +126,7 @@ AuthRequest _$AuthRequestFromJson(Map<String, dynamic> json) => AuthRequest(
       json['Name'] as String,
     );
 
-Map<String, dynamic> _$AuthRequestToJson(AuthRequest instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$AuthRequestToJson(AuthRequest instance) => <String, dynamic>{
       'PeerID': instance.peerID,
       'Name': instance.name,
     };
@@ -137,8 +135,7 @@ PeerIDRequest _$PeerIDRequestFromJson(Map<String, dynamic> json) => PeerIDReques
       json['PeerID'] as String,
     );
 
-Map<String, dynamic> _$PeerIDRequestToJson(PeerIDRequest instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$PeerIDRequestToJson(PeerIDRequest instance) => <String, dynamic>{
       'PeerID': instance.peerID,
     };
 
@@ -150,8 +147,7 @@ KnownPeerConfig _$KnownPeerConfigFromJson(Map<String, dynamic> json) => KnownPee
       json['domainName'] as String,
     );
 
-Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) => <String, dynamic>{
       'peerId': instance.peerId,
       'name': instance.name,
       'alias': instance.alias,

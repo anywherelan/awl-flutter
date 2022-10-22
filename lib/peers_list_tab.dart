@@ -115,7 +115,7 @@ class _PeersListPageState extends State<PeersListPage> {
 
     return ListTile(
       title: Text(
-        peer.name,
+        peer.displayName,
         style: Theme.of(context).textTheme.headline6,
       ),
       subtitle: Padding(
@@ -157,7 +157,7 @@ class _PeersListPageState extends State<PeersListPage> {
               label: Text("SHOW ID"),
               onPressed: () async {
                 knownPeersDataService.unsubscribe(_onNewKnownPeers);
-                await showQRDialog(context, item.peerID, item.name);
+                await showQRDialog(context, item.peerID, item.displayName);
                 knownPeersDataService.subscribe(_onNewKnownPeers);
               },
             ),

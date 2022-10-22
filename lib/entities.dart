@@ -6,7 +6,7 @@ part 'entities.g.dart';
 @JsonSerializable(fieldRename: FieldRename.pascal)
 class KnownPeer {
   final String peerID;
-  final String name;
+  final String displayName;
   final String version;
   final String ipAddr;
   final String domainName;
@@ -17,7 +17,7 @@ class KnownPeer {
   final List<ConnectionInfo> connections;
   final NetworkStats networkStats;
 
-  KnownPeer(this.peerID, this.name, this.version, this.ipAddr, this.connected, this.confirmed, this.lastSeen,
+  KnownPeer(this.peerID, this.displayName, this.version, this.ipAddr, this.connected, this.confirmed, this.lastSeen,
       this.connections, this.networkStats, this.domainName, this.declined);
 
   factory KnownPeer.fromJson(Map<String, dynamic> json) => _$KnownPeerFromJson(json);
