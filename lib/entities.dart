@@ -43,7 +43,7 @@ class ConnectionInfo {
     if (throughRelay) {
       return "through public relay";
     } else if (address.isNotEmpty) {
-      return "$protocol $address";
+      return "$address | $protocol";
     }
 
     return multiaddr;
