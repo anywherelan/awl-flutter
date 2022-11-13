@@ -136,8 +136,8 @@ class _MyDrawerState extends State<MyDrawer> {
           icon: Icon(Icons.info),
           applicationIcon: FlutterLogo(),
           applicationName: 'Anywherelan',
-          applicationVersion: 'April 2021',
-          applicationLegalese: '© 2021 The Anywherelan Authors',
+          applicationVersion: 'November 2022',
+          applicationLegalese: '© 2022 The Anywherelan Authors',
           aboutBoxChildren: _buildAboutBox(),
         ),
       ],
@@ -166,7 +166,6 @@ class _MyDrawerState extends State<MyDrawer> {
       RichText(
         text: TextSpan(
           children: <TextSpan>[
-            TextSpan(style: textStyle, text: 'TODO '),
             TextSpan(
               style: textStyle.copyWith(color: Theme.of(context).colorScheme.primary),
               text: url,
@@ -279,7 +278,7 @@ class _LogsScreenState extends State<LogsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _scrollToEnd();
     });
 

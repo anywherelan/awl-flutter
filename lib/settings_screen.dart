@@ -5,7 +5,6 @@ import 'package:anywherelan/api.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:file_saver/file_saver.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -27,14 +26,18 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   Future<PickerResponse> _exportSettings() async {
     final exportedSettings = await fetchExportedServerConfig(http.Client());
     try {
-      String response;
+      String? response;
       if (kIsWeb) {
         response = await FileSaver.instance.saveFile("config_awl", exportedSettings, "json", mimeType: MimeType.JSON);
       } else {
-        response = await FileSaver.instance.saveAs("config_awl.json", exportedSettings, "json", MimeType.JSON);
+        final params = SaveFileDialogParams(data: exportedSettings, fileName: "config_awl.json");
+        response = await FlutterFileDialog.saveFile(params: params);
       }
 
-      if (response == "Downloads") {
+      if (response == null) {
+        // cancelled on android
+        return PickerResponse(false, "");
+      } else if (response == "Downloads") {
         // web
         return PickerResponse(true, "");
       } else if (response != "") {

@@ -20,8 +20,7 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) => KnownPeer(
       json['Declined'] as bool,
     );
 
-Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
       'PeerID': instance.peerID,
       'DisplayName': instance.displayName,
       'Version': instance.version,

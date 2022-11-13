@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:anywherelan/api.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
@@ -73,12 +72,12 @@ class _AddPeerFormState extends State<AddPeerForm> {
 
     var res = await Navigator.of(context).push<Barcode?>(
         MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
-    if (res == null || res.code == '') {
+    if (res == null || res.code == null || res.code == '') {
       return;
     }
 
     setState(() {
-      _peerIdTextController.text = res.code;
+      _peerIdTextController.text = res.code!;
     });
   }
 
@@ -122,7 +121,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              RaisedButton.icon(
+              ElevatedButton.icon(
                 icon: Icon(
                   Icons.qr_code_scanner,
                   color: Colors.black87,
@@ -132,7 +131,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
                   _scanQR(context);
                 },
               ),
-              RaisedButton(
+              ElevatedButton(
                 child: Text('Invite peer'),
                 onPressed: () async {
                   _onPressInvite();

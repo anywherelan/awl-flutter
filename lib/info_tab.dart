@@ -224,14 +224,14 @@ class _SettingsFormState extends State<SettingsForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              RaisedButton(
+              ElevatedButton(
                 child: Text('Cancel'),
                 onPressed: () async {
                   Navigator.pop(context);
                 },
               ),
               SizedBox(width: 20),
-              RaisedButton(
+              ElevatedButton(
                 child: Text('Save'),
                 onPressed: () async {
                   var result = await _onPressSave();
