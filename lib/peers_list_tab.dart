@@ -2,7 +2,6 @@ import 'package:anywherelan/common.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/peer_settings_screen.dart' show KnownPeerSettingsScreen;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class PeersListPage extends StatefulWidget {

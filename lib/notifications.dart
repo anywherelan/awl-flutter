@@ -31,12 +31,16 @@ class NotificationsService {
       var initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
 
       var initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-      await _notificationsPlugin.initialize(initializationSettings, onSelectNotification: _onSelectMobileNotification);
+      await _notificationsPlugin.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: _onSelectMobileNotification,
+        // we don't use onBackground callback because when application starts we show request again
+        // it's way easier than initialize application state here correctly. also it's not common case
+      );
 
       var androidPlatformChannelSpecifics = AndroidNotificationDetails(
         'friend_requests',
         'Friend requests',
-        '',
         importance: Importance.high,
         priority: Priority.high,
         ticker: 'ticker',
@@ -126,10 +130,11 @@ class NotificationsService {
     }, duration: Duration(milliseconds: 0));
   }
 
-  Future _onSelectMobileNotification(String? payload) async {
-    if (payload == null) {
+  void _onSelectMobileNotification(NotificationResponse notificationResponse) async {
+    if (notificationResponse.payload == null) {
       return;
     }
+    final payload = notificationResponse.payload!;
     var authReq = _lastRequests.firstWhere((obj) => obj.peerID == payload, orElse: () => AuthRequest(payload, ""));
     _showAuthRequestDialog(authReq);
   }

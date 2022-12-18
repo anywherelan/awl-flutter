@@ -1,9 +1,9 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:anywherelan/api.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
@@ -73,12 +73,12 @@ class _AddPeerFormState extends State<AddPeerForm> {
 
     var res = await Navigator.of(context).push<Barcode?>(
         MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
-    if (res == null || res.code == '') {
+    if (res == null || res.code == null || res.code == '') {
       return;
     }
 
     setState(() {
-      _peerIdTextController.text = res.code;
+      _peerIdTextController.text = res.code!;
     });
   }
 
@@ -122,7 +122,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              RaisedButton.icon(
+              ElevatedButton.icon(
                 icon: Icon(
                   Icons.qr_code_scanner,
                   color: Colors.black87,
@@ -132,7 +132,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
                   _scanQR(context);
                 },
               ),
-              RaisedButton(
+              ElevatedButton(
                 child: Text('Invite peer'),
                 onPressed: () async {
                   _onPressInvite();
@@ -183,22 +183,16 @@ class _QRScanPageState extends State<QRScanPage> {
   }
 
   Widget _buildQrView(BuildContext context) {
-    // For this example we check how width or tall the device is and change the scanArea and overlay accordingly.
-    var scanArea = (MediaQuery.of(context).size.width < 400 ||
-            MediaQuery.of(context).size.height < 400)
-        ? 150.0
-        : 300.0;
+    final mediaSize = MediaQuery.of(context).size;
+    var scanArea = min(mediaSize.height, mediaSize.width) * 0.8;
+    scanArea = min(scanArea, 800);
     // To ensure the Scanner view is properly sizes after rotation
     // we need to listen for Flutter SizeChanged notification and update controller
     return QRView(
       key: qrKey,
       onQRViewCreated: _onQRViewCreated,
       overlay: QrScannerOverlayShape(
-          borderColor: Colors.red,
-          borderRadius: 10,
-          borderLength: 30,
-          borderWidth: 10,
-          cutOutSize: scanArea),
+          borderColor: Colors.red, borderRadius: 10, borderLength: 30, borderWidth: 10, cutOutSize: scanArea),
     );
   }
 
