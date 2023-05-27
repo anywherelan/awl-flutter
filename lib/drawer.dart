@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class MyDrawer extends StatefulWidget {
   final bool isRetractable;
@@ -30,7 +30,7 @@ class _MyDrawerState extends State<MyDrawer> {
           ListTile(
             title: Text(
               "Anywherelan",
-              style: textTheme.headline5,
+              style: textTheme.headlineSmall,
             ),
           ),
           const Divider(),
@@ -136,8 +136,8 @@ class _MyDrawerState extends State<MyDrawer> {
           icon: Icon(Icons.info),
           applicationIcon: FlutterLogo(),
           applicationName: 'Anywherelan',
-          applicationVersion: 'November 2022',
-          applicationLegalese: '© 2022 The Anywherelan Authors',
+          applicationVersion: 'June 2023',
+          applicationLegalese: '© 2023 The Anywherelan Authors',
           aboutBoxChildren: _buildAboutBox(),
         ),
       ],
@@ -159,7 +159,7 @@ class _MyDrawerState extends State<MyDrawer> {
   }
 
   List<Widget> _buildAboutBox() {
-    final TextStyle textStyle = Theme.of(context).textTheme.bodyText1!;
+    final TextStyle textStyle = Theme.of(context).textTheme.bodyLarge!;
     const url = "https://anywherelan.com";
     return <Widget>[
       SizedBox(height: 24),
@@ -171,7 +171,7 @@ class _MyDrawerState extends State<MyDrawer> {
               text: url,
               recognizer: TapGestureRecognizer()
                 ..onTap = () async {
-                  if (await canLaunch(url)) await launch(url);
+                  if (await canLaunchUrlString(url)) await launchUrlString(url);
                 },
             ),
             TextSpan(style: textStyle, text: '.'),

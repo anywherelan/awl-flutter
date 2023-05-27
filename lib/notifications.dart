@@ -171,14 +171,14 @@ class IncomingAuthRequestForm extends StatefulWidget {
 
 class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
   TextEditingController? _peerIdTextController;
-  final _aliasTextController = TextEditingController();
+  TextEditingController? _aliasTextController;
 
   final _formKey = GlobalKey<FormState>();
   String? _serverError = "";
 
   void _sendRequest(bool decline) async {
     var response =
-        await replyFriendRequest(http.Client(), _peerIdTextController!.text, _aliasTextController.text, decline);
+        await replyFriendRequest(http.Client(), _peerIdTextController!.text, _aliasTextController!.text, decline);
     if (response == "") {
       Navigator.pop(context);
       _serverError = "";
@@ -195,6 +195,7 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
     super.initState();
 
     _peerIdTextController = TextEditingController(text: widget.request.peerID);
+    _aliasTextController = TextEditingController(text: widget.request.name);
   }
 
   @override

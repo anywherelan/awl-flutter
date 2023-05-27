@@ -78,6 +78,10 @@ class MyApp extends StatelessWidget {
       navigatorKey: notif.navigatorKey,
 //      onUnknownRoute:,
       theme: ThemeData(
+        // TODO: redesign in Material 3
+        // useMaterial3: true,
+        // colorSchemeSeed: Colors.green,
+        // brightness: Brightness.dark,
         brightness: Brightness.light,
         primarySwatch: Colors.green,
         visualDensity: VisualDensity.adaptivePlatformDensity,

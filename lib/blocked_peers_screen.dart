@@ -37,7 +37,7 @@ class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
                     child: SelectableText(
                       "All incoming requests from these peers are blocked. "
                       "Send friend invitation to a peer to remove it from the list.",
-                      style: Theme.of(context).textTheme.headline6,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
                   SizedBox(height: 10),
@@ -76,7 +76,7 @@ class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
           children: <Widget>[
             SelectableText(
               peer.displayName,
-              style: Theme.of(context).textTheme.headline6,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             SizedBox(height: 10.0),
             SelectableText(
