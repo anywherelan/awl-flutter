@@ -61,9 +61,8 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
               child: Container(
                 constraints: BoxConstraints.tightFor(width: 350),
                 alignment: Alignment.center,
-                child: QrImage(
+                child: QrImageView(
                   data: peerID,
-                  version: QrVersions.auto,
                 ),
               ),
             ),
@@ -76,7 +75,7 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
                 child: TextButton(
                   child: Text(
                     "CLOSE",
-                    style: Theme.of(context).textTheme.headline6,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   onPressed: () {
                     Navigator.of(context).pop();

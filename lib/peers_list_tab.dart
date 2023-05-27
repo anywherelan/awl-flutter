@@ -53,7 +53,7 @@ class _PeersListPageState extends State<PeersListPage> {
           alignment: Alignment.topCenter,
           child: Text(
             "No known peers",
-            style: Theme.of(context).textTheme.headline6,
+            style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
       );
@@ -115,7 +115,7 @@ class _PeersListPageState extends State<PeersListPage> {
     return ListTile(
       title: Text(
         peer.displayName,
-        style: Theme.of(context).textTheme.headline6,
+        style: Theme.of(context).textTheme.titleLarge,
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),

@@ -117,6 +117,12 @@ class _AddPeerFormState extends State<AddPeerForm> {
               focusNode: _focusAlias,
               textInputAction: TextInputAction.done,
               decoration: InputDecoration(hintText: 'Alias'),
+              validator: (value) {
+                if (value!.isEmpty) {
+                  return 'Please enter peer name';
+                }
+                return null;
+              },
             ),
           ),
           Row(

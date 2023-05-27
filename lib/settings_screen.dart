@@ -28,7 +28,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     try {
       String? response;
       if (kIsWeb) {
-        response = await FileSaver.instance.saveFile("config_awl", exportedSettings, "json", mimeType: MimeType.JSON);
+        response = await FileSaver.instance
+            .saveFile(name: "config_awl", bytes: exportedSettings, ext: "json", mimeType: MimeType.json);
       } else {
         final params = SaveFileDialogParams(data: exportedSettings, fileName: "config_awl.json");
         response = await FlutterFileDialog.saveFile(params: params);
