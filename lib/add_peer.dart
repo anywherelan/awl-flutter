@@ -179,6 +179,12 @@ class _QRScanPageState extends State<QRScanPage> {
       Navigator.of(context).pop(result!);
       return Scaffold();
     }
+
+    if (controller != null && mounted) {
+      controller!.pauseCamera();
+      controller!.resumeCamera();
+    }
+
     return Scaffold(
       body: Column(
         children: <Widget>[
