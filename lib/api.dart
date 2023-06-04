@@ -45,7 +45,7 @@ Future<MyPeerInfo> fetchMyPeerInfo(http.Client client) async {
     return MyPeerInfo.fromJson(parsed);
   } catch (e) {
     print("error in fetchMyPeerInfo: '${e.toString()}'.");
-    return MyPeerInfo("", "", Duration(), "", NetworkStats(0, 0, 0, 0), 1, 0, "", "", false);
+    return MyPeerInfo("", "", Duration.zero, "–", NetworkStats(0, 0, 0, 0), 0, 0, "", "", false);
   }
 }
 
