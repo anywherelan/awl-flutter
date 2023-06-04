@@ -93,6 +93,10 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
 final zeroGoTime = DateTime.fromMicrosecondsSinceEpoch(-62135596800000000, isUtc: true);
 
 String formatDuration(Duration duration) {
+  if (duration.inMicroseconds == 0) {
+    return "–";
+  }
+
   var seconds = duration.inSeconds > 0 ? duration.inSeconds : duration.inSeconds * -1;
   final days = seconds ~/ Duration.secondsPerDay;
   seconds -= days * Duration.secondsPerDay;

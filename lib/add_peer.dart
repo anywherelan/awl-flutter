@@ -45,8 +45,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
       return;
     }
 
-    var response = await sendFriendRequest(
-        http.Client(), _peerIdTextController.text, _aliasTextController.text);
+    var response = await sendFriendRequest(http.Client(), _peerIdTextController.text, _aliasTextController.text);
     if (response == "") {
       // "Invitation was sent"
       Navigator.pop(context);

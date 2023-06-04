@@ -16,6 +16,7 @@ class MyInfoPage extends StatefulWidget {
 
 class _MyInfoPageState extends State<MyInfoPage> {
   MyPeerInfo? _peerInfo;
+  bool _openedSetupDialog = false;
 
   void _onNewPeerInfo(MyPeerInfo newPeerInfo) async {
     if (!this.mounted) {
@@ -47,6 +48,13 @@ class _MyInfoPageState extends State<MyInfoPage> {
       return Container();
     }
 
+    final serverIsUp = _peerInfo!.uptime.inMicroseconds > 0;
+
+    if (!_openedSetupDialog && serverIsUp && _peerInfo!.name.isEmpty) {
+      _openedSetupDialog = true;
+      Future.delayed(Duration(seconds: 2), () => showSettingsDialog(context, _peerInfo, true));
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -76,7 +84,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
               label: Text("SETTINGS"),
               onPressed: () async {
                 myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                await showSettingsDialog(context, _peerInfo);
+                await showSettingsDialog(context, _peerInfo, false);
                 myPeerInfoDataService.subscribe(_onNewPeerInfo);
               },
             ),
@@ -160,9 +168,10 @@ class _MyInfoPageState extends State<MyInfoPage> {
   }
 }
 
-Future<void> showSettingsDialog(BuildContext context, MyPeerInfo? peerInfo) {
+Future<void> showSettingsDialog(BuildContext context, MyPeerInfo? peerInfo, bool firstSetup) {
   return showDialog(
     context: context,
+    barrierDismissible: !firstSetup,
     builder: (context) {
       return SimpleDialog(
         title: Text("Settings"),
@@ -192,9 +201,27 @@ class _SettingsFormState extends State<SettingsForm> {
   TextEditingController? _peerNameTextController;
   final _formKey = GlobalKey<FormState>();
 
-  Future<String> _onPressSave() async {
+  String _serverError = "";
+
+  void _onPressSave() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     var response = await updateMySettings(http.Client(), _peerNameTextController!.text);
-    return response;
+    if (response == "") {
+      Navigator.pop(context);
+      _serverError = "";
+      _formKey.currentState!.validate();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Colors.green,
+        content: Text("Successfully saved"),
+      ));
+    } else {
+      _serverError = response;
+      _formKey.currentState!.validate();
+      _serverError = "";
+    }
   }
 
   @override
@@ -215,7 +242,15 @@ class _SettingsFormState extends State<SettingsForm> {
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
               controller: _peerNameTextController,
-              decoration: InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: 'Your peer name'),
+              validator: (value) {
+                if (value!.isEmpty) {
+                  return 'Please enter peer name';
+                } else if (_serverError != "") {
+                  return _serverError;
+                }
+                return null;
+              },
               maxLines: 2,
               minLines: 1,
               textInputAction: TextInputAction.done,
@@ -234,20 +269,7 @@ class _SettingsFormState extends State<SettingsForm> {
               ElevatedButton(
                 child: Text('Save'),
                 onPressed: () async {
-                  var result = await _onPressSave();
-                  // TODO
-//                  if (result == "") {
-//                    Scaffold.of(context).showSnackBar(SnackBar(
-//                      backgroundColor: Colors.green,
-//                      content: Text("Successfully saved"),
-//                    ));
-//                  } else {
-//                    Scaffold.of(context).showSnackBar(SnackBar(
-//                      backgroundColor: Colors.red,
-//                      content: Text(result),
-//                    ));
-//                  }
-                  Navigator.pop(context);
+                  _onPressSave();
                 },
               ),
             ],
