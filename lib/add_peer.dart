@@ -93,7 +93,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
             child: TextFormField(
               validator: (value) {
                 if (value!.isEmpty) {
-                  return 'Please enter some text';
+                  return 'Please enter peer id';
                 } else if (_serverError != "") {
                   return _serverError;
                 }
