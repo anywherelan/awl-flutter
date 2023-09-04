@@ -64,7 +64,7 @@ class _PeersListPageState extends State<PeersListPage> {
       expansionCallback: (int index, bool isExpanded) {
         setState(() {
           var peer = _knownPeers![index];
-          _expandedState[peer.peerID] = !isExpanded;
+          _expandedState[peer.peerID] = isExpanded;
         });
       },
       children: _knownPeers!.map<ExpansionPanel>((KnownPeer item) {
