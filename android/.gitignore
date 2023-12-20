@@ -8,3 +8,6 @@ GeneratedPluginRegistrant.java
 
 # Added by hand
 /app/src/main/libs/anywherelan.aar
+
+key.properties
+app/upload-keystore.jks
