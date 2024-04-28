@@ -28,9 +28,11 @@ class NotificationsService {
       // nothing
     } else {
       _notificationsPlugin = FlutterLocalNotificationsPlugin();
-      var initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
+      var initializationSettingsAndroid =
+          AndroidInitializationSettings('app_icon');
 
-      var initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+      var initializationSettings =
+          InitializationSettings(android: initializationSettingsAndroid);
       await _notificationsPlugin.initialize(
         initializationSettings,
         onDidReceiveNotificationResponse: _onSelectMobileNotification,
@@ -45,10 +47,12 @@ class NotificationsService {
         priority: Priority.high,
         ticker: 'ticker',
       );
-      _notificationDetails = NotificationDetails(android: androidPlatformChannelSpecifics);
+      _notificationDetails =
+          NotificationDetails(android: androidPlatformChannelSpecifics);
     }
 
-    _timer = new Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
+    _timer = new Timer.periodic(
+        _timerIntervalShort, (Timer t) => _checkForNotifications());
   }
 
   void close() async {
@@ -57,12 +61,14 @@ class NotificationsService {
 
   void setTimerIntervalShort() async {
     _timer.cancel();
-    _timer = new Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
+    _timer = new Timer.periodic(
+        _timerIntervalShort, (Timer t) => _checkForNotifications());
   }
 
   void setTimerIntervalLong() async {
     _timer.cancel();
-    _timer = new Timer.periodic(_timerIntervalLong, (Timer t) => _checkForNotifications());
+    _timer = new Timer.periodic(
+        _timerIntervalLong, (Timer t) => _checkForNotifications());
   }
 
   void _checkForNotifications() async {
@@ -93,8 +99,8 @@ class NotificationsService {
     var notificationId = generateNotificationId(req.peerID);
     print("$notificationId  ${req.name}");
 
-    await _notificationsPlugin.show(
-        notificationId, 'Incoming friend request', 'from ${req.name} with peerId ${req.peerID}', _notificationDetails,
+    await _notificationsPlugin.show(notificationId, 'Incoming friend request',
+        'from ${req.name} with peerId ${req.peerID}', _notificationDetails,
         payload: req.peerID);
   }
 
@@ -130,12 +136,14 @@ class NotificationsService {
     }, duration: Duration(milliseconds: 0));
   }
 
-  void _onSelectMobileNotification(NotificationResponse notificationResponse) async {
+  void _onSelectMobileNotification(
+      NotificationResponse notificationResponse) async {
     if (notificationResponse.payload == null) {
       return;
     }
     final payload = notificationResponse.payload!;
-    var authReq = _lastRequests.firstWhere((obj) => obj.peerID == payload, orElse: () => AuthRequest(payload, ""));
+    var authReq = _lastRequests.firstWhere((obj) => obj.peerID == payload,
+        orElse: () => AuthRequest(payload, ""));
     _showAuthRequestDialog(authReq);
   }
 }
@@ -146,7 +154,9 @@ Future _showAuthRequestDialog(AuthRequest req) async {
     context: navigatorKey.currentContext!,
     builder: (context) {
       return SimpleDialog(
-        title: req.name != "" ? Text("Incoming friend request from '${req.name}'") : Text("Incoming friend request"),
+        title: req.name != ""
+            ? Text("Incoming friend request from '${req.name}'")
+            : Text("Incoming friend request"),
         children: [
           Center(
             child: SizedBox(
@@ -166,7 +176,8 @@ class IncomingAuthRequestForm extends StatefulWidget {
   IncomingAuthRequestForm({Key? key, required this.request}) : super(key: key);
 
   @override
-  _IncomingAuthRequestFormState createState() => _IncomingAuthRequestFormState();
+  _IncomingAuthRequestFormState createState() =>
+      _IncomingAuthRequestFormState();
 }
 
 class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
@@ -177,8 +188,8 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
   String? _serverError = "";
 
   void _sendRequest(bool decline) async {
-    var response =
-        await replyFriendRequest(http.Client(), _peerIdTextController!.text, _aliasTextController!.text, decline);
+    var response = await replyFriendRequest(http.Client(),
+        _peerIdTextController!.text, _aliasTextController!.text, decline);
     if (response == "") {
       Navigator.pop(context);
       _serverError = "";

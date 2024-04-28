@@ -8,7 +8,8 @@ const warnColor = Color.fromRGBO(231, 163, 45, 1);
 const greenColor = Color.fromRGBO(82, 189, 44, 1);
 const unknownColor = Color.fromRGBO(136, 77, 185, 1);
 
-Future<void> showQRDialog(BuildContext context, String peerID, String peerName) async {
+Future<void> showQRDialog(
+    BuildContext context, String peerID, String peerName) async {
   await showDialog(
     context: context,
     builder: (context) {
@@ -90,14 +91,16 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
   );
 }
 
-final zeroGoTime = DateTime.fromMicrosecondsSinceEpoch(-62135596800000000, isUtc: true);
+final zeroGoTime =
+    DateTime.fromMicrosecondsSinceEpoch(-62135596800000000, isUtc: true);
 
 String formatDuration(Duration duration) {
   if (duration.inMicroseconds == 0) {
     return "–";
   }
 
-  var seconds = duration.inSeconds > 0 ? duration.inSeconds : duration.inSeconds * -1;
+  var seconds =
+      duration.inSeconds > 0 ? duration.inSeconds : duration.inSeconds * -1;
   final days = seconds ~/ Duration.secondsPerDay;
   seconds -= days * Duration.secondsPerDay;
   final hours = seconds ~/ Duration.secondsPerHour;

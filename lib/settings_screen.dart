@@ -28,10 +28,14 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     try {
       String? response;
       if (kIsWeb) {
-        response = await FileSaver.instance
-            .saveFile(name: "config_awl", bytes: exportedSettings, ext: "json", mimeType: MimeType.json);
+        response = await FileSaver.instance.saveFile(
+            name: "config_awl",
+            bytes: exportedSettings,
+            ext: "json",
+            mimeType: MimeType.json);
       } else {
-        final params = SaveFileDialogParams(data: exportedSettings, fileName: "config_awl.json");
+        final params = SaveFileDialogParams(
+            data: exportedSettings, fileName: "config_awl.json");
         response = await FlutterFileDialog.saveFile(params: params);
       }
 
@@ -43,7 +47,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         return PickerResponse(true, "");
       } else if (response != "") {
         // android
-        return PickerResponse(true, "Settings have been exported to file ${basename(response)}");
+        return PickerResponse(
+            true, "Settings have been exported to file ${basename(response)}");
       }
 
       return PickerResponse(false, response);
@@ -79,7 +84,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       fetchAllData();
       return PickerResponse(true, "Imported file $filePath");
     } on PlatformException catch (e) {
-      return PickerResponse(false, "Failed to pick config file: ${e.message}, ${e.details}");
+      return PickerResponse(
+          false, "Failed to pick config file: ${e.message}, ${e.details}");
     }
   }
 
@@ -158,7 +164,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   var result = await _importSettings();
                   if (result.message != "") {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      backgroundColor: result.success ? Colors.green : Colors.red,
+                      backgroundColor:
+                          result.success ? Colors.green : Colors.red,
                       content: Text(result.message),
                     ));
                   }
@@ -173,7 +180,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 selected: false,
                 leading: const Icon(Icons.adb),
                 onTap: () async {
-                  var status = await Permission.ignoreBatteryOptimizations.request();
+                  var status =
+                      await Permission.ignoreBatteryOptimizations.request();
                   if (status == PermissionStatus.granted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       backgroundColor: Colors.green,
