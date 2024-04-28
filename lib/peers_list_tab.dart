@@ -1,7 +1,8 @@
 import 'package:anywherelan/common.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/entities.dart';
-import 'package:anywherelan/peer_settings_screen.dart' show KnownPeerSettingsScreen;
+import 'package:anywherelan/peer_settings_screen.dart'
+    show KnownPeerSettingsScreen;
 import 'package:flutter/material.dart';
 
 class PeersListPage extends StatefulWidget {
@@ -98,7 +99,8 @@ class _PeersListPageState extends State<PeersListPage> {
     if (peer.declined) {
       trailingText = Text("Rejected", style: TextStyle(color: redColor));
     } else if (!peer.confirmed) {
-      trailingText = Text("Not accepted", style: TextStyle(color: unknownColor));
+      trailingText =
+          Text("Not accepted", style: TextStyle(color: unknownColor));
     } else if (!peer.connected) {
       trailingText = Text("Disconnected", style: TextStyle(color: redColor));
     } else {
@@ -138,12 +140,16 @@ class _PeersListPageState extends State<PeersListPage> {
           _buildBodyItem(Icons.visibility_outlined, "Last seen",
               "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"),
         if (item.connections.isNotEmpty)
-          _buildBodyItem(Icons.place_outlined, "Connection", item.connections.join('\n\n')),
-        if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", item.version),
+          _buildBodyItem(Icons.place_outlined, "Connection",
+              item.connections.join('\n\n')),
+        if (item.version.isNotEmpty)
+          _buildBodyItem(Icons.label_outlined, "Version", item.version),
         if (item.networkStats.totalIn != 0)
-          _buildBodyItem(Icons.cloud_download_outlined, "Download rate", item.networkStats.inAsString()),
+          _buildBodyItem(Icons.cloud_download_outlined, "Download rate",
+              item.networkStats.inAsString()),
         if (item.networkStats.totalOut != 0)
-          _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate", item.networkStats.outAsString()),
+          _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate",
+              item.networkStats.outAsString()),
         SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -170,7 +176,9 @@ class _PeersListPageState extends State<PeersListPage> {
               onPressed: () async {
                 // TODO: пробрасывать peerID через путь, чтобы был абсолютный адрес
                 knownPeersDataService.unsubscribe(_onNewKnownPeers);
-                await Navigator.of(context).pushNamed(KnownPeerSettingsScreen.routeName, arguments: item.peerID);
+                await Navigator.of(context).pushNamed(
+                    KnownPeerSettingsScreen.routeName,
+                    arguments: item.peerID);
                 knownPeersDataService.subscribe(_onNewKnownPeers);
               },
             ),

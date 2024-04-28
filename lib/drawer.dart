@@ -167,7 +167,8 @@ class _MyDrawerState extends State<MyDrawer> {
         text: TextSpan(
           children: <TextSpan>[
             TextSpan(
-              style: textStyle.copyWith(color: Theme.of(context).colorScheme.primary),
+              style: textStyle.copyWith(
+                  color: Theme.of(context).colorScheme.primary),
               text: url,
               recognizer: TapGestureRecognizer()
                 ..onTap = () async {
@@ -290,14 +291,16 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: const Icon(Icons.arrow_downward),
             tooltip: "Scroll to bottom",
             onPressed: () {
-              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+              _scrollController
+                  .jumpTo(_scrollController.position.maxScrollExtent);
             },
           ),
           IconButton(
             icon: const Icon(Icons.arrow_upward),
             tooltip: "Scroll to top",
             onPressed: () {
-              _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+              _scrollController
+                  .jumpTo(_scrollController.position.minScrollExtent);
             },
           ),
           SizedBox(width: 20),

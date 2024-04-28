@@ -9,7 +9,8 @@ Future<String> initAppImpl() async {
   if (io.Platform.isAndroid) {
     return await initServerImpl();
   } else {
-    throw UnsupportedError('Unsupported platform ${io.Platform.operatingSystem}');
+    throw UnsupportedError(
+        'Unsupported platform ${io.Platform.operatingSystem}');
   }
 }
 
