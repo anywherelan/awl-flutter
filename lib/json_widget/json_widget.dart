@@ -21,9 +21,12 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
     if (widget.notRoot ?? false) {
       return Container(
           padding: EdgeInsets.only(left: 14.0),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _getList()));
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _getList()));
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: _getList());
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.start, children: _getList());
   }
 
   _getList() {
@@ -45,8 +48,10 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
           ex
               ? GestureDetector(
                   child: ((open)
-                      ? Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey[700])
-                      : Icon(Icons.arrow_right, size: 16, color: Colors.grey[700])),
+                      ? Icon(Icons.arrow_drop_down,
+                          size: 16, color: Colors.grey[700])
+                      : Icon(Icons.arrow_right,
+                          size: 16, color: Colors.grey[700])),
                   onTap: () {
                     setState(() {
                       openFlag[entry.key] = !(openFlag[entry.key] ?? false);
@@ -62,7 +67,8 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
               ? Flexible(
                   fit: FlexFit.loose,
                   child: InkWell(
-                      child: SelectableText(entry.key, style: TextStyle(color: Colors.purple[900])),
+                      child: SelectableText(entry.key,
+                          style: TextStyle(color: Colors.purple[900])),
                       onTap: () {
                         setState(() {
                           openFlag[entry.key] = !(openFlag[entry.key] ?? false);
@@ -70,7 +76,10 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
                       }),
                 )
               : SelectableText(entry.key,
-                  style: TextStyle(color: entry.value == null ? Colors.grey : Colors.purple[900])),
+                  style: TextStyle(
+                      color: entry.value == null
+                          ? Colors.grey
+                          : Colors.purple[900])),
           SelectableText(
             ':',
             style: TextStyle(color: Colors.grey),
@@ -89,7 +98,8 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
 
   static getContentWidget(dynamic content, bool openOnStart) {
     if (content is List) {
-      return JsonArrayViewerWidget(content, notRoot: true, openOnStart: openOnStart);
+      return JsonArrayViewerWidget(content,
+          notRoot: true, openOnStart: openOnStart);
     } else {
       return JsonViewerWidget(content, notRoot: true, openOnStart: openOnStart);
     }
@@ -214,10 +224,12 @@ class JsonArrayViewerWidget extends StatefulWidget {
   final bool? notRoot;
   final bool openOnStart;
 
-  JsonArrayViewerWidget(this.jsonArray, {this.notRoot, required this.openOnStart});
+  JsonArrayViewerWidget(this.jsonArray,
+      {this.notRoot, required this.openOnStart});
 
   @override
-  _JsonArrayViewerWidgetState createState() => new _JsonArrayViewerWidgetState();
+  _JsonArrayViewerWidgetState createState() =>
+      new _JsonArrayViewerWidgetState();
 }
 
 class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
@@ -228,9 +240,12 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
     if (widget.notRoot ?? false) {
       return Container(
           padding: EdgeInsets.only(left: 14.0),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _getList()));
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _getList()));
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: _getList());
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.start, children: _getList());
   }
 
   @override
@@ -260,11 +275,14 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
           ex
               ? GestureDetector(
                   child: ((open)
-                      ? Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey[700])
-                      : Icon(Icons.arrow_right, size: 16, color: Colors.grey[700])),
+                      ? Icon(Icons.arrow_drop_down,
+                          size: 16, color: Colors.grey[700])
+                      : Icon(Icons.arrow_right,
+                          size: 16, color: Colors.grey[700])),
                   onTap: () {
                     setState(() {
-                      openFlag[currentIndex] = !(openFlag[currentIndex] ?? false);
+                      openFlag[currentIndex] =
+                          !(openFlag[currentIndex] ?? false);
                     });
                   },
                 )
@@ -275,7 +293,10 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
                 ),
           (ex && ink)
               ? getInkWell(i)
-              : SelectableText('[$i]', style: TextStyle(color: content == null ? Colors.grey : Colors.purple[900])),
+              : SelectableText('[$i]',
+                  style: TextStyle(
+                      color:
+                          content == null ? Colors.grey : Colors.purple[900])),
           SelectableText(
             ':',
             style: TextStyle(color: Colors.grey),
@@ -286,7 +307,8 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
       ));
       list.add(const SizedBox(height: 4));
       if (open) {
-        list.add(JsonViewerWidgetState.getContentWidget(content, widget.openOnStart));
+        list.add(JsonViewerWidgetState.getContentWidget(
+            content, widget.openOnStart));
       }
       i++;
     }
@@ -295,7 +317,8 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
 
   getInkWell(int index) {
     return InkWell(
-        child: SelectableText('[$index]', style: TextStyle(color: Colors.purple[900])),
+        child: SelectableText('[$index]',
+            style: TextStyle(color: Colors.purple[900])),
         onTap: () {
           setState(() {
             openFlag[index] = !(openFlag[index] ?? false);

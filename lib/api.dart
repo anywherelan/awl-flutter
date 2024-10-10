@@ -39,19 +39,22 @@ var serverAddress = "";
 
 Future<MyPeerInfo> fetchMyPeerInfo(http.Client client) async {
   try {
-    final response = await client.get(Uri.parse(serverAddress + GetMyPeerInfoPath));
+    final response =
+        await client.get(Uri.parse(serverAddress + GetMyPeerInfoPath));
     final Map<String, dynamic> parsed = jsonDecode(response.body);
 
     return MyPeerInfo.fromJson(parsed);
   } catch (e) {
     print("error in fetchMyPeerInfo: '${e.toString()}'.");
-    return MyPeerInfo("", "", Duration.zero, "–", NetworkStats(0, 0, 0, 0), 0, 0, "", "", false);
+    return MyPeerInfo("", "", Duration.zero, "–", NetworkStats(0, 0, 0, 0), 0,
+        0, "", "", false);
   }
 }
 
 Future<List<KnownPeer>?> fetchKnownPeers(http.Client client) async {
   try {
-    final response = await client.get(Uri.parse(serverAddress + GetKnownPeersPath));
+    final response =
+        await client.get(Uri.parse(serverAddress + GetKnownPeersPath));
     final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
     return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
@@ -62,7 +65,8 @@ Future<List<KnownPeer>?> fetchKnownPeers(http.Client client) async {
 }
 
 Future<Map<String, dynamic>?> fetchDebugInfo(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + GetP2pDebugInfoPath));
+  final response =
+      await client.get(Uri.parse(serverAddress + GetP2pDebugInfoPath));
 //  final parsed = await compute(jsonDecode, response.body);
   final parsed = jsonDecode(response.body);
 
@@ -77,20 +81,25 @@ Future<String> fetchLogs(http.Client client) async {
 
 Future<List<AuthRequest>> fetchAuthRequests(http.Client client) async {
   try {
-    final response = await client.get(Uri.parse(serverAddress + GetAuthRequestsPath));
+    final response =
+        await client.get(Uri.parse(serverAddress + GetAuthRequestsPath));
     final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
-    return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
+    return parsed
+        .map<AuthRequest>((json) => AuthRequest.fromJson(json))
+        .toList();
   } catch (e) {
     print("error in fetchAuthRequests: '${e.toString()}'.");
     return [];
   }
 }
 
-Future<String> sendFriendRequest(http.Client client, String peerID, String alias) async {
+Future<String> sendFriendRequest(
+    http.Client client, String peerID, String alias) async {
   var payload = FriendRequest(peerID, alias);
 
-  var request = http.Request("POST", Uri.parse(serverAddress + SendFriendRequestPath));
+  var request =
+      http.Request("POST", Uri.parse(serverAddress + SendFriendRequestPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload.toJson());
 
@@ -104,10 +113,12 @@ Future<String> sendFriendRequest(http.Client client, String peerID, String alias
   return "";
 }
 
-Future<String> replyFriendRequest(http.Client client, String peerID, String alias, bool decline) async {
+Future<String> replyFriendRequest(
+    http.Client client, String peerID, String alias, bool decline) async {
   var payload = FriendRequestReply(peerID, alias, decline);
 
-  var request = http.Request("POST", Uri.parse(serverAddress + AcceptPeerInvitationPath));
+  var request =
+      http.Request("POST", Uri.parse(serverAddress + AcceptPeerInvitationPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload.toJson());
 
@@ -122,15 +133,18 @@ Future<String> replyFriendRequest(http.Client client, String peerID, String alia
 }
 
 Future<Uint8List> fetchExportedServerConfig(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + ExportServerConfigPath));
+  final response =
+      await client.get(Uri.parse(serverAddress + ExportServerConfigPath));
 
   return response.bodyBytes;
 }
 
-Future<KnownPeerConfig> fetchKnownPeerConfig(http.Client client, String peerID) async {
+Future<KnownPeerConfig> fetchKnownPeerConfig(
+    http.Client client, String peerID) async {
   var payload = PeerIDRequest(peerID);
 
-  var request = http.Request("POST", Uri.parse(serverAddress + GetKnownPeerSettingsPath));
+  var request =
+      http.Request("POST", Uri.parse(serverAddress + GetKnownPeerSettingsPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload.toJson());
 
@@ -141,8 +155,10 @@ Future<KnownPeerConfig> fetchKnownPeerConfig(http.Client client, String peerID) 
   return KnownPeerConfig.fromJson(parsed);
 }
 
-Future<String> updateKnownPeerConfig(http.Client client, UpdateKnownPeerConfigRequest payload) async {
-  var request = http.Request("POST", Uri.parse(serverAddress + UpdatePeerSettingsPath));
+Future<String> updateKnownPeerConfig(
+    http.Client client, UpdateKnownPeerConfigRequest payload) async {
+  var request =
+      http.Request("POST", Uri.parse(serverAddress + UpdatePeerSettingsPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload.toJson());
 
@@ -161,7 +177,8 @@ Future<String> updateMySettings(http.Client client, String name) async {
     "Name": name,
   };
 
-  var request = http.Request("POST", Uri.parse(serverAddress + UpdateMyInfoPath));
+  var request =
+      http.Request("POST", Uri.parse(serverAddress + UpdateMyInfoPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload);
 
@@ -178,7 +195,8 @@ Future<String> updateMySettings(http.Client client, String name) async {
 Future<String> removePeer(http.Client client, String peerID) async {
   var payload = PeerIDRequest(peerID);
 
-  var request = http.Request("POST", Uri.parse(serverAddress + RemovePeerSettingsPath));
+  var request =
+      http.Request("POST", Uri.parse(serverAddress + RemovePeerSettingsPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload.toJson());
 
@@ -193,7 +211,8 @@ Future<String> removePeer(http.Client client, String peerID) async {
 }
 
 Future<List<BlockedPeer>> fetchBlockedPeers(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + GetBlockedPeersPath));
+  final response =
+      await client.get(Uri.parse(serverAddress + GetBlockedPeersPath));
   final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
   return parsed.map<BlockedPeer>((json) => BlockedPeer.fromJson(json)).toList();

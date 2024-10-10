@@ -45,7 +45,8 @@ class _AddPeerFormState extends State<AddPeerForm> {
       return;
     }
 
-    var response = await sendFriendRequest(http.Client(), _peerIdTextController.text, _aliasTextController.text);
+    var response = await sendFriendRequest(
+        http.Client(), _peerIdTextController.text, _aliasTextController.text);
     if (response == "") {
       // "Invitation was sent"
       Navigator.pop(context);
@@ -203,7 +204,11 @@ class _QRScanPageState extends State<QRScanPage> {
       key: qrKey,
       onQRViewCreated: _onQRViewCreated,
       overlay: QrScannerOverlayShape(
-          borderColor: Colors.red, borderRadius: 10, borderLength: 30, borderWidth: 10, cutOutSize: scanArea),
+          borderColor: Colors.red,
+          borderRadius: 10,
+          borderLength: 30,
+          borderWidth: 10,
+          cutOutSize: scanArea),
     );
   }
 

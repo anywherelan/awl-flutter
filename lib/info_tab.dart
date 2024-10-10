@@ -52,7 +52,8 @@ class _MyInfoPageState extends State<MyInfoPage> {
 
     if (!_openedSetupDialog && serverIsUp && _peerInfo!.name.isEmpty) {
       _openedSetupDialog = true;
-      Future.delayed(Duration(seconds: 2), () => showSettingsDialog(context, _peerInfo, true));
+      Future.delayed(Duration(seconds: 2),
+          () => showSettingsDialog(context, _peerInfo, true));
     }
 
     return Column(
@@ -120,28 +121,37 @@ class _MyInfoPageState extends State<MyInfoPage> {
       dnsColor = redColor;
     }
 
-    String bootstrapText = "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}";
+    String bootstrapText =
+        "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}";
     Color bootstrapColor;
     if (_peerInfo!.connectedBootstrapPeers == 0) {
       bootstrapColor = redColor;
-    } else if (_peerInfo!.connectedBootstrapPeers <= _peerInfo!.totalBootstrapPeers * 0.8) {
+    } else if (_peerInfo!.connectedBootstrapPeers <=
+        _peerInfo!.totalBootstrapPeers * 0.8) {
       bootstrapColor = warnColor;
     } else {
       bootstrapColor = greenColor;
     }
 
     return [
-      _buildBodyItem(Icons.cloud_download_outlined, "Download rate ", _peerInfo!.networkStats.inAsString()),
-      _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate ", _peerInfo!.networkStats.outAsString()),
-      _buildBodyItem(Icons.devices, "Bootstrap peers", bootstrapText, textColor: bootstrapColor),
+      _buildBodyItem(Icons.cloud_download_outlined, "Download rate ",
+          _peerInfo!.networkStats.inAsString()),
+      _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate ",
+          _peerInfo!.networkStats.outAsString()),
+      _buildBodyItem(Icons.devices, "Bootstrap peers", bootstrapText,
+          textColor: bootstrapColor),
       _buildBodyItem(Icons.dns_outlined, "DNS", dnsText, textColor: dnsColor),
-      _buildBodyItem(Icons.my_location, "Reachability", reachabilityText, textColor: reachabilityColor),
-      _buildBodyItem(Icons.access_time, "Uptime", formatDuration(_peerInfo!.uptime)),
-      _buildBodyItem(Icons.label_outlined, "Server version ", _peerInfo!.serverVersion),
+      _buildBodyItem(Icons.my_location, "Reachability", reachabilityText,
+          textColor: reachabilityColor),
+      _buildBodyItem(
+          Icons.access_time, "Uptime", formatDuration(_peerInfo!.uptime)),
+      _buildBodyItem(
+          Icons.label_outlined, "Server version ", _peerInfo!.serverVersion),
     ];
   }
 
-  Widget _buildBodyItem(IconData icon, String label, String text, {Color? textColor}) {
+  Widget _buildBodyItem(IconData icon, String label, String text,
+      {Color? textColor}) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 0, vertical: 7),
       child: Row(
@@ -168,7 +178,8 @@ class _MyInfoPageState extends State<MyInfoPage> {
   }
 }
 
-Future<void> showSettingsDialog(BuildContext context, MyPeerInfo? peerInfo, bool firstSetup) {
+Future<void> showSettingsDialog(
+    BuildContext context, MyPeerInfo? peerInfo, bool firstSetup) {
   return showDialog(
     context: context,
     barrierDismissible: !firstSetup,
@@ -208,7 +219,8 @@ class _SettingsFormState extends State<SettingsForm> {
       return;
     }
 
-    var response = await updateMySettings(http.Client(), _peerNameTextController!.text);
+    var response =
+        await updateMySettings(http.Client(), _peerNameTextController!.text);
     if (response == "") {
       Navigator.pop(context);
       _serverError = "";
@@ -228,7 +240,8 @@ class _SettingsFormState extends State<SettingsForm> {
   void initState() {
     super.initState();
 
-    _peerNameTextController = TextEditingController(text: widget.peerInfo!.name);
+    _peerNameTextController =
+        TextEditingController(text: widget.peerInfo!.name);
   }
 
   @override

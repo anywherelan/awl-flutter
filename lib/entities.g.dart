@@ -14,7 +14,9 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) => KnownPeer(
       json['Connected'] as bool,
       json['Confirmed'] as bool,
       DateTime.parse(json['LastSeen'] as String),
-      (json['Connections'] as List<dynamic>).map((e) => ConnectionInfo.fromJson(e as Map<String, dynamic>)).toList(),
+      (json['Connections'] as List<dynamic>)
+          .map((e) => ConnectionInfo.fromJson(e as Map<String, dynamic>))
+          .toList(),
       NetworkStats.fromJson(json['NetworkStats'] as Map<String, dynamic>),
       json['DomainName'] as String,
       json['Declined'] as bool,
@@ -34,7 +36,8 @@ Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
       'NetworkStats': instance.networkStats,
     };
 
-ConnectionInfo _$ConnectionInfoFromJson(Map<String, dynamic> json) => ConnectionInfo(
+ConnectionInfo _$ConnectionInfoFromJson(Map<String, dynamic> json) =>
+    ConnectionInfo(
       json['Multiaddr'] as String,
       json['ThroughRelay'] as bool,
       json['RelayPeerID'] as String,
@@ -42,7 +45,8 @@ ConnectionInfo _$ConnectionInfoFromJson(Map<String, dynamic> json) => Connection
       json['Protocol'] as String,
     );
 
-Map<String, dynamic> _$ConnectionInfoToJson(ConnectionInfo instance) => <String, dynamic>{
+Map<String, dynamic> _$ConnectionInfoToJson(ConnectionInfo instance) =>
+    <String, dynamic>{
       'Multiaddr': instance.multiaddr,
       'ThroughRelay': instance.throughRelay,
       'RelayPeerID': instance.relayPeerID,
@@ -63,7 +67,8 @@ MyPeerInfo _$MyPeerInfoFromJson(Map<String, dynamic> json) => MyPeerInfo(
       json['IsAwlDNSSetAsSystem'] as bool,
     );
 
-Map<String, dynamic> _$MyPeerInfoToJson(MyPeerInfo instance) => <String, dynamic>{
+Map<String, dynamic> _$MyPeerInfoToJson(MyPeerInfo instance) =>
+    <String, dynamic>{
       'PeerID': instance.peerID,
       'Name': instance.name,
       'Uptime': MyPeerInfo._durationToNanoseconds(instance.uptime),
@@ -83,30 +88,35 @@ NetworkStats _$NetworkStatsFromJson(Map<String, dynamic> json) => NetworkStats(
       (json['RateOut'] as num).toDouble(),
     );
 
-Map<String, dynamic> _$NetworkStatsToJson(NetworkStats instance) => <String, dynamic>{
+Map<String, dynamic> _$NetworkStatsToJson(NetworkStats instance) =>
+    <String, dynamic>{
       'TotalIn': instance.totalIn,
       'TotalOut': instance.totalOut,
       'RateIn': instance.rateIn,
       'RateOut': instance.rateOut,
     };
 
-FriendRequest _$FriendRequestFromJson(Map<String, dynamic> json) => FriendRequest(
+FriendRequest _$FriendRequestFromJson(Map<String, dynamic> json) =>
+    FriendRequest(
       json['PeerID'] as String,
       json['Alias'] as String,
     );
 
-Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) => <String, dynamic>{
+Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) =>
+    <String, dynamic>{
       'PeerID': instance.peerID,
       'Alias': instance.alias,
     };
 
-FriendRequestReply _$FriendRequestReplyFromJson(Map<String, dynamic> json) => FriendRequestReply(
+FriendRequestReply _$FriendRequestReplyFromJson(Map<String, dynamic> json) =>
+    FriendRequestReply(
       json['PeerID'] as String,
       json['Alias'] as String,
       json['Decline'] as bool,
     );
 
-Map<String, dynamic> _$FriendRequestReplyToJson(FriendRequestReply instance) => <String, dynamic>{
+Map<String, dynamic> _$FriendRequestReplyToJson(FriendRequestReply instance) =>
+    <String, dynamic>{
       'PeerID': instance.peerID,
       'Alias': instance.alias,
       'Decline': instance.decline,
@@ -125,20 +135,24 @@ AuthRequest _$AuthRequestFromJson(Map<String, dynamic> json) => AuthRequest(
       json['Name'] as String,
     );
 
-Map<String, dynamic> _$AuthRequestToJson(AuthRequest instance) => <String, dynamic>{
+Map<String, dynamic> _$AuthRequestToJson(AuthRequest instance) =>
+    <String, dynamic>{
       'PeerID': instance.peerID,
       'Name': instance.name,
     };
 
-PeerIDRequest _$PeerIDRequestFromJson(Map<String, dynamic> json) => PeerIDRequest(
+PeerIDRequest _$PeerIDRequestFromJson(Map<String, dynamic> json) =>
+    PeerIDRequest(
       json['PeerID'] as String,
     );
 
-Map<String, dynamic> _$PeerIDRequestToJson(PeerIDRequest instance) => <String, dynamic>{
+Map<String, dynamic> _$PeerIDRequestToJson(PeerIDRequest instance) =>
+    <String, dynamic>{
       'PeerID': instance.peerID,
     };
 
-KnownPeerConfig _$KnownPeerConfigFromJson(Map<String, dynamic> json) => KnownPeerConfig(
+KnownPeerConfig _$KnownPeerConfigFromJson(Map<String, dynamic> json) =>
+    KnownPeerConfig(
       json['peerId'] as String,
       json['name'] as String,
       json['alias'] as String,
@@ -146,7 +160,8 @@ KnownPeerConfig _$KnownPeerConfigFromJson(Map<String, dynamic> json) => KnownPee
       json['domainName'] as String,
     );
 
-Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) => <String, dynamic>{
+Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) =>
+    <String, dynamic>{
       'peerId': instance.peerId,
       'name': instance.name,
       'alias': instance.alias,
@@ -154,14 +169,17 @@ Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) => <Strin
       'domainName': instance.domainName,
     };
 
-UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(Map<String, dynamic> json) =>
+UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(
+        Map<String, dynamic> json) =>
     UpdateKnownPeerConfigRequest(
       json['PeerID'] as String,
       json['Alias'] as String,
       json['DomainName'] as String,
     );
 
-Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(UpdateKnownPeerConfigRequest instance) => <String, dynamic>{
+Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(
+        UpdateKnownPeerConfigRequest instance) =>
+    <String, dynamic>{
       'PeerID': instance.peerID,
       'Alias': instance.alias,
       'DomainName': instance.domainName,
@@ -173,7 +191,8 @@ BlockedPeer _$BlockedPeerFromJson(Map<String, dynamic> json) => BlockedPeer(
       DateTime.parse(json['createdAt'] as String),
     );
 
-Map<String, dynamic> _$BlockedPeerToJson(BlockedPeer instance) => <String, dynamic>{
+Map<String, dynamic> _$BlockedPeerToJson(BlockedPeer instance) =>
+    <String, dynamic>{
       'peerId': instance.peerId,
       'displayName': instance.displayName,
       'createdAt': instance.createdAt.toIso8601String(),

@@ -92,7 +92,8 @@ class MyApp extends StatelessWidget {
         DebugScreen.routeName: (context) => DebugScreen(),
         LogsScreen.routeName: (context) => LogsScreen(),
         AppSettingsScreen.routeName: (context) => AppSettingsScreen(),
-        KnownPeerSettingsScreen.routeName: (context) => KnownPeerSettingsScreen(),
+        KnownPeerSettingsScreen.routeName: (context) =>
+            KnownPeerSettingsScreen(),
         BlockedPeersScreen.routeName: (context) => BlockedPeersScreen(),
       },
 //      navigatorObservers: [],
@@ -117,7 +118,8 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   final _notificationsService = notif.NotificationsService();
 
@@ -227,7 +229,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
   }
 
-  Widget _buildWideAdaptiveScreen(BoxConstraints constraints, BuildContext context) {
+  Widget _buildWideAdaptiveScreen(
+      BoxConstraints constraints, BuildContext context) {
     var hasScaffoldDrawer = true;
     var spaceBetweenItems = 15.0;
 

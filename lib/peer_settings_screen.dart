@@ -12,7 +12,8 @@ class KnownPeerSettingsScreen extends StatefulWidget {
   KnownPeerSettingsScreen({Key? key}) : super(key: key);
 
   @override
-  _KnownPeerSettingsScreenState createState() => _KnownPeerSettingsScreenState();
+  _KnownPeerSettingsScreenState createState() =>
+      _KnownPeerSettingsScreenState();
 }
 
 class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
@@ -33,16 +34,19 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
     }
 
     _aliasTextController = TextEditingController(text: peerConfig.alias);
-    _domainNameTextController = TextEditingController(text: peerConfig.domainName);
+    _domainNameTextController =
+        TextEditingController(text: peerConfig.domainName);
 
     setState(() {
       _peerConfig = peerConfig;
-      _peerDisplayName = _peerConfig.alias != "" ? _peerConfig.alias : _peerConfig.name;
+      _peerDisplayName =
+          _peerConfig.alias != "" ? _peerConfig.alias : _peerConfig.name;
     });
   }
 
   Future<String> _sendNewPeerConfig() async {
-    var payload = UpdateKnownPeerConfigRequest(_peerConfig.peerId, _aliasTextController.text, _domainNameTextController.text);
+    var payload = UpdateKnownPeerConfigRequest(_peerConfig.peerId,
+        _aliasTextController.text, _domainNameTextController.text);
 
     var response = await updateKnownPeerConfig(http.Client(), payload);
     return response;
@@ -135,7 +139,8 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
               initialValue: _peerConfig.ipAddr,
-              decoration: InputDecoration(labelText: 'Local address', enabled: false),
+              decoration:
+                  InputDecoration(labelText: 'Local address', enabled: false),
               maxLines: 2,
               minLines: 1,
               readOnly: true,
@@ -165,7 +170,8 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
                 if (value == null || value.isEmpty) {
                   return null;
                 }
-                var filteredValue = value.trim().replaceAll(RegExp(r'\s'), "").toLowerCase();
+                var filteredValue =
+                    value.trim().replaceAll(RegExp(r'\s'), "").toLowerCase();
                 if (value != filteredValue) {
                   return "should be lowercase and without whitespace";
                 }
@@ -174,7 +180,8 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
               },
               decoration: InputDecoration(
                 labelText: 'Domain name',
-                helperText: 'domain name without ".awl" suffix, like "tvbox.home" or "workstation"',
+                helperText:
+                    'domain name without ".awl" suffix, like "tvbox.home" or "workstation"',
               ),
             ),
           ),
@@ -189,7 +196,8 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) => AlertDialog(
         title: const Text('Remove Peer'),
-        content: Text('Are you sure you want to remove peer "$_peerDisplayName"?'),
+        content:
+            Text('Are you sure you want to remove peer "$_peerDisplayName"?'),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context, false),
