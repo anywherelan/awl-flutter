@@ -18,6 +18,7 @@ class KnownPeerSettingsScreen extends StatefulWidget {
 class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   late TextEditingController _aliasTextController;
   late TextEditingController _domainNameTextController;
+  late bool _weAllowUsingAsExitNode;
 
   bool _hasPeerConfig = false;
   late String _peerID;
@@ -34,6 +35,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
 
     _aliasTextController = TextEditingController(text: peerConfig.alias);
     _domainNameTextController = TextEditingController(text: peerConfig.domainName);
+    _weAllowUsingAsExitNode = peerConfig.weAllowUsingAsExitNode;
 
     setState(() {
       _peerConfig = peerConfig;
@@ -42,7 +44,8 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   }
 
   Future<String> _sendNewPeerConfig() async {
-    var payload = UpdateKnownPeerConfigRequest(_peerConfig.peerId, _aliasTextController.text, _domainNameTextController.text);
+    var payload = UpdateKnownPeerConfigRequest(
+        _peerConfig.peerId, _aliasTextController.text, _domainNameTextController.text, _weAllowUsingAsExitNode);
 
     var response = await updateKnownPeerConfig(http.Client(), payload);
     return response;
@@ -178,6 +181,32 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
               ),
             ),
           ),
+          Padding(
+            padding: EdgeInsets.all(8.0),
+            child: FormField(
+                initialValue: false,
+                builder: (FormFieldState<bool> state) {
+                  return CheckboxListTile(
+                      title: const Text("Allow to use my device as exit node", textAlign: TextAlign.left),
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      secondary: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Tooltip(
+                          triggerMode: TooltipTriggerMode.tap,
+                          message:
+                              'This allows peer to pass their traffic through your network via SOCKS5 proxy, for instance peer will have access to your local WiFi network',
+                          child: Icon(Icons.info),
+                        ),
+                      ),
+                      value: _weAllowUsingAsExitNode,
+                      onChanged: (val) {
+                        setState(() {
+                          _weAllowUsingAsExitNode = val!;
+                        });
+                      });
+                }),
+          )
         ],
       ),
     );

@@ -18,6 +18,8 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) => KnownPeer(
       NetworkStats.fromJson(json['NetworkStats'] as Map<String, dynamic>),
       json['DomainName'] as String,
       json['Declined'] as bool,
+      json['WeAllowUsingAsExitNode'] as bool,
+      json['AllowedUsingAsExitNode'] as bool,
     );
 
 Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
@@ -29,6 +31,8 @@ Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
       'Connected': instance.connected,
       'Confirmed': instance.confirmed,
       'Declined': instance.declined,
+      'WeAllowUsingAsExitNode': instance.weAllowUsingAsExitNode,
+      'AllowedUsingAsExitNode': instance.allowedUsingAsExitNode,
       'LastSeen': instance.lastSeen.toIso8601String(),
       'Connections': instance.connections,
       'NetworkStats': instance.networkStats,
@@ -61,6 +65,7 @@ MyPeerInfo _$MyPeerInfoFromJson(Map<String, dynamic> json) => MyPeerInfo(
       json['Reachability'] as String,
       json['AwlDNSAddress'] as String,
       json['IsAwlDNSSetAsSystem'] as bool,
+      SOCKS5Info.fromJson(json['SOCKS5'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$MyPeerInfoToJson(MyPeerInfo instance) => <String, dynamic>{
@@ -74,6 +79,23 @@ Map<String, dynamic> _$MyPeerInfoToJson(MyPeerInfo instance) => <String, dynamic
       'Reachability': instance.reachability,
       'AwlDNSAddress': instance.awlDNSAddress,
       'IsAwlDNSSetAsSystem': instance.isAwlDNSSetAsSystem,
+      'SOCKS5': instance.socks5,
+    };
+
+SOCKS5Info _$SOCKS5InfoFromJson(Map<String, dynamic> json) => SOCKS5Info(
+      json['ListenAddress'] as String,
+      json['ProxyingEnabled'] as bool,
+      json['ListenerEnabled'] as bool,
+      json['UsingPeerID'] as String,
+      json['UsingPeerName'] as String,
+    );
+
+Map<String, dynamic> _$SOCKS5InfoToJson(SOCKS5Info instance) => <String, dynamic>{
+      'ListenAddress': instance.listenAddress,
+      'ProxyingEnabled': instance.proxyingEnabled,
+      'ListenerEnabled': instance.listenerEnabled,
+      'UsingPeerID': instance.usingPeerID,
+      'UsingPeerName': instance.usingPeerName,
     };
 
 NetworkStats _$NetworkStatsFromJson(Map<String, dynamic> json) => NetworkStats(
@@ -98,6 +120,24 @@ FriendRequest _$FriendRequestFromJson(Map<String, dynamic> json) => FriendReques
 Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) => <String, dynamic>{
       'PeerID': instance.peerID,
       'Alias': instance.alias,
+    };
+
+ListAvailableProxiesResponse _$ListAvailableProxiesResponseFromJson(Map<String, dynamic> json) => ListAvailableProxiesResponse(
+      (json['Proxies'] as List<dynamic>).map((e) => AvailableProxy.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+
+Map<String, dynamic> _$ListAvailableProxiesResponseToJson(ListAvailableProxiesResponse instance) => <String, dynamic>{
+      'Proxies': instance.proxies,
+    };
+
+AvailableProxy _$AvailableProxyFromJson(Map<String, dynamic> json) => AvailableProxy(
+      json['PeerID'] as String,
+      json['PeerName'] as String,
+    );
+
+Map<String, dynamic> _$AvailableProxyToJson(AvailableProxy instance) => <String, dynamic>{
+      'PeerID': instance.peerID,
+      'PeerName': instance.peerName,
     };
 
 FriendRequestReply _$FriendRequestReplyFromJson(Map<String, dynamic> json) => FriendRequestReply(
@@ -144,6 +184,7 @@ KnownPeerConfig _$KnownPeerConfigFromJson(Map<String, dynamic> json) => KnownPee
       json['alias'] as String,
       json['ipAddr'] as String,
       json['domainName'] as String,
+      json['weAllowUsingAsExitNode'] as bool,
     );
 
 Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) => <String, dynamic>{
@@ -152,19 +193,21 @@ Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) => <Strin
       'alias': instance.alias,
       'ipAddr': instance.ipAddr,
       'domainName': instance.domainName,
+      'weAllowUsingAsExitNode': instance.weAllowUsingAsExitNode,
     };
 
-UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(Map<String, dynamic> json) =>
-    UpdateKnownPeerConfigRequest(
+UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(Map<String, dynamic> json) => UpdateKnownPeerConfigRequest(
       json['PeerID'] as String,
       json['Alias'] as String,
       json['DomainName'] as String,
+      json['AllowUsingAsExitNode'] as bool,
     );
 
 Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(UpdateKnownPeerConfigRequest instance) => <String, dynamic>{
       'PeerID': instance.peerID,
       'Alias': instance.alias,
       'DomainName': instance.domainName,
+      'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
     };
 
 BlockedPeer _$BlockedPeerFromJson(Map<String, dynamic> json) => BlockedPeer(
