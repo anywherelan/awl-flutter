@@ -80,10 +80,15 @@ var knownPeersDataService = ServerDataService<List<KnownPeer>?>(() {
   return fetchKnownPeers(http.Client());
 });
 
+var availableProxiesDataService = ServerDataService<ListAvailableProxiesResponse?>(() {
+  return fetchAvailableProxies(http.Client());
+});
+
 Future<void> fetchAllData() async {
   var futures = <Future>[
     myPeerInfoDataService.fetchData(),
     knownPeersDataService.fetchData(),
+    availableProxiesDataService.fetchData(),
   ];
   await Future.wait(futures);
 }

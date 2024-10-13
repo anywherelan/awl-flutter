@@ -120,6 +120,28 @@ class _MyInfoPageState extends State<MyInfoPage> {
       dnsColor = redColor;
     }
 
+    String socks5Text;
+    Color socks5Color;
+    if (_peerInfo!.socks5.listenerEnabled && _peerInfo!.socks5.listenAddress != "") {
+      socks5Text = "working";
+      socks5Color = greenColor;
+    } else {
+      socks5Text = "not working";
+      socks5Color = redColor;
+    }
+    var socks5UsingPeer = _peerInfo!.socks5.usingPeerName;
+    if (socks5UsingPeer == "") {
+      socks5UsingPeer = "None";
+    }
+
+    List<String> socks5PeersList = <String>['None'];
+    var proxiesData = availableProxiesDataService.getData();
+    if (proxiesData != null) {
+      for (var proxy in proxiesData.proxies) {
+        socks5PeersList.add(proxy.peerName);
+      }
+    }
+
     String bootstrapText = "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}";
     Color bootstrapColor;
     if (_peerInfo!.connectedBootstrapPeers == 0) {
@@ -131,17 +153,81 @@ class _MyInfoPageState extends State<MyInfoPage> {
     }
 
     return [
-      _buildBodyItem(Icons.cloud_download_outlined, "Download rate ", _peerInfo!.networkStats.inAsString()),
-      _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate ", _peerInfo!.networkStats.outAsString()),
-      _buildBodyItem(Icons.devices, "Bootstrap peers", bootstrapText, textColor: bootstrapColor),
-      _buildBodyItem(Icons.dns_outlined, "DNS", dnsText, textColor: dnsColor),
-      _buildBodyItem(Icons.my_location, "Reachability", reachabilityText, textColor: reachabilityColor),
-      _buildBodyItem(Icons.access_time, "Uptime", formatDuration(_peerInfo!.uptime)),
-      _buildBodyItem(Icons.label_outlined, "Server version ", _peerInfo!.serverVersion),
+      // TODO: organize output in sections: general, vpn, proxy, etc
+      _buildBodyItemText(Icons.cloud_download_outlined, "Download rate ", _peerInfo!.networkStats.inAsString()),
+      _buildBodyItemText(Icons.cloud_upload_outlined, "Upload rate ", _peerInfo!.networkStats.outAsString()),
+      _buildBodyItemText(Icons.devices, "Bootstrap peers", bootstrapText, textColor: bootstrapColor),
+      _buildBodyItemText(Icons.dns_outlined, "DNS", dnsText, textColor: dnsColor),
+
+      _buildBodyItemText(Icons.router_outlined, "SOCKS5 Proxy", socks5Text, textColor: socks5Color),
+      if (_peerInfo!.socks5.listenerEnabled)
+        _buildBodyItemText(Icons.router_outlined, "SOCKS5 Proxy address", "${_peerInfo!.socks5.listenAddress}"),
+      // TODO: move to separate func
+      _buildBodyItemWidget(
+          Icons.router_outlined,
+          "SOCKS5 Proxy exit peer",
+          DropdownButton<String>(
+            value: socks5UsingPeer,
+            onChanged: (String? value) async {
+              var usingPeerName = value ?? "";
+              var usingPeerID = "";
+              if (usingPeerName == "None") {
+                usingPeerID = "";
+              } else {
+                var proxiesData = availableProxiesDataService.getData();
+
+                var found = proxiesData!.proxies.firstWhere((element) => element.peerName == usingPeerName);
+                usingPeerID = found.peerID;
+              }
+
+              var response = await updateProxySettings(http.Client(), usingPeerID);
+              if (response != "") {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  backgroundColor: Colors.red,
+                  content: Text("Failed to update proxy settings: $response"),
+                ));
+
+                return;
+              }
+
+              var futures = <Future>[
+                myPeerInfoDataService.fetchData(),
+                availableProxiesDataService.fetchData(),
+              ];
+              await Future.wait(futures);
+
+              setState(() {
+                // to trigger rebuild after fetching
+              });
+            },
+            onTap: () {
+              availableProxiesDataService.fetchData();
+            },
+            items: socks5PeersList.map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+          )),
+
+      _buildBodyItemText(Icons.my_location, "Reachability", reachabilityText, textColor: reachabilityColor),
+      _buildBodyItemText(Icons.access_time, "Uptime", formatDuration(_peerInfo!.uptime)),
+      _buildBodyItemText(Icons.label_outlined, "Server version ", _peerInfo!.serverVersion),
     ];
   }
 
-  Widget _buildBodyItem(IconData icon, String label, String text, {Color? textColor}) {
+  Widget _buildBodyItemText(IconData icon, String label, String text, {Color? textColor}) {
+    return _buildBodyItemWidget(
+        icon,
+        label,
+        SelectableText(
+          text,
+          style: TextStyle(color: textColor),
+        ));
+  }
+
+  Widget _buildBodyItemWidget(IconData icon, String label, Widget child) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 0, vertical: 7),
       child: Row(
@@ -157,10 +243,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
           ),
           Flexible(
             fit: FlexFit.loose,
-            child: SelectableText(
-              text,
-              style: TextStyle(color: textColor),
-            ),
+            child: child,
           )
         ],
       ),

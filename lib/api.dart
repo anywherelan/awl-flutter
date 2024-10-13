@@ -23,6 +23,8 @@ const GetAuthRequestsPath = V0Prefix + "peers/auth_requests";
 const GetMyPeerInfoPath = V0Prefix + "settings/peer_info";
 const UpdateMyInfoPath = V0Prefix + "settings/update";
 const ExportServerConfigPath = V0Prefix + "settings/export_server_config";
+const ListAvailableProxiesPath = V0Prefix + "settings/list_proxies";
+const UpdateProxySettingsPath = V0Prefix + "settings/set_proxy";
 
 // Debug
 const GetP2pDebugInfoPath = V0Prefix + "debug/p2p_info";
@@ -45,7 +47,8 @@ Future<MyPeerInfo> fetchMyPeerInfo(http.Client client) async {
     return MyPeerInfo.fromJson(parsed);
   } catch (e) {
     print("error in fetchMyPeerInfo: '${e.toString()}'.");
-    return MyPeerInfo("", "", Duration.zero, "–", NetworkStats(0, 0, 0, 0), 0, 0, "", "", false);
+    return MyPeerInfo(
+        "", "", Duration.zero, "–", NetworkStats(0, 0, 0, 0), 0, 0, "", "", false, SOCKS5Info("", false, false, "", ""));
   }
 }
 
@@ -57,6 +60,18 @@ Future<List<KnownPeer>?> fetchKnownPeers(http.Client client) async {
     return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
   } catch (e) {
     print("error in fetchKnownPeers: '${e.toString()}'.");
+    return null;
+  }
+}
+
+Future<ListAvailableProxiesResponse?> fetchAvailableProxies(http.Client client) async {
+  try {
+    final response = await client.get(Uri.parse(serverAddress + ListAvailableProxiesPath));
+    final Map<String, dynamic> parsed = jsonDecode(response.body);
+
+    return ListAvailableProxiesResponse.fromJson(parsed);
+  } catch (e) {
+    print("error in fetchAvailableProxies: '${e.toString()}'.");
     return null;
   }
 }
@@ -162,6 +177,25 @@ Future<String> updateMySettings(http.Client client, String name) async {
   };
 
   var request = http.Request("POST", Uri.parse(serverAddress + UpdateMyInfoPath));
+  request.headers.addAll(<String, String>{"Content-Type": "application/json"});
+  request.body = jsonEncode(payload);
+
+  final response = await client.send(request);
+  var responseBody = await response.stream.bytesToString();
+  if (response.statusCode != 200) {
+    final Map<String, dynamic> parsed = jsonDecode(responseBody);
+    return ApiError.fromJson(parsed).error;
+  }
+
+  return "";
+}
+
+Future<String> updateProxySettings(http.Client client, String usingPeerID) async {
+  var payload = {
+    "UsingPeerID": usingPeerID,
+  };
+
+  var request = http.Request("POST", Uri.parse(serverAddress + UpdateProxySettingsPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
   request.body = jsonEncode(payload);
 

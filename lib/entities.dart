@@ -13,12 +13,19 @@ class KnownPeer {
   final bool connected;
   final bool confirmed;
   final bool declined;
+  final bool weAllowUsingAsExitNode;
+  final bool allowedUsingAsExitNode;
   final DateTime lastSeen;
   final List<ConnectionInfo> connections;
   final NetworkStats networkStats;
 
   KnownPeer(this.peerID, this.displayName, this.version, this.ipAddr, this.connected, this.confirmed, this.lastSeen,
-      this.connections, this.networkStats, this.domainName, this.declined);
+      this.connections,
+      this.networkStats,
+      this.domainName,
+      this.declined,
+      this.weAllowUsingAsExitNode,
+      this.allowedUsingAsExitNode);
 
   factory KnownPeer.fromJson(Map<String, dynamic> json) => _$KnownPeerFromJson(json);
 
@@ -63,9 +70,11 @@ class MyPeerInfo {
   final String reachability;
   final String awlDNSAddress;
   final bool isAwlDNSSetAsSystem;
+  @JsonKey(name: "SOCKS5")
+  final SOCKS5Info socks5;
 
   MyPeerInfo(this.peerID, this.name, this.uptime, this.serverVersion, this.networkStats, this.totalBootstrapPeers,
-      this.connectedBootstrapPeers, this.reachability, this.awlDNSAddress, this.isAwlDNSSetAsSystem);
+      this.connectedBootstrapPeers, this.reachability, this.awlDNSAddress, this.isAwlDNSSetAsSystem, this.socks5);
 
   factory MyPeerInfo.fromJson(Map<String, dynamic> json) => _$MyPeerInfoFromJson(json);
 
@@ -74,6 +83,21 @@ class MyPeerInfo {
   static Duration _durationFromNanoseconds(int milliseconds) => Duration(microseconds: (milliseconds ~/ 1000).toInt());
 
   static int? _durationToNanoseconds(Duration? duration) => duration == null ? null : duration.inMilliseconds * 1000;
+}
+
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class SOCKS5Info {
+  final String listenAddress;
+  final bool proxyingEnabled;
+  final bool listenerEnabled;
+  final String usingPeerID;
+  final String usingPeerName;
+
+  SOCKS5Info(this.listenAddress, this.proxyingEnabled, this.listenerEnabled, this.usingPeerID, this.usingPeerName);
+
+  factory SOCKS5Info.fromJson(Map<String, dynamic> json) => _$SOCKS5InfoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SOCKS5InfoToJson(this);
 }
 
 @JsonSerializable(fieldRename: FieldRename.pascal)
@@ -108,6 +132,29 @@ class FriendRequest {
   factory FriendRequest.fromJson(Map<String, dynamic> json) => _$FriendRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$FriendRequestToJson(this);
+}
+
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class ListAvailableProxiesResponse {
+  final List<AvailableProxy> proxies;
+
+  ListAvailableProxiesResponse(this.proxies);
+
+  factory ListAvailableProxiesResponse.fromJson(Map<String, dynamic> json) => _$ListAvailableProxiesResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ListAvailableProxiesResponseToJson(this);
+}
+
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class AvailableProxy {
+  final String peerID;
+  final String peerName;
+
+  AvailableProxy(this.peerID, this.peerName);
+
+  factory AvailableProxy.fromJson(Map<String, dynamic> json) => _$AvailableProxyFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AvailableProxyToJson(this);
 }
 
 @JsonSerializable(fieldRename: FieldRename.pascal)
@@ -164,8 +211,9 @@ class KnownPeerConfig {
   final String alias;
   final String ipAddr;
   final String domainName;
+  final bool weAllowUsingAsExitNode;
 
-  KnownPeerConfig(this.peerId, this.name, this.alias, this.ipAddr, this.domainName);
+  KnownPeerConfig(this.peerId, this.name, this.alias, this.ipAddr, this.domainName, this.weAllowUsingAsExitNode);
 
   factory KnownPeerConfig.fromJson(Map<String, dynamic> json) => _$KnownPeerConfigFromJson(json);
 
@@ -177,8 +225,9 @@ class UpdateKnownPeerConfigRequest {
   final String peerID;
   final String alias;
   final String domainName;
+  final bool allowUsingAsExitNode;
 
-  UpdateKnownPeerConfigRequest(this.peerID, this.alias, this.domainName);
+  UpdateKnownPeerConfigRequest(this.peerID, this.alias, this.domainName, this.allowUsingAsExitNode);
 
   factory UpdateKnownPeerConfigRequest.fromJson(Map<String, dynamic> json) =>
       _$UpdateKnownPeerConfigRequestFromJson(json);

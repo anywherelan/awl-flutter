@@ -153,3 +153,10 @@ String byteCountIEC(int b) {
 
   return "${format(val)} ${"KMGTPE"[exp]}iB";
 }
+
+String formatBoolWithEmoji(bool val) {
+  if (val) {
+    return "✅";
+  }
+  return "❌";
+}
