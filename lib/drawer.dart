@@ -134,10 +134,10 @@ class _MyDrawerState extends State<MyDrawer> {
         // TODO update text
         AboutListTile(
           icon: Icon(Icons.info),
-          applicationIcon: FlutterLogo(),
+          applicationIcon: Image.asset('assets/icons/awl.png', width: 24, height: 24),
           applicationName: 'Anywherelan',
-          applicationVersion: 'June 2023',
-          applicationLegalese: '© 2023 The Anywherelan Authors',
+          applicationVersion: 'February 2025',
+          applicationLegalese: '© 2025 The Anywherelan Authors',
           aboutBoxChildren: _buildAboutBox(),
         ),
       ],
