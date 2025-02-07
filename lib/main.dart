@@ -79,7 +79,7 @@ class MyApp extends StatelessWidget {
 //      onUnknownRoute:,
       theme: ThemeData(
         // TODO: redesign in Material 3
-        // useMaterial3: true,
+        useMaterial3: false,
         // colorSchemeSeed: Colors.green,
         // brightness: Brightness.dark,
         brightness: Brightness.light,

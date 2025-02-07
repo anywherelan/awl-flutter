@@ -139,13 +139,13 @@ class _PeersListPageState extends State<PeersListPage> {
               "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"),
         if (item.connections.isNotEmpty)
           _buildBodyItem(Icons.place_outlined, "Connection", item.connections.join('\n\n')),
-        if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", item.version),
         _buildBodyItem(Icons.router_outlined, "Exit node",
             "We allow: ${formatBoolWithEmoji(item.weAllowUsingAsExitNode)}  Peer allowed us: ${formatBoolWithEmoji(item.allowedUsingAsExitNode)}"),
         if (item.networkStats.totalIn != 0)
           _buildBodyItem(Icons.cloud_download_outlined, "Download rate", item.networkStats.inAsString()),
         if (item.networkStats.totalOut != 0)
           _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate", item.networkStats.outAsString()),
+        if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", item.version),
         SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,

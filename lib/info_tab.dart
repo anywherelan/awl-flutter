@@ -168,6 +168,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
           "SOCKS5 Proxy exit peer",
           DropdownButton<String>(
             value: socks5UsingPeer,
+            alignment: AlignmentDirectional.centerEnd,
             onChanged: (String? value) async {
               var usingPeerName = value ?? "";
               var usingPeerID = "";
@@ -207,6 +208,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
               return DropdownMenuItem<String>(
                 value: value,
                 child: Text(value),
+                alignment: AlignmentDirectional.centerEnd,
               );
             }).toList(),
           )),
