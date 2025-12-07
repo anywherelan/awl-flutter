@@ -1,14 +1,13 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -29,10 +28,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       String? response;
       if (kIsWeb) {
         response = await FileSaver.instance
-            .saveFile(name: "config_awl", bytes: exportedSettings, ext: "json", mimeType: MimeType.json);
+            .saveFile(name: "config_awl", bytes: exportedSettings, fileExtension: "json", mimeType: MimeType.json);
       } else {
-        final params = SaveFileDialogParams(data: exportedSettings, fileName: "config_awl.json");
-        response = await FlutterFileDialog.saveFile(params: params);
+        // saveAs is not implemented on web
+        // see https://github.com/incrediblezayed/file_saver/issues/130
+        response = await FileSaver.instance
+            .saveAs(name: "config_awl", bytes: exportedSettings, fileExtension: "json", mimeType: MimeType.json);
       }
 
       if (response == null) {
@@ -53,21 +54,24 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   }
 
   Future<PickerResponse> _importSettings() async {
-    final params = OpenFileDialogParams(
-      fileExtensionsFilter: <String>["json"],
-    );
-
     try {
-      final filePath = await FlutterFileDialog.pickFile(params: params);
+      FilePickerResult? result;
+      if (kIsWeb) {
+        result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ["json"], withData: true);
+      } else {
+        result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ["json"], withData: true);
+      }
 
-      if (filePath == null) {
+      if (result == null) {
         return PickerResponse(true, "");
       }
 
-      var f = File(filePath);
-      String content = await f.readAsString();
+      final fileBytes = result.files.first.bytes;
+      final fileString = utf8.decode(fileBytes!.toList());
+      final fileName = result.files.first.name;
+
       await stopServer();
-      var importResponse = await importConfig(content);
+      var importResponse = await importConfig(fileString);
       var startResponse = await initServer();
 
       if (importResponse != "") {
@@ -77,45 +81,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       }
 
       fetchAllData();
-      return PickerResponse(true, "Imported file $filePath");
-    } on PlatformException catch (e) {
-      return PickerResponse(false, "Failed to pick config file: ${e.message}, ${e.details}");
+
+      return PickerResponse(true, "Imported file $fileName");
+    } on Exception catch (e) {
+      return PickerResponse(false, "Failed to import config file: ${e.toString()}, error: ${e.toString()}");
     }
   }
-
-  // web + android implementation by file_picker package. one downside is that it requests storage permission on android
-  // while flutter_file_dialog does not.
-  // Future<PickerResponse> _importSettingsFlutterPicker() async {
-  //   try {
-  //     FilePickerResult? result;
-  //     if (kIsWeb) {
-  //       result =
-  //           await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ["json"], withData: true);
-  //     } else {
-  //       result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
-  //     }
-  //
-  //     if (result == null) {
-  //       return PickerResponse(true, "");
-  //     }
-  //
-  //     final fileBytes = result.files.first.bytes;
-  //     final fileString = utf8.decode(fileBytes!.toList());
-  //     final fileName = result.files.first.name;
-  //
-  //     await stopServer();
-  //     var response = await importConfig(fileString);
-  //     await initServer();
-  //
-  //     if (response != "") {
-  //       return PickerResponse(false, response);
-  //     }
-  //
-  //     return PickerResponse(true, "Imported file $fileName");
-  //   } on Exception catch (e) {
-  //     return PickerResponse(false, "Failed to import config file: ${e.toString()}");
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
