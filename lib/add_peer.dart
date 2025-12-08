@@ -1,12 +1,11 @@
 import 'dart:io';
-import 'dart:math';
 
 import 'package:anywherelan/api.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 void showAddPeerDialog(BuildContext context) {
   showDialog<String>(
@@ -70,14 +69,13 @@ class _AddPeerFormState extends State<AddPeerForm> {
       return;
     }
 
-    var res = await Navigator.of(context).push<Barcode?>(
-        MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
-    if (res == null || res.code == null || res.code == '') {
+    var res = await Navigator.of(context).push<Barcode>(MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
+    if (res == null || res.displayValue == null || res.displayValue == '') {
       return;
     }
 
     setState(() {
-      _peerIdTextController.text = res.code!;
+      _peerIdTextController.text = res.displayValue!;
     });
   }
 
@@ -152,79 +150,38 @@ class _AddPeerFormState extends State<AddPeerForm> {
 }
 
 class QRScanPage extends StatefulWidget {
+  const QRScanPage({super.key});
+
   @override
-  State<StatefulWidget> createState() => _QRScanPageState();
+  State<QRScanPage> createState() => _QRScanPageState();
 }
 
 class _QRScanPageState extends State<QRScanPage> {
-  Barcode? result;
-  QRViewController? controller;
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  Barcode? _barcode;
 
-  // In order to get hot reload to work we need to pause the camera if the platform
-  // is android, or resume the camera if the platform is iOS.
-  @override
-  void reassemble() {
-    super.reassemble();
-    if (Platform.isAndroid) {
-      controller!.pauseCamera();
+  void _handleBarcode(BarcodeCapture barcodes) {
+    if (mounted && _barcode == null) {
+      setState(() {
+        _barcode = barcodes.barcodes.firstOrNull;
+      });
     }
-    controller!.resumeCamera();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (result != null) {
-      Navigator.of(context).pop(result!);
+    if (_barcode != null) {
+      Navigator.of(context).pop(_barcode!);
       return Scaffold();
     }
 
-    if (controller != null && mounted) {
-      controller!.pauseCamera();
-      controller!.resumeCamera();
-    }
-
     return Scaffold(
-      body: Column(
-        children: <Widget>[
-          Expanded(child: _buildQrView(context)),
+      appBar: AppBar(title: const Text('PeerID QR Scanner')),
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          MobileScanner(onDetect: _handleBarcode),
         ],
       ),
     );
-  }
-
-  Widget _buildQrView(BuildContext context) {
-    final mediaSize = MediaQuery.of(context).size;
-    var scanArea = min(mediaSize.height, mediaSize.width) * 0.8;
-    scanArea = min(scanArea, 800);
-    // To ensure the Scanner view is properly sizes after rotation
-    // we need to listen for Flutter SizeChanged notification and update controller
-    return QRView(
-      key: qrKey,
-      onQRViewCreated: _onQRViewCreated,
-      overlay: QrScannerOverlayShape(
-          borderColor: Colors.red, borderRadius: 10, borderLength: 30, borderWidth: 10, cutOutSize: scanArea),
-    );
-  }
-
-  void _onQRViewCreated(QRViewController controller) {
-    setState(() {
-      this.controller = controller;
-    });
-    controller.scannedDataStream.listen((scanData) {
-      // TODO: remove condition when qr_code_scanner will support stopCamera()
-      if (!kIsWeb) {
-        controller.stopCamera();
-      }
-      setState(() {
-        result = scanData;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    controller?.dispose();
-    super.dispose();
   }
 }

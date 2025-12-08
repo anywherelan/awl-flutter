@@ -15,7 +15,7 @@ class NotificationsService {
   late FlutterLocalNotificationsPlugin _notificationsPlugin;
   NotificationDetails? _notificationDetails;
 
-  late Timer _timer;
+  Timer? _timer;
   final _timerIntervalShort = const Duration(seconds: 3);
   final _timerIntervalLong = const Duration(seconds: 8);
 
@@ -46,22 +46,26 @@ class NotificationsService {
         ticker: 'ticker',
       );
       _notificationDetails = NotificationDetails(android: androidPlatformChannelSpecifics);
+
+      _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
     }
 
     _timer = new Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
   }
 
   void close() async {
-    _timer.cancel();
+    _timer?.cancel();
   }
 
   void setTimerIntervalShort() async {
-    _timer.cancel();
+    _timer?.cancel();
     _timer = new Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
   }
 
   void setTimerIntervalLong() async {
-    _timer.cancel();
+    _timer?.cancel();
     _timer = new Timer.periodic(_timerIntervalLong, (Timer t) => _checkForNotifications());
   }
 

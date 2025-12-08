@@ -7,14 +7,27 @@ import androidx.annotation.NonNull
 import anywherelan.Anywherelan
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.BinaryMessenger.TaskQueue
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.StandardMethodCodec
+
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "anywherelan"
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+
+        // 1. Get the binary messenger
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+
+        // 2. Create a background task queue from the messenger
+        val taskQueue: TaskQueue = messenger.makeBackgroundTaskQueue()
+
+        // 3. Provide the taskQueue when creating the MethodChannel
+        val channel = MethodChannel(messenger, CHANNEL, StandardMethodCodec.INSTANCE, taskQueue)
+
+        channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "start_server" -> {
                     val startedApiAddress = Anywherelan.getApiAddress()
@@ -54,7 +67,7 @@ class MainActivity : FlutterActivity() {
                     var tunFd = 0
                     builder.establish().use { tun ->
                         if (tun == null) throw Exception("TUN_CREATION_ERROR")
-                        tunFd = tun.detachFd()
+                        tunFd = tun!!.detachFd()
                     }
 
                     try {

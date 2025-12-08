@@ -49,7 +49,9 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
                   ),
                   shape: CircleBorder(),
                   onPressed: () {
-                    Share.share(peerID);
+                    SharePlus.instance.share(
+                      ShareParams(text: peerID),
+                    );
                   },
                 ),
               ],
