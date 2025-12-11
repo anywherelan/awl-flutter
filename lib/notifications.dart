@@ -227,7 +227,7 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
               controller: _aliasTextController,
-              decoration: InputDecoration(hintText: 'Alias'),
+              decoration: InputDecoration(hintText: 'Name'),
             ),
           ),
           SizedBox(height: 10),

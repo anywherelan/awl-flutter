@@ -94,7 +94,7 @@ class _MyDrawerState extends State<MyDrawer> {
           ),
         ListTile(
           title: Text("Blocked peers"),
-          enabled: true,
+          enabled: kIsWeb || isServerRunning(),
           leading: const Icon(Icons.app_blocking),
           onTap: () {
             Navigator.of(context).pushNamed(BlockedPeersScreen.routeName);

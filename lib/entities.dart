@@ -18,6 +18,8 @@ class KnownPeer {
   final DateTime lastSeen;
   final List<ConnectionInfo> connections;
   final NetworkStats networkStats;
+  @JsonKey(fromJson: _durationFromNanoseconds, toJson: _durationToNanoseconds)
+  final Duration ping;
 
   KnownPeer(this.peerID, this.displayName, this.version, this.ipAddr, this.connected, this.confirmed, this.lastSeen,
       this.connections,
@@ -25,7 +27,7 @@ class KnownPeer {
       this.domainName,
       this.declined,
       this.weAllowUsingAsExitNode,
-      this.allowedUsingAsExitNode);
+      this.allowedUsingAsExitNode, this.ping);
 
   factory KnownPeer.fromJson(Map<String, dynamic> json) => _$KnownPeerFromJson(json);
 
@@ -79,10 +81,6 @@ class MyPeerInfo {
   factory MyPeerInfo.fromJson(Map<String, dynamic> json) => _$MyPeerInfoFromJson(json);
 
   Map<String, dynamic> toJson() => _$MyPeerInfoToJson(this);
-
-  static Duration _durationFromNanoseconds(int milliseconds) => Duration(microseconds: (milliseconds ~/ 1000).toInt());
-
-  static int? _durationToNanoseconds(Duration? duration) => duration == null ? null : duration.inMilliseconds * 1000;
 }
 
 @JsonSerializable(fieldRename: FieldRename.pascal)
@@ -247,3 +245,9 @@ class BlockedPeer {
 
   Map<String, dynamic> toJson() => _$BlockedPeerToJson(this);
 }
+
+Duration _durationFromNanoseconds(int nanoseconds) =>
+    Duration(microseconds: (nanoseconds ~/ 1000).toInt());
+
+int? _durationToNanoseconds(Duration? duration) =>
+    duration == null ? null : duration.inMicroseconds * 1000;
