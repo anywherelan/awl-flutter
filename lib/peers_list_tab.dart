@@ -145,6 +145,8 @@ class _PeersListPageState extends State<PeersListPage> {
           _buildBodyItem(Icons.cloud_download_outlined, "Download rate", item.networkStats.inAsString()),
         if (item.networkStats.totalOut != 0)
           _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate", item.networkStats.outAsString()),
+        if (item.ping != 0)
+          _buildBodyItem(Icons.speed_outlined, "Ping", formatLatencyDuration(item.ping)),
         if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", item.version),
         SizedBox(height: 10),
         Row(
@@ -204,4 +206,13 @@ class _PeersListPageState extends State<PeersListPage> {
       ),
     );
   }
+}
+
+String formatLatencyDuration(Duration duration) {
+  if (duration.inMicroseconds == 0) {
+    return "–";
+  }
+
+  final ms = duration.inMilliseconds;
+  return "$ms ms";
 }

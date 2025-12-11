@@ -187,7 +187,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
                 initialValue: false,
                 builder: (FormFieldState<bool> state) {
                   return CheckboxListTile(
-                      title: const Text("Allow to use my device as exit node", textAlign: TextAlign.left),
+                      title: const Text("Allow my device to be used as an exit node", textAlign: TextAlign.left),
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
                       secondary: Padding(

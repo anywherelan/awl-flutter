@@ -64,11 +64,8 @@ class _MyInfoPageState extends State<MyInfoPage> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             OutlinedButton.icon(
-              icon: Icon(
-                Icons.qr_code,
-                color: Colors.black87,
-              ),
-              label: Text("SHOW ID"),
+              icon: Icon(Icons.qr_code, color: Colors.black87),
+              label: Text("SHOW MY ID"),
               onPressed: () async {
                 myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
                 await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
@@ -77,10 +74,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
             ),
             SizedBox(width: 14),
             OutlinedButton.icon(
-              icon: Icon(
-                Icons.settings,
-                color: Colors.black87,
-              ),
+              icon: Icon(Icons.settings, color: Colors.black87),
               label: Text("SETTINGS"),
               onPressed: () async {
                 myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
@@ -129,18 +123,6 @@ class _MyInfoPageState extends State<MyInfoPage> {
       socks5Text = "not working";
       socks5Color = redColor;
     }
-    var socks5UsingPeer = _peerInfo!.socks5.usingPeerName;
-    if (socks5UsingPeer == "") {
-      socks5UsingPeer = "None";
-    }
-
-    List<String> socks5PeersList = <String>['None'];
-    var proxiesData = availableProxiesDataService.getData();
-    if (proxiesData != null) {
-      for (var proxy in proxiesData.proxies) {
-        socks5PeersList.add(proxy.peerName);
-      }
-    }
 
     String bootstrapText = "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}";
     Color bootstrapColor;
@@ -162,56 +144,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
       _buildBodyItemText(Icons.router_outlined, "SOCKS5 Proxy", socks5Text, textColor: socks5Color),
       if (_peerInfo!.socks5.listenerEnabled)
         _buildBodyItemText(Icons.router_outlined, "SOCKS5 Proxy address", "${_peerInfo!.socks5.listenAddress}"),
-      // TODO: move to separate func
-      _buildBodyItemWidget(
-          Icons.router_outlined,
-          "SOCKS5 Proxy exit peer",
-          DropdownButton<String>(
-            value: socks5UsingPeer,
-            alignment: AlignmentDirectional.centerEnd,
-            onChanged: (String? value) async {
-              var usingPeerName = value ?? "";
-              var usingPeerID = "";
-              if (usingPeerName == "None") {
-                usingPeerID = "";
-              } else {
-                var proxiesData = availableProxiesDataService.getData();
-
-                var found = proxiesData!.proxies.firstWhere((element) => element.peerName == usingPeerName);
-                usingPeerID = found.peerID;
-              }
-
-              var response = await updateProxySettings(http.Client(), usingPeerID);
-              if (response != "") {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  backgroundColor: Colors.red,
-                  content: Text("Failed to update proxy settings: $response"),
-                ));
-
-                return;
-              }
-
-              var futures = <Future>[
-                myPeerInfoDataService.fetchData(),
-                availableProxiesDataService.fetchData(),
-              ];
-              await Future.wait(futures);
-
-              setState(() {
-                // to trigger rebuild after fetching
-              });
-            },
-            onTap: () {
-              availableProxiesDataService.fetchData();
-            },
-            items: socks5PeersList.map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-                alignment: AlignmentDirectional.centerEnd,
-              );
-            }).toList(),
-          )),
+      _buildProxySelectorWidget("SOCKS5 Proxy exit peer"),
 
       _buildBodyItemText(Icons.my_location, "Reachability", reachabilityText, textColor: reachabilityColor),
       _buildBodyItemText(Icons.access_time, "Uptime", formatDuration(_peerInfo!.uptime)),
@@ -220,13 +153,7 @@ class _MyInfoPageState extends State<MyInfoPage> {
   }
 
   Widget _buildBodyItemText(IconData icon, String label, String text, {Color? textColor}) {
-    return _buildBodyItemWidget(
-        icon,
-        label,
-        SelectableText(
-          text,
-          style: TextStyle(color: textColor),
-        ));
+    return _buildBodyItemWidget(icon, label, SelectableText(text, style: TextStyle(color: textColor)));
   }
 
   Widget _buildBodyItemWidget(IconData icon, String label, Widget child) {
@@ -235,19 +162,76 @@ class _MyInfoPageState extends State<MyInfoPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(icon),
-              SizedBox(width: 10),
-              Text(label),
-              SizedBox(width: 35),
-            ],
-          ),
-          Flexible(
-            fit: FlexFit.loose,
-            child: child,
-          )
+          Row(children: [Icon(icon), SizedBox(width: 10), Text(label), SizedBox(width: 35)]),
+          Flexible(fit: FlexFit.loose, child: child),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProxySelectorWidget(String label) {
+    var socks5UsingPeer = _peerInfo!.socks5.usingPeerName;
+    if (socks5UsingPeer == "") {
+      socks5UsingPeer = "None";
+    }
+
+    List<String> socks5PeersList = <String>['None'];
+    var proxiesData = availableProxiesDataService.getData();
+    if (proxiesData != null) {
+      for (var proxy in proxiesData.proxies) {
+        socks5PeersList.add(proxy.peerName);
+      }
+    }
+
+    if (socks5UsingPeer != "" && socks5UsingPeer != "None" && !socks5PeersList.contains(socks5UsingPeer)) {
+      // in case when peer info data and available proxies data are not in sync
+      socks5PeersList.add(socks5UsingPeer);
+    }
+
+    return _buildBodyItemWidget(
+      Icons.router_outlined,
+      label,
+      DropdownButton<String>(
+        value: socks5UsingPeer,
+        alignment: AlignmentDirectional.centerEnd,
+        onChanged: (String? value) async {
+          var usingPeerName = value ?? "";
+          var usingPeerID = "";
+          if (usingPeerName == "None") {
+            usingPeerID = "";
+          } else {
+            var proxiesData = availableProxiesDataService.getData();
+
+            var found = proxiesData!.proxies.firstWhere((element) => element.peerName == usingPeerName);
+            usingPeerID = found.peerID;
+          }
+
+          var response = await updateProxySettings(http.Client(), usingPeerID);
+          if (response != "") {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text("Failed to update proxy settings: $response")));
+
+            return;
+          }
+
+          var futures = <Future>[myPeerInfoDataService.fetchData(), availableProxiesDataService.fetchData()];
+          await Future.wait(futures);
+
+          setState(() {
+            // to trigger rebuild after fetching
+          });
+        },
+        onTap: () {
+          availableProxiesDataService.fetchData();
+        },
+        items: socks5PeersList.map<DropdownMenuItem<String>>((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value),
+            alignment: AlignmentDirectional.centerEnd,
+          );
+        }).toList(),
       ),
     );
   }
@@ -262,10 +246,7 @@ Future<void> showSettingsDialog(BuildContext context, MyPeerInfo? peerInfo, bool
         title: Text("Settings"),
         children: [
           Center(
-            child: SizedBox(
-              width: 350,
-              child: SettingsForm(peerInfo: peerInfo),
-            ),
+            child: SizedBox(width: 350, child: SettingsForm(peerInfo: peerInfo)),
           ),
         ],
       );
@@ -298,10 +279,7 @@ class _SettingsFormState extends State<SettingsForm> {
       Navigator.pop(context);
       _serverError = "";
       _formKey.currentState!.validate();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: Colors.green,
-        content: Text("Successfully saved"),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text("Successfully saved")));
     } else {
       _serverError = response;
       _formKey.currentState!.validate();
@@ -358,7 +336,7 @@ class _SettingsFormState extends State<SettingsForm> {
                 },
               ),
             ],
-          )
+          ),
         ],
       ),
     );
