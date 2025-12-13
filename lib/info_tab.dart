@@ -157,8 +157,17 @@ class _MyInfoPageState extends State<MyInfoPage> {
   }
 
   Widget _buildBodyItemWidget(IconData icon, String label, Widget child) {
+    // Use a breakpoint to determine if the screen is wide.
+    const double wideScreenBreakpoint = 800.0;
+    final bool isWideScreen = MediaQuery
+        .of(context)
+        .size
+        .width > wideScreenBreakpoint;
+    // On mobile (narrower screens), we use a larger padding to increase readability.
+    final verticalPadding = isWideScreen ? 4.0 : 6.0;
+
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 0, vertical: 7),
+      padding: EdgeInsets.symmetric(horizontal: 0, vertical: verticalPadding),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
