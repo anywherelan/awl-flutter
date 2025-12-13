@@ -52,7 +52,10 @@ class ConnectionInfo {
     if (throughRelay) {
       return "through public relay";
     } else if (address.isNotEmpty) {
-      return "$address | $protocol";
+      final host = Uri
+          .parse('my://$address')
+          .host;
+      return "$host┃$protocol";
     }
 
     return multiaddr;

@@ -105,11 +105,9 @@ class _PeersListPageState extends State<PeersListPage> {
       trailingText = Text("Connected", style: TextStyle(color: greenColor));
     }
 
-    var isThreeLine = false;
     var subtitle = peer.ipAddr;
     if (peer.domainName.isNotEmpty) {
-      subtitle = subtitle + "\n" + peer.domainName + ".awl";
-      isThreeLine = true;
+      subtitle = peer.domainName + ".awl";
     }
 
     return ListTile(
@@ -121,7 +119,7 @@ class _PeersListPageState extends State<PeersListPage> {
         padding: const EdgeInsets.only(top: 4),
         child: Text(subtitle),
       ),
-      isThreeLine: isThreeLine,
+      isThreeLine: false,
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -136,18 +134,20 @@ class _PeersListPageState extends State<PeersListPage> {
       children: [
         if (!item.connected && item.confirmed)
           _buildBodyItem(Icons.visibility_outlined, "Last seen",
-              "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"),
+              SelectableText("${formatDuration(item.lastSeen.difference(DateTime.now()))} ago")),
+        _buildBodyItem(Icons.computer_outlined, "VPN address", SelectableText("${item.domainName}.awl┃${item.ipAddr}")),
         if (item.connections.isNotEmpty)
-          _buildBodyItem(Icons.place_outlined, "Connection", item.connections.join('\n\n')),
+          _buildBodyItem(Icons.place_outlined, "Connection", _buildConnectionsWidget(item.connections)),
         _buildBodyItem(Icons.router_outlined, "Exit node",
-            "We allow: ${formatBoolWithEmoji(item.weAllowUsingAsExitNode)}  Peer allowed us: ${formatBoolWithEmoji(item.allowedUsingAsExitNode)}"),
+            SelectableText("We allow: ${formatBoolWithEmoji(item.weAllowUsingAsExitNode)}  Peer allowed us: ${formatBoolWithEmoji(
+                item.allowedUsingAsExitNode)}")),
         if (item.networkStats.totalIn != 0)
-          _buildBodyItem(Icons.cloud_download_outlined, "Download rate", item.networkStats.inAsString()),
+          _buildBodyItem(Icons.cloud_download_outlined, "Download rate", SelectableText(item.networkStats.inAsString())),
         if (item.networkStats.totalOut != 0)
-          _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate", item.networkStats.outAsString()),
-        if (item.ping != 0)
-          _buildBodyItem(Icons.speed_outlined, "Ping", formatLatencyDuration(item.ping)),
-        if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", item.version),
+          _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate", SelectableText(item.networkStats.outAsString())),
+        if (item.ping.inMicroseconds != 0)
+          _buildBodyItem(Icons.speed_outlined, "Ping", SelectableText(formatLatencyDuration(item.ping))),
+        if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", SelectableText(item.version)),
         SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -184,9 +184,41 @@ class _PeersListPageState extends State<PeersListPage> {
     );
   }
 
-  Widget _buildBodyItem(IconData icon, String label, String text) {
+  Widget _buildConnectionsWidget(List<ConnectionInfo> connections) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: connections.map((connection) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SelectableText(connection.toString()),
+              const SizedBox(width: 5),
+              Tooltip(
+                // TODO: display info about relay if throughRelay (name, ping?, country/location?)
+                message: connection.multiaddr,
+                child: const Icon(Icons.info_outline, size: 16),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildBodyItem(IconData icon, String label, Widget child) {
+    // Use a breakpoint to determine if the screen is wide.
+    const double wideScreenBreakpoint = 800.0;
+    final bool isWideScreen = MediaQuery
+        .of(context)
+        .size
+        .width > wideScreenBreakpoint;
+    // On mobile (narrower screens), we use a larger padding to increase readability.
+    final verticalPadding = isWideScreen ? 4.0 : 6.0;
+
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 0, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 0, vertical: verticalPadding),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -200,7 +232,7 @@ class _PeersListPageState extends State<PeersListPage> {
           ),
           Flexible(
             fit: FlexFit.loose,
-            child: SelectableText(text),
+            child: child,
           )
         ],
       ),
