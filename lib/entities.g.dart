@@ -201,6 +201,7 @@ UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(Map<String, 
       json['PeerID'] as String,
       json['Alias'] as String,
       json['DomainName'] as String,
+      json['IpAddr'] as String,
       json['AllowUsingAsExitNode'] as bool,
     );
 
@@ -209,6 +210,7 @@ Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(UpdateKnownPeerConfigR
       'PeerID': instance.peerID,
       'Alias': instance.alias,
       'DomainName': instance.domainName,
+      'IpAddr': instance.ipAddr,
       'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
     };
 
