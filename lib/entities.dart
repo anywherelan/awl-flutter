@@ -226,9 +226,10 @@ class UpdateKnownPeerConfigRequest {
   final String peerID;
   final String alias;
   final String domainName;
+  final String ipAddr;
   final bool allowUsingAsExitNode;
 
-  UpdateKnownPeerConfigRequest(this.peerID, this.alias, this.domainName, this.allowUsingAsExitNode);
+  UpdateKnownPeerConfigRequest(this.peerID, this.alias, this.domainName, this.ipAddr, this.allowUsingAsExitNode);
 
   factory UpdateKnownPeerConfigRequest.fromJson(Map<String, dynamic> json) =>
       _$UpdateKnownPeerConfigRequestFromJson(json);

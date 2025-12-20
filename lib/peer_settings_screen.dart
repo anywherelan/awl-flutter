@@ -18,6 +18,7 @@ class KnownPeerSettingsScreen extends StatefulWidget {
 class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   late TextEditingController _aliasTextController;
   late TextEditingController _domainNameTextController;
+  late TextEditingController _ipAddrTextController;
   late bool _weAllowUsingAsExitNode;
 
   bool _hasPeerConfig = false;
@@ -35,6 +36,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
 
     _aliasTextController = TextEditingController(text: peerConfig.alias);
     _domainNameTextController = TextEditingController(text: peerConfig.domainName);
+    _ipAddrTextController = TextEditingController(text: peerConfig.ipAddr);
     _weAllowUsingAsExitNode = peerConfig.weAllowUsingAsExitNode;
 
     setState(() {
@@ -45,7 +47,8 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
 
   Future<String> _sendNewPeerConfig() async {
     var payload = UpdateKnownPeerConfigRequest(
-        _peerConfig.peerId, _aliasTextController.text, _domainNameTextController.text, _weAllowUsingAsExitNode);
+        _peerConfig.peerId, _aliasTextController.text, _domainNameTextController.text, _ipAddrTextController.text,
+        _weAllowUsingAsExitNode);
 
     var response = await updateKnownPeerConfig(http.Client(), payload);
     return response;
@@ -137,16 +140,6 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           Padding(
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
-              initialValue: _peerConfig.ipAddr,
-              decoration: InputDecoration(labelText: 'Local address', enabled: false),
-              maxLines: 2,
-              minLines: 1,
-              readOnly: true,
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: TextFormField(
               initialValue: _peerConfig.name,
               decoration: InputDecoration(labelText: 'Name', enabled: false),
               readOnly: true,
@@ -166,7 +159,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
               autovalidateMode: AutovalidateMode.always,
               validator: (String? value) {
                 if (value == null || value.isEmpty) {
-                  return null;
+                  return 'Please enter domain';
                 }
                 var filteredValue = value.trim().replaceAll(RegExp(r'\s'), "").toLowerCase();
                 if (value != filteredValue) {
@@ -179,6 +172,30 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
                 labelText: 'Domain name',
                 helperText: 'domain name without ".awl" suffix, like "tvbox.home" or "workstation"',
               ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(8.0),
+            child: TextFormField(
+              controller: _ipAddrTextController,
+              decoration: InputDecoration(
+                labelText: 'Local address',
+                helperText: 'example: 10.66.0.2',
+              ),
+              autovalidateMode: AutovalidateMode.always,
+              validator: (String? value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter an IP address';
+                }
+
+                try {
+                  // TODO: support ipv6
+                  Uri.parseIPv4Address(value);
+                  return null;
+                } catch (e) {
+                  return 'Invalid IPv4 address format';
+                }
+              },
             ),
           ),
           Padding(
