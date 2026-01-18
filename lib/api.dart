@@ -102,8 +102,8 @@ Future<List<AuthRequest>> fetchAuthRequests(http.Client client) async {
   }
 }
 
-Future<String> sendFriendRequest(http.Client client, String peerID, String alias) async {
-  var payload = FriendRequest(peerID, alias);
+Future<String> sendFriendRequest(http.Client client, String peerID, String alias, String ipAddr) async {
+  var payload = FriendRequest(peerID, alias, ipAddr);
 
   var request = http.Request("POST", Uri.parse(serverAddress + SendFriendRequestPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
@@ -119,8 +119,8 @@ Future<String> sendFriendRequest(http.Client client, String peerID, String alias
   return "";
 }
 
-Future<String> replyFriendRequest(http.Client client, String peerID, String alias, bool decline) async {
-  var payload = FriendRequestReply(peerID, alias, decline);
+Future<String> replyFriendRequest(http.Client client, String peerID, String alias, bool decline, String ipAddr) async {
+  var payload = FriendRequestReply(peerID, alias, decline, ipAddr);
 
   var request = http.Request("POST", Uri.parse(serverAddress + AcceptPeerInvitationPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});

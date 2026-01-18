@@ -122,10 +122,18 @@ Map<String, dynamic> _$NetworkStatsToJson(NetworkStats instance) =>
     };
 
 FriendRequest _$FriendRequestFromJson(Map<String, dynamic> json) =>
-    FriendRequest(json['PeerID'] as String, json['Alias'] as String);
+    FriendRequest(
+      json['PeerID'] as String,
+      json['Alias'] as String,
+      json['IpAddr'] as String,
+    );
 
 Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) =>
-    <String, dynamic>{'PeerID': instance.peerID, 'Alias': instance.alias};
+    <String, dynamic>{
+      'PeerID': instance.peerID,
+      'Alias': instance.alias,
+      'IpAddr': instance.ipAddr,
+    };
 
 ListAvailableProxiesResponse _$ListAvailableProxiesResponseFromJson(Map<String, dynamic> json,) =>
     ListAvailableProxiesResponse(
@@ -148,6 +156,7 @@ FriendRequestReply _$FriendRequestReplyFromJson(Map<String, dynamic> json) =>
       json['PeerID'] as String,
       json['Alias'] as String,
       json['Decline'] as bool,
+      json['IpAddr'] as String,
     );
 
 Map<String, dynamic> _$FriendRequestReplyToJson(FriendRequestReply instance) =>
@@ -155,6 +164,7 @@ Map<String, dynamic> _$FriendRequestReplyToJson(FriendRequestReply instance) =>
       'PeerID': instance.peerID,
       'Alias': instance.alias,
       'Decline': instance.decline,
+      'IpAddr': instance.ipAddr,
     };
 
 ApiError _$ApiErrorFromJson(Map<String, dynamic> json) =>
@@ -165,10 +175,18 @@ Map<String, dynamic> _$ApiErrorToJson(ApiError instance) => <String, dynamic>{
 };
 
 AuthRequest _$AuthRequestFromJson(Map<String, dynamic> json) =>
-    AuthRequest(json['PeerID'] as String, json['Name'] as String);
+    AuthRequest(
+      json['PeerID'] as String,
+      json['Name'] as String,
+      json['SuggestedIP'] as String,
+    );
 
 Map<String, dynamic> _$AuthRequestToJson(AuthRequest instance) =>
-    <String, dynamic>{'PeerID': instance.peerID, 'Name': instance.name};
+    <String, dynamic>{
+      'PeerID': instance.peerID,
+      'Name': instance.name,
+      'SuggestedIP': instance.suggestedIP,
+    };
 
 PeerIDRequest _$PeerIDRequestFromJson(Map<String, dynamic> json) =>
     PeerIDRequest(json['PeerID'] as String);
