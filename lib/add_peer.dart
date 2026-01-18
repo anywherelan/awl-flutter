@@ -34,6 +34,7 @@ class AddPeerForm extends StatefulWidget {
 class _AddPeerFormState extends State<AddPeerForm> {
   final _peerIdTextController = TextEditingController();
   final _aliasTextController = TextEditingController();
+  final _ipAddrTextController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
   final _focusAlias = FocusNode();
@@ -44,12 +45,13 @@ class _AddPeerFormState extends State<AddPeerForm> {
       return;
     }
 
-    var response = await sendFriendRequest(http.Client(), _peerIdTextController.text, _aliasTextController.text);
+    var response = await sendFriendRequest(
+        http.Client(), _peerIdTextController.text, _aliasTextController.text, _ipAddrTextController.text);
     if (response == "") {
       // "Invitation was sent"
-      Navigator.pop(context);
       _serverError = "";
       _formKey.currentState!.validate();
+      Navigator.pop(context);
     } else {
       _serverError = response;
       _formKey.currentState!.validate();
@@ -98,7 +100,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
                 return null;
               },
               controller: _peerIdTextController,
-              decoration: InputDecoration(hintText: 'Peer ID'),
+              decoration: InputDecoration(labelText: 'Peer ID'),
               maxLines: 2,
               minLines: 1,
               textInputAction: TextInputAction.next,
@@ -113,7 +115,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
               controller: _aliasTextController,
               focusNode: _focusAlias,
               textInputAction: TextInputAction.done,
-              decoration: InputDecoration(hintText: 'Name'),
+              decoration: InputDecoration(labelText: 'Name'),
               validator: (value) {
                 if (value!.isEmpty) {
                   return 'Please enter peer name';
@@ -122,6 +124,31 @@ class _AddPeerFormState extends State<AddPeerForm> {
               },
             ),
           ),
+          Padding(
+            padding: EdgeInsets.all(8.0),
+            child: TextFormField(
+              controller: _ipAddrTextController,
+              decoration: InputDecoration(
+                labelText: 'Local IP address',
+                helperText: 'optional, example: 10.66.0.2',
+              ),
+              autovalidateMode: AutovalidateMode.onUnfocus,
+              validator: (String? value) {
+                if (value == null || value.isEmpty) {
+                  return null;
+                }
+
+                try {
+                  // TODO: support ipv6
+                  Uri.parseIPv4Address(value);
+                  return null;
+                } catch (e) {
+                  return 'Invalid IPv4 address format';
+                }
+              },
+            ),
+          ),
+          SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[

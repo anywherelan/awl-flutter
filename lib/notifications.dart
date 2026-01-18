@@ -91,9 +91,6 @@ class NotificationsService {
   }
 
   Future<void> _showMobileNotification(AuthRequest req) async {
-    // TODO: проверять нет ли уже уведомления с payload с таким peerID - на случай если приложение перезапускалось,
-    //  а уведомление еще висит
-
     var notificationId = generateNotificationId(req.peerID);
     print("$notificationId  ${req.name}");
 
@@ -139,7 +136,7 @@ class NotificationsService {
       return;
     }
     final payload = notificationResponse.payload!;
-    var authReq = _lastRequests.firstWhere((obj) => obj.peerID == payload, orElse: () => AuthRequest(payload, ""));
+    var authReq = _lastRequests.firstWhere((obj) => obj.peerID == payload, orElse: () => AuthRequest(payload, "", ""));
     _showAuthRequestDialog(authReq);
   }
 }
@@ -174,15 +171,17 @@ class IncomingAuthRequestForm extends StatefulWidget {
 }
 
 class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
-  TextEditingController? _peerIdTextController;
-  TextEditingController? _aliasTextController;
+  late TextEditingController _peerIdTextController;
+  late TextEditingController _aliasTextController;
+  late TextEditingController _ipAddrTextController;
 
   final _formKey = GlobalKey<FormState>();
   String? _serverError = "";
 
   void _sendRequest(bool decline) async {
     var response =
-        await replyFriendRequest(http.Client(), _peerIdTextController!.text, _aliasTextController!.text, decline);
+    await replyFriendRequest(
+        http.Client(), _peerIdTextController.text, _aliasTextController.text, decline, _ipAddrTextController.text);
     if (response == "") {
       Navigator.pop(context);
       _serverError = "";
@@ -200,6 +199,7 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
 
     _peerIdTextController = TextEditingController(text: widget.request.peerID);
     _aliasTextController = TextEditingController(text: widget.request.name);
+    _ipAddrTextController = TextEditingController(text: widget.request.suggestedIP);
   }
 
   @override
@@ -215,6 +215,8 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
               controller: _peerIdTextController,
               decoration: InputDecoration(labelText: 'Peer ID'),
               readOnly: true,
+              minLines: 1,
+              maxLines: 2,
               validator: (value) {
                 if (_serverError != "") {
                   return _serverError;
@@ -227,7 +229,31 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
             padding: EdgeInsets.all(8.0),
             child: TextFormField(
               controller: _aliasTextController,
-              decoration: InputDecoration(hintText: 'Name'),
+              decoration: InputDecoration(labelText: 'Name'),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(8.0),
+            child: TextFormField(
+              controller: _ipAddrTextController,
+              decoration: InputDecoration(
+                labelText: 'Local IP address',
+                helperText: 'optional, example: 10.66.0.2',
+              ),
+              autovalidateMode: AutovalidateMode.onUnfocus,
+              validator: (String? value) {
+                if (value == null || value.isEmpty) {
+                  return null;
+                }
+
+                try {
+                  // TODO: support ipv6
+                  Uri.parseIPv4Address(value);
+                  return null;
+                } catch (e) {
+                  return 'Invalid IPv4 address format';
+                }
+              },
             ),
           ),
           SizedBox(height: 10),
@@ -243,12 +269,18 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
               ElevatedButton(
                 child: Text('DECLINE'),
                 onPressed: () async {
+                  if (!_formKey.currentState!.validate()) {
+                    return;
+                  }
                   _sendRequest(true);
                 },
               ),
               ElevatedButton(
                 child: Text('ACCEPT'),
                 onPressed: () async {
+                  if (!_formKey.currentState!.validate()) {
+                    return;
+                  }
                   _sendRequest(false);
                 },
               ),

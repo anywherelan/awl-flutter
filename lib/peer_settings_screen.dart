@@ -77,7 +77,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
             padding: EdgeInsets.all(16.0),
             children: [
               _buildGeneralForm(),
-              SizedBox(height: 30),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
@@ -98,6 +98,10 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
                   ElevatedButton(
                     child: Text('SAVE'),
                     onPressed: () async {
+                      if (!_generalFormKey.currentState!.validate()) {
+                        return;
+                      }
+
                       var result = await _sendNewPeerConfig();
                       if (result == "") {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -179,10 +183,10 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
             child: TextFormField(
               controller: _ipAddrTextController,
               decoration: InputDecoration(
-                labelText: 'Local address',
+                labelText: 'Local IP address',
                 helperText: 'example: 10.66.0.2',
               ),
-              autovalidateMode: AutovalidateMode.always,
+              autovalidateMode: AutovalidateMode.onUnfocus,
               validator: (String? value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter an IP address';

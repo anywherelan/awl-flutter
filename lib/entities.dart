@@ -127,8 +127,9 @@ class NetworkStats {
 class FriendRequest {
   final String peerID;
   final String alias;
+  final String ipAddr;
 
-  FriendRequest(this.peerID, this.alias);
+  FriendRequest(this.peerID, this.alias, this.ipAddr);
 
   factory FriendRequest.fromJson(Map<String, dynamic> json) => _$FriendRequestFromJson(json);
 
@@ -163,8 +164,9 @@ class FriendRequestReply {
   final String peerID;
   final String alias;
   final bool decline;
+  final String ipAddr;
 
-  FriendRequestReply(this.peerID, this.alias, this.decline);
+  FriendRequestReply(this.peerID, this.alias, this.decline, this.ipAddr);
 
   factory FriendRequestReply.fromJson(Map<String, dynamic> json) => _$FriendRequestReplyFromJson(json);
 
@@ -186,8 +188,9 @@ class ApiError {
 class AuthRequest {
   final String peerID;
   final String name;
+  final String suggestedIP;
 
-  AuthRequest(this.peerID, this.name);
+  AuthRequest(this.peerID, this.name, this.suggestedIP);
 
   factory AuthRequest.fromJson(Map<String, dynamic> json) => _$AuthRequestFromJson(json);
 
