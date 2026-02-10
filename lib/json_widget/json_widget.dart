@@ -14,7 +14,12 @@ class JsonViewerWidget extends StatefulWidget {
 }
 
 class JsonViewerWidgetState extends State<JsonViewerWidget> {
-  Map<String, bool> openFlag = Map();
+  // dirty hack. json viewer is too slow even on desktop
+  Map<String, bool> openFlag = {
+    "RoutingTable": false,
+    "KnownPeers": false,
+    "ByProtocol": false,
+  };
 
   @override
   Widget build(BuildContext context) {
