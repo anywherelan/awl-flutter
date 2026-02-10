@@ -7,14 +7,14 @@ import 'package:anywherelan/entities.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class MyInfoPage extends StatefulWidget {
-  MyInfoPage({Key? key}) : super(key: key);
+class StatusPage extends StatefulWidget {
+  StatusPage({Key? key}) : super(key: key);
 
   @override
-  _MyInfoPageState createState() => _MyInfoPageState();
+  _StatusPageState createState() => _StatusPageState();
 }
 
-class _MyInfoPageState extends State<MyInfoPage> {
+class _StatusPageState extends State<StatusPage> {
   MyPeerInfo? _peerInfo;
   bool _openedSetupDialog = false;
 
