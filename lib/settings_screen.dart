@@ -80,7 +80,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         return PickerResponse(false, startResponse);
       }
 
-      fetchAllData();
+      fetchAllDataAfterStart();
 
       return PickerResponse(true, "Imported file $fileName");
     } on Exception catch (e) {

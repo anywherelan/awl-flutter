@@ -38,7 +38,7 @@ class _MyDrawerState extends State<MyDrawer> {
         if (!kIsWeb)
           ListTile(
             title: Text(
-              isServerRunning() ? "Stop server" : "Start server",
+              isServerRunning() ? "Stop" : "Start",
             ),
             enabled: true,
             leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
@@ -48,11 +48,12 @@ class _MyDrawerState extends State<MyDrawer> {
               if (isServerRunning()) {
                 await stopServer();
                 message = "Server stopped";
+                fetchAllData();
               } else {
                 var startResponse = await initServer();
                 if (startResponse == "") {
                   message = "Server started";
-                  fetchAllData();
+                  fetchAllDataAfterStart();
                 } else {
                   message = "Failed to start server: $startResponse";
                   color = Colors.red;
@@ -68,7 +69,7 @@ class _MyDrawerState extends State<MyDrawer> {
         if (!kIsWeb && isServerRunning())
           ListTile(
             title: Text(
-              "Restart server",
+              "Restart",
             ),
             enabled: true,
             leading: const Icon(Icons.refresh),
@@ -79,7 +80,7 @@ class _MyDrawerState extends State<MyDrawer> {
               var startResponse = await initServer();
               Navigator.of(context).pop();
               if (startResponse == "") {
-                fetchAllData();
+                fetchAllDataAfterStart();
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   backgroundColor: Colors.green,
                   content: Text("Server restarted"),
@@ -136,8 +137,8 @@ class _MyDrawerState extends State<MyDrawer> {
           icon: Icon(Icons.info),
           applicationIcon: Image.asset('assets/icons/awl.png', width: 24, height: 24),
           applicationName: 'Anywherelan',
-          applicationVersion: 'February 2025',
-          applicationLegalese: '© 2025 The Anywherelan Authors',
+          applicationVersion: 'February 2026',
+          applicationLegalese: '© 2026 The Anywherelan Authors',
           aboutBoxChildren: _buildAboutBox(),
         ),
       ],
