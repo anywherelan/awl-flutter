@@ -31,6 +31,7 @@ Future<void> initAndroid() async {
     var startError = await initApp();
     if (isServerRunning()) {
       await fetchAllData();
+      fetchAllDataAfterStart();
       return;
     } else if (startError.contains("vpn not authorized")) {
       dialogTitle = "You need to accept vpn connection to use this app";

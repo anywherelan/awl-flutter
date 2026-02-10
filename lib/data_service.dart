@@ -92,3 +92,11 @@ Future<void> fetchAllData() async {
   ];
   await Future.wait(futures);
 }
+
+Future<void> fetchAllDataAfterStart() async {
+  await fetchAllData();
+  for (var i = 0; i < 10; i++) {
+    await Future.delayed(const Duration(milliseconds: 200));
+    await fetchAllData();
+  }
+}
