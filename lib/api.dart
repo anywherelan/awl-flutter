@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:anywherelan/entities.dart';
@@ -32,23 +33,17 @@ const GetDebugLogPath = V0Prefix + "debug/log";
 
 var serverAddress = "";
 
-// TODO:
-//  try {
-//
-//  } catch(e) {
-//
-//  }
-
 Future<MyPeerInfo> fetchMyPeerInfo(http.Client client) async {
   try {
     final response = await client.get(Uri.parse(serverAddress + GetMyPeerInfoPath));
     final Map<String, dynamic> parsed = jsonDecode(response.body);
 
     return MyPeerInfo.fromJson(parsed);
-  } catch (e) {
-    print("error in fetchMyPeerInfo: '${e.toString()}'.");
-    return MyPeerInfo(
-        "", "", Duration.zero, "–", NetworkStats(0, 0, 0, 0), 0, 0, "", "", false, SOCKS5Info("", false, false, "", ""));
+  } catch (e, s) {
+    Error.throwWithStackTrace(
+      Exception('Failed to fetchMyPeerInfo: $e'),
+      s,
+    );
   }
 }
 
@@ -58,9 +53,11 @@ Future<List<KnownPeer>?> fetchKnownPeers(http.Client client) async {
     final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
     return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
-  } catch (e) {
-    print("error in fetchKnownPeers: '${e.toString()}'.");
-    return null;
+  } catch (e, s) {
+    Error.throwWithStackTrace(
+      Exception('Failed to fetchKnownPeers: $e'),
+      s,
+    );
   }
 }
 
@@ -70,9 +67,11 @@ Future<ListAvailableProxiesResponse?> fetchAvailableProxies(http.Client client) 
     final Map<String, dynamic> parsed = jsonDecode(response.body);
 
     return ListAvailableProxiesResponse.fromJson(parsed);
-  } catch (e) {
-    print("error in fetchAvailableProxies: '${e.toString()}'.");
-    return null;
+  } catch (e, s) {
+    Error.throwWithStackTrace(
+      Exception('Failed to fetchAvailableProxies: $e'),
+      s,
+    );
   }
 }
 
@@ -96,8 +95,13 @@ Future<List<AuthRequest>> fetchAuthRequests(http.Client client) async {
     final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
 
     return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
-  } catch (e) {
-    print("error in fetchAuthRequests: '${e.toString()}'.");
+  } catch (e, s) {
+    log(
+      'Failed to fetchAuthRequests',
+      error: e,
+      stackTrace: s,
+      name: 'api',
+    );
     return [];
   }
 }

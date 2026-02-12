@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/entities.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+final isServerAvailable = ValueNotifier<bool>(true);
 
 class ServerDataService<T> {
   Timer? _timer;
@@ -31,7 +35,6 @@ class ServerDataService<T> {
   }
 
   void _timerCallback(Timer t) {
-    // TODO await ?
     fetchData();
   }
 
@@ -46,13 +49,23 @@ class ServerDataService<T> {
   }
 
   Future<void> fetchData() async {
-    // TODO try catch
-    var newData = await fetchDataFunc();
-    _data = newData;
+    try {
+      var newData = await fetchDataFunc();
+      _data = newData;
+      isServerAvailable.value = true;
 
-    _subscribers.forEach((f) {
-      f(newData);
-    });
+      _subscribers.forEach((f) {
+        f(newData);
+      });
+    } catch (e, s) {
+      isServerAvailable.value = false;
+      log(
+        'Failed to fetch data',
+        error: e,
+        stackTrace: s,
+        name: 'ServerDataService',
+      );
+    }
   }
 
   T? getData() {

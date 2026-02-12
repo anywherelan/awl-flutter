@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/common.dart';
+import 'package:anywherelan/connection_error.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:flutter/material.dart';
@@ -44,47 +45,58 @@ class _StatusPageState extends State<StatusPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_peerInfo == null) {
-      return Container();
-    }
+    return ValueListenableBuilder<bool>(
+      valueListenable: isServerAvailable,
+      builder: (context, isAvailable, child) {
+        if (!isAvailable) {
+          return Center(
+            child: showDefaultServerConnectionError(context),
+          );
+        }
 
-    final serverIsUp = _peerInfo!.uptime.inMicroseconds > 0;
+        if (_peerInfo == null) {
+          return Container();
+        }
 
-    if (!_openedSetupDialog && serverIsUp && _peerInfo!.name.isEmpty) {
-      _openedSetupDialog = true;
-      Future.delayed(Duration(seconds: 2), () => showSettingsDialog(context, _peerInfo, true));
-    }
+        final serverIsUp = _peerInfo!.uptime.inMicroseconds > 0;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Column(children: _buildInfo(context)),
-        SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        if (!_openedSetupDialog && serverIsUp && _peerInfo!.name.isEmpty) {
+          _openedSetupDialog = true;
+          Future.delayed(Duration(seconds: 2), () => showSettingsDialog(context, _peerInfo, true));
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            OutlinedButton.icon(
-              icon: Icon(Icons.qr_code, color: Colors.black87),
-              label: Text("SHOW MY ID"),
-              onPressed: () async {
-                myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
-                myPeerInfoDataService.subscribe(_onNewPeerInfo);
-              },
-            ),
-            SizedBox(width: 14),
-            OutlinedButton.icon(
-              icon: Icon(Icons.settings, color: Colors.black87),
-              label: Text("SETTINGS"),
-              onPressed: () async {
-                myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                await showSettingsDialog(context, _peerInfo, false);
-                myPeerInfoDataService.subscribe(_onNewPeerInfo);
-              },
+            Column(children: _buildInfo(context)),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  icon: Icon(Icons.qr_code, color: Colors.black87),
+                  label: Text("SHOW MY ID"),
+                  onPressed: () async {
+                    myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
+                    await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
+                    myPeerInfoDataService.subscribe(_onNewPeerInfo);
+                  },
+                ),
+                SizedBox(width: 14),
+                OutlinedButton.icon(
+                  icon: Icon(Icons.settings, color: Colors.black87),
+                  label: Text("SETTINGS"),
+                  onPressed: () async {
+                    myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
+                    await showSettingsDialog(context, _peerInfo, false);
+                    myPeerInfoDataService.subscribe(_onNewPeerInfo);
+                  },
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
