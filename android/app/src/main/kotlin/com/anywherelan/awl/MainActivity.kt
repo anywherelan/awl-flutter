@@ -36,42 +36,51 @@ class MainActivity : FlutterActivity() {
                         return@setMethodCallHandler
                     }
 
-                    val service = MyVpnService()
-                    val requestPermissionIntent = VpnService.prepare(this.context)
-                    if (requestPermissionIntent != null) {
-                        result.error("error", "vpn not authorized", null)
-                        this.startActivityForResult(requestPermissionIntent, 4444)
-                        return@setMethodCallHandler
-                    }
-                    context.startService(Intent(context, MyVpnService::class.java))
-
-
-                    val builder: VpnService.Builder = service.builder
-                    // TODO: remove hardcode
-                    val tunnelName = "awl0"
-                    val networkAddress = "10.66.0.1"
-                    val networkAddressMask = 24
-                    builder.setSession(tunnelName)
-                    builder.addAddress(networkAddress, networkAddressMask)
-                    builder.setMtu(3500)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        builder.setBlocking(true)
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        builder.setMetered(false)
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        service.setUnderlyingNetworks(null)
-                    }
-
+                    Anywherelan.setup(this.filesDir.absolutePath)
+                    val config = AppConfig.fromJson(Anywherelan.getConfig())
                     var tunFd = 0
-                    builder.establish().use { tun ->
-                        if (tun == null) throw Exception("TUN_CREATION_ERROR")
-                        tunFd = tun!!.detachFd()
+
+                    if (!config.vpn.disableVPNInterface) {
+                        val service = MyVpnService()
+                        val requestPermissionIntent = VpnService.prepare(this.context)
+                        if (requestPermissionIntent != null) {
+                            result.error("error", "vpn not authorized", null)
+                            this.startActivityForResult(requestPermissionIntent, 4444)
+                            return@setMethodCallHandler
+                        }
+                        context.startService(Intent(context, MyVpnService::class.java))
+
+
+                        val tunnelName = config.vpn.interfaceName
+                        val ipNetParts = config.vpn.ipNet.split("/")
+                        if (ipNetParts.size != 2) {
+                            throw Exception("Invalid ipNet format: ${config.vpn.ipNet}")
+                        }
+                        val networkAddress = ipNetParts[0]
+                        val networkAddressMask = ipNetParts[1].toInt()
+
+                        val builder: VpnService.Builder = service.builder
+                        builder.setSession(tunnelName)
+                        builder.addAddress(networkAddress, networkAddressMask)
+                        builder.setMtu(3500)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            builder.setBlocking(true)
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            builder.setMetered(false)
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            service.setUnderlyingNetworks(null)
+                        }
+
+                        builder.establish().use { tun ->
+                            if (tun == null) throw Exception("TUN_CREATION_ERROR")
+                            tunFd = tun!!.detachFd()
+                        }
                     }
 
                     try {
-                        Anywherelan.initServer(this.filesDir.absolutePath, tunFd)
+                        Anywherelan.startServer(tunFd)
                         val apiAddress = Anywherelan.getApiAddress()
                         result.success(apiAddress)
                     } catch (e: Exception) {
