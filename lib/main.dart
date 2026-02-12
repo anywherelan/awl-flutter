@@ -2,12 +2,12 @@ import 'package:anywherelan/add_peer.dart';
 import 'package:anywherelan/blocked_peers_screen.dart';
 import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/drawer.dart';
-import 'package:anywherelan/info_tab.dart';
 import 'package:anywherelan/notifications.dart' as notif;
 import 'package:anywherelan/peer_settings_screen.dart';
 import 'package:anywherelan/peers_list_tab.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:anywherelan/settings_screen.dart';
+import 'package:anywherelan/status_tab.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:overlay_support/overlay_support.dart';
@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               controller: _tabController,
               isScrollable: false,
               tabs: [
-                Tab(text: 'INFO'),
+                Tab(text: 'STATUS'),
                 Tab(text: 'PEERS'),
               ],
             ),
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: TabBarView(
               controller: _tabController,
               children: [
-                Padding(padding: EdgeInsets.all(16), child: MyInfoPage()),
+                Padding(padding: EdgeInsets.all(16), child: StatusPage()),
                 PeersListPage(),
               ],
             ),
@@ -303,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ),
             SizedBox(width: spaceBetweenItems),
-            Flexible(flex: 3, child: decorateAsCard(MyInfoPage(), "This Device")),
+            Flexible(flex: 3, child: decorateAsCard(StatusPage(), "This Device")),
             SizedBox(width: spaceBetweenItems),
           ],
         ),

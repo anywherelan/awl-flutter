@@ -4,6 +4,8 @@ import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/peer_settings_screen.dart' show KnownPeerSettingsScreen;
 import 'package:flutter/material.dart';
 
+import 'connection_error.dart';
+
 class PeersListPage extends StatefulWidget {
   PeersListPage({Key? key}) : super(key: key);
 
@@ -45,51 +47,65 @@ class _PeersListPageState extends State<PeersListPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_knownPeers == null || _knownPeers!.isEmpty) {
-      return ConstrainedBox(
-        constraints: const BoxConstraints.expand(height: 80),
-        child: Container(
-          margin: EdgeInsets.only(top: 10),
-          alignment: Alignment.topCenter,
-          child: Text(
-            "No known peers",
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-        ),
-      );
-    }
-
-    var expansionList = ExpansionPanelList(
-      expandedHeaderPadding: EdgeInsets.only(top: 5, bottom: 5),
-      expansionCallback: (int index, bool isExpanded) {
-        setState(() {
-          var peer = _knownPeers![index];
-          _expandedState[peer.peerID] = isExpanded;
-        });
-      },
-      children: _knownPeers!.map<ExpansionPanel>((KnownPeer item) {
-        var isExpanded = _expandedState[item.peerID];
-        if (isExpanded == null) {
-          isExpanded = false;
-          _expandedState[item.peerID] = false;
+    return ValueListenableBuilder<bool>(
+      valueListenable: isServerAvailable,
+      builder: (context, isAvailable, child) {
+        if (!isAvailable) {
+          return Center(
+            child: showDefaultServerConnectionError(context),
+          );
         }
 
-        return ExpansionPanel(
-          headerBuilder: (BuildContext context, bool isExpanded) {
-            return _buildRowTitle(context, item);
-          },
-          body: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 24, 24),
-            child: _buildExpansionPanelBody(item),
-          ),
-          isExpanded: isExpanded,
-          canTapOnHeader: true,
-        );
-      }).toList(),
-    );
+        if (_knownPeers == null || _knownPeers!.isEmpty) {
+          return ConstrainedBox(
+            constraints: const BoxConstraints.expand(height: 80),
+            child: Container(
+              margin: EdgeInsets.only(top: 10),
+              alignment: Alignment.topCenter,
+              child: Text(
+                "No known peers",
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .titleLarge,
+              ),
+            ),
+          );
+        }
 
-    return SingleChildScrollView(
-      child: expansionList,
+        var expansionList = ExpansionPanelList(
+          expandedHeaderPadding: EdgeInsets.only(top: 5, bottom: 5),
+          expansionCallback: (int index, bool isExpanded) {
+            setState(() {
+              var peer = _knownPeers![index];
+              _expandedState[peer.peerID] = isExpanded;
+            });
+          },
+          children: _knownPeers!.map<ExpansionPanel>((KnownPeer item) {
+            var isExpanded = _expandedState[item.peerID];
+            if (isExpanded == null) {
+              isExpanded = false;
+              _expandedState[item.peerID] = false;
+            }
+
+            return ExpansionPanel(
+              headerBuilder: (BuildContext context, bool isExpanded) {
+                return _buildRowTitle(context, item);
+              },
+              body: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 24, 24),
+                child: _buildExpansionPanelBody(item),
+              ),
+              isExpanded: isExpanded,
+              canTapOnHeader: true,
+            );
+          }).toList(),
+        );
+
+        return SingleChildScrollView(
+          child: expansionList,
+        );
+      },
     );
   }
 
