@@ -79,6 +79,9 @@ class MyApp extends StatelessWidget {
       navigatorKey: notif.navigatorKey,
 //      onUnknownRoute:,
       theme: ThemeData(
+        // Default fallback fonts
+        // See bug https://github.com/flutter/flutter/issues/60069
+        fontFamilyFallback: const ['Noto Color Emoji 2', 'Noto Sans SC 71'],
         // TODO: redesign in Material 3
         useMaterial3: false,
         // colorSchemeSeed: Colors.green,
