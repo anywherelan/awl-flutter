@@ -7,7 +7,15 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class KnownPeerSettingsScreen extends StatefulWidget {
-  static String routeName = "/peer_settings";
+  static String routeFor(String peerId) => '/peers/$peerId/settings';
+
+  static String peerIdFromRoute(String route) {
+    final segments = Uri
+        .parse(route)
+        .pathSegments;
+    // segments: ['peers', peer_id, 'settings']
+    return segments[1];
+  }
 
   KnownPeerSettingsScreen({Key? key}) : super(key: key);
 
@@ -22,6 +30,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   late bool _weAllowUsingAsExitNode;
 
   bool _hasPeerConfig = false;
+  String? _loadError;
   late String _peerID;
   late KnownPeerConfig _peerConfig;
   late String _peerDisplayName;
@@ -29,20 +38,29 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   final _generalFormKey = GlobalKey<FormState>();
 
   void _refreshPeerConfig() async {
-    var peerConfig = await fetchKnownPeerConfig(http.Client(), _peerID);
-    if (!this.mounted) {
-      return;
+    try {
+      var peerConfig = await fetchKnownPeerConfig(http.Client(), _peerID);
+      if (!this.mounted) {
+        return;
+      }
+
+      _aliasTextController = TextEditingController(text: peerConfig.alias);
+      _domainNameTextController = TextEditingController(text: peerConfig.domainName);
+      _ipAddrTextController = TextEditingController(text: peerConfig.ipAddr);
+      _weAllowUsingAsExitNode = peerConfig.weAllowUsingAsExitNode;
+
+      setState(() {
+        _peerConfig = peerConfig;
+        _peerDisplayName = _peerConfig.alias != "" ? _peerConfig.alias : _peerConfig.name;
+      });
+    } catch (e) {
+      if (!this.mounted) {
+        return;
+      }
+      setState(() {
+        _loadError = e.toString().replaceFirst('Exception: ', '');
+      });
     }
-
-    _aliasTextController = TextEditingController(text: peerConfig.alias);
-    _domainNameTextController = TextEditingController(text: peerConfig.domainName);
-    _ipAddrTextController = TextEditingController(text: peerConfig.ipAddr);
-    _weAllowUsingAsExitNode = peerConfig.weAllowUsingAsExitNode;
-
-    setState(() {
-      _peerConfig = peerConfig;
-      _peerDisplayName = _peerConfig.alias != "" ? _peerConfig.alias : _peerConfig.name;
-    });
   }
 
   Future<String> _sendNewPeerConfig() async {
@@ -57,11 +75,33 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_hasPeerConfig) {
-      _peerID = ModalRoute.of(context)!.settings.arguments as String;
+      _peerID = KnownPeerSettingsScreen.peerIdFromRoute(ModalRoute
+          .of(context)!
+          .settings
+          .name!);
 
       _refreshPeerConfig();
       _hasPeerConfig = true;
       return Container();
+    }
+
+    if (_loadError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Peer settings')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_loadError!, style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('GO BACK'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return Scaffold(
