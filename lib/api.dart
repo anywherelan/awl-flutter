@@ -155,6 +155,12 @@ Future<KnownPeerConfig> fetchKnownPeerConfig(http.Client client, String peerID) 
 
   final response = await client.send(request);
   var responseBody = await response.stream.bytesToString();
+  if (response.statusCode != 200) {
+    final Map<String, dynamic> parsed = jsonDecode(responseBody);
+    throw Exception(ApiError
+        .fromJson(parsed)
+        .error);
+  }
 
   final Map<String, dynamic> parsed = jsonDecode(responseBody);
   return KnownPeerConfig.fromJson(parsed);

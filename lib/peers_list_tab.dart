@@ -188,9 +188,8 @@ class _PeersListPageState extends State<PeersListPage> {
               ),
               label: Text("SETTINGS"),
               onPressed: () async {
-                // TODO: пробрасывать peerID через путь, чтобы был абсолютный адрес
                 knownPeersDataService.unsubscribe(_onNewKnownPeers);
-                await Navigator.of(context).pushNamed(KnownPeerSettingsScreen.routeName, arguments: item.peerID);
+                await Navigator.of(context).pushNamed(KnownPeerSettingsScreen.routeFor(item.peerID));
                 knownPeersDataService.subscribe(_onNewKnownPeers);
               },
             ),

@@ -77,7 +77,6 @@ class MyApp extends StatelessWidget {
     final app = MaterialApp(
       title: 'Anywherelan',
       navigatorKey: notif.navigatorKey,
-//      onUnknownRoute:,
       theme: ThemeData(
         // Default fallback fonts
         // See bug https://github.com/flutter/flutter/issues/60069
@@ -96,11 +95,20 @@ class MyApp extends StatelessWidget {
         DebugScreen.routeName: (context) => DebugScreen(),
         LogsScreen.routeName: (context) => LogsScreen(),
         AppSettingsScreen.routeName: (context) => AppSettingsScreen(),
-        KnownPeerSettingsScreen.routeName: (context) => KnownPeerSettingsScreen(),
         BlockedPeersScreen.routeName: (context) => BlockedPeersScreen(),
       },
+      onGenerateRoute: (settings) {
+        final uri = Uri.parse(settings.name ?? '');
+        final segments = uri.pathSegments;
+        if (segments.length == 3 && segments[0] == 'peers' && segments[2] == 'settings') {
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (context) => KnownPeerSettingsScreen(),
+          );
+        }
+        return null;
+      },
 //      navigatorObservers: [],
-//      onGenerateRoute:,
     );
 
     if (kIsWeb) {
