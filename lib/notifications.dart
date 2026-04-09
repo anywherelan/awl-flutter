@@ -266,8 +266,8 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              ElevatedButton(
-                child: Text('DECLINE'),
+              TextButton(
+                child: Text('Decline'),
                 onPressed: () async {
                   if (!_formKey.currentState!.validate()) {
                     return;
@@ -275,8 +275,8 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
                   _sendRequest(true);
                 },
               ),
-              ElevatedButton(
-                child: Text('ACCEPT'),
+              FilledButton(
+                child: Text('Accept'),
                 onPressed: () async {
                   if (!_formKey.currentState!.validate()) {
                     return;

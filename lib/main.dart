@@ -81,13 +81,9 @@ class MyApp extends StatelessWidget {
         // Default fallback fonts
         // See bug https://github.com/flutter/flutter/issues/60069
         fontFamilyFallback: const ['Noto Color Emoji 2', 'Noto Sans SC 71'],
-        // TODO: redesign in Material 3
-        useMaterial3: false,
-        // colorSchemeSeed: Colors.green,
-        // brightness: Brightness.dark,
+        useMaterial3: true,
+        colorSchemeSeed: Color(0xFF1565C0),
         brightness: Brightness.light,
-        primarySwatch: Colors.green,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       initialRoute: HomeScreen.routeName,
       routes: {
@@ -215,13 +211,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(widget.title),
+            title: _buildAppBarTitle(),
             bottom: TabBar(
               controller: _tabController,
               isScrollable: false,
               tabs: [
-                Tab(text: 'STATUS'),
-                Tab(text: 'PEERS'),
+                Tab(text: 'Status'),
+                Tab(text: 'Peers'),
               ],
             ),
           ),
@@ -272,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       spaceBetweenItems = 20.0;
     }
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(title: _buildAppBarTitle()),
       drawer: hasScaffoldDrawer ? MyDrawer() : null,
       body: SafeArea(
         bottom: false,
@@ -286,35 +282,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               flex: 4,
               child: Column(
                 children: [
+                  _buildSectionTitle("Peers", trailing: FilledButton.tonalIcon(
+                    icon: Icon(Icons.add, size: 18),
+                    label: Text("Add peer"),
+                    onPressed: () => showAddPeerDialog(context),
+                  )),
                   Flexible(
-                    child: decorateAsCard(
-                      PeersListPage(),
-                      "Peers",
-                      expand: true,
-                      afterWidget: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              OutlinedButton.icon(
-                                icon: Icon(Icons.add, color: Colors.black87),
-                                label: Text("NEW PEER"),
-                                onPressed: () {
-                                  showAddPeerDialog(context);
-                                },
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 15),
-                        ],
-                      ),
-                    ),
+                    child: _buildCard(PeersListPage()),
                   ),
+                  SizedBox(height: 20),
                 ],
               ),
             ),
             SizedBox(width: spaceBetweenItems),
-            Flexible(flex: 3, child: decorateAsCard(StatusPage(), "This Device")),
+            Flexible(
+              flex: 3,
+              child: Column(
+                children: [
+                  _buildSectionTitle("This Device"),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: _buildCard(StatusPage()),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                ],
+              ),
+            ),
             SizedBox(width: spaceBetweenItems),
           ],
         ),
@@ -322,25 +316,50 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Container decorateAsCard(Widget child, String title, {bool expand = false, Widget? afterWidget}) {
-    return Container(
-      child: Column(
-        mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+  Widget _buildSectionTitle(String title, {Widget? trailing}) {
+    return Padding(
+      padding: EdgeInsets.only(left: 4, top: 20, bottom: 14, right: 4),
+      child: Row(
         children: [
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          SizedBox(height: 10),
-          expand ? Expanded(child: child) : child,
-          SizedBox(height: 15),
-          if (afterWidget != null) afterWidget,
+          Text(title, style: Theme
+              .of(context)
+              .textTheme
+              .titleLarge
+              ?.copyWith(
+            color: Theme
+                .of(context)
+                .colorScheme
+                .onSurface,
+          )),
+          Spacer(),
+          if (trailing != null) trailing,
         ],
       ),
+    );
+  }
+
+  Widget _buildAppBarTitle() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset('assets/icons/awl.png', width: 32, height: 32, filterQuality: FilterQuality.high),
+        SizedBox(width: 8),
+        Text(widget.title),
+      ],
+    );
+  }
+
+  Widget _buildCard(Widget child) {
+    return Container(
       padding: EdgeInsets.all(16),
-      margin: EdgeInsets.only(top: 20, bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.all(Radius.circular(10)),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.5), spreadRadius: 5, blurRadius: 7, offset: Offset(0, 3))],
+        color: Theme
+            .of(context)
+            .colorScheme
+            .surfaceContainerLowest,
+        borderRadius: BorderRadius.all(Radius.circular(16)),
       ),
+      child: child,
     );
   }
 }

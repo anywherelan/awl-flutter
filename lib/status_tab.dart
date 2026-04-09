@@ -65,125 +65,222 @@ class _StatusPageState extends State<StatusPage> {
           Future.delayed(Duration(seconds: 2), () => showSettingsDialog(context, _peerInfo, true));
         }
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Column(children: _buildInfo(context)),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton.icon(
-                  icon: Icon(Icons.qr_code, color: Colors.black87),
-                  label: Text("SHOW MY ID"),
-                  onPressed: () async {
-                    myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                    await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
-                    myPeerInfoDataService.subscribe(_onNewPeerInfo);
-                  },
-                ),
-                SizedBox(width: 14),
-                OutlinedButton.icon(
-                  icon: Icon(Icons.settings, color: Colors.black87),
-                  label: Text("SETTINGS"),
-                  onPressed: () async {
-                    myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                    await showSettingsDialog(context, _peerInfo, false);
-                    myPeerInfoDataService.subscribe(_onNewPeerInfo);
-                  },
-                ),
-              ],
-            ),
-          ],
+        return SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Device header
+              SizedBox(height: 4),
+              _buildDeviceHeader(context),
+              SizedBox(height: 12),
+              ..._buildSections(context),
+              SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FilledButton.tonalIcon(
+                    icon: Icon(Icons.qr_code, size: 18),
+                    label: Text("My ID"),
+                    onPressed: () async {
+                      myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
+                      await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
+                      myPeerInfoDataService.subscribe(_onNewPeerInfo);
+                    },
+                  ),
+                  SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    icon: Icon(Icons.settings, size: 18),
+                    label: Text("Settings"),
+                    onPressed: () async {
+                      myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
+                      await showSettingsDialog(context, _peerInfo, false);
+                      myPeerInfoDataService.subscribe(_onNewPeerInfo);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  List<Widget> _buildInfo(BuildContext context) {
-    var reachabilityText = "unknown";
-    var reachabilityColor = unknownColor;
+  Widget _buildDeviceHeader(BuildContext context) {
+    final colorScheme = Theme
+        .of(context)
+        .colorScheme;
+    return Row(
+      children: [
+        Icon(Icons.computer, size: 24, color: colorScheme.primary),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_peerInfo!.name.isNotEmpty ? _peerInfo!.name : 'This Device',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              Text('${_peerInfo!.serverVersion} · up ${formatDuration(_peerInfo!.uptime)}',
+                  style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    final colorScheme = Theme
+        .of(context)
+        .colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 16),
+        Text(title,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: colorScheme.onSurfaceVariant,
+            letterSpacing: 0.5,
+          ),
+        ),
+        Divider(height: 20, color: colorScheme.outlineVariant),
+      ],
+    );
+  }
+
+  Widget _buildStatusChip(String text, Color textColor, Color bgColor) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textColor)),
+    );
+  }
+
+  List<Widget> _buildSections(BuildContext context) {
+    var reachabilityText = "Unknown";
+    var reachabilityColor = unknownStatusColor(context);
     switch (_peerInfo!.reachability) {
       case "Public":
-        reachabilityText = "public address";
-        reachabilityColor = greenColor;
+        reachabilityText = "Public";
+        reachabilityColor = successColor;
         break;
       case "Private":
-        reachabilityText = "private address";
-        reachabilityColor = warnColor;
+        reachabilityText = "Private";
+        reachabilityColor = warningColor;
         break;
       default:
-        reachabilityText = "unknown";
+        reachabilityText = "Unknown";
     }
 
     String dnsText;
     Color dnsColor;
     if (_peerInfo!.isAwlDNSSetAsSystem && _peerInfo!.awlDNSAddress != "") {
-      dnsText = "working";
-      dnsColor = greenColor;
+      dnsText = "Working";
+      dnsColor = successColor;
     } else {
-      dnsText = "not working";
-      dnsColor = redColor;
+      dnsText = "Not working";
+      dnsColor = errorColor;
     }
 
     String socks5Text;
     Color socks5Color;
     if (_peerInfo!.socks5.listenerEnabled && _peerInfo!.socks5.listenAddress != "") {
-      socks5Text = "working";
-      socks5Color = greenColor;
+      socks5Text = "Working";
+      socks5Color = successColor;
     } else {
-      socks5Text = "not working";
-      socks5Color = redColor;
+      socks5Text = "Not working";
+      socks5Color = errorColor;
     }
 
     String bootstrapText = "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}";
     Color bootstrapColor;
     if (_peerInfo!.connectedBootstrapPeers == 0) {
-      bootstrapColor = redColor;
-    } else if (_peerInfo!.connectedBootstrapPeers <= _peerInfo!.totalBootstrapPeers * 0.8) {
-      bootstrapColor = warnColor;
+      bootstrapColor = errorColor;
+    } else if (_peerInfo!.connectedBootstrapPeers <= _peerInfo!.totalBootstrapPeers * 0.6) {
+      bootstrapColor = warningColor;
     } else {
-      bootstrapColor = greenColor;
+      bootstrapColor = successColor;
+    }
+
+    final colorScheme = Theme
+        .of(context)
+        .colorScheme;
+
+    // Map semantic colors to vivid chip color pairs (text, background)
+    (Color, Color) chipColors(Color semanticColor) {
+      if (semanticColor == successColor) {
+        return (const Color(0xFF0A5420), const Color(0xFFD4EDDA));
+      } else if (semanticColor == warningColor) {
+        return (const Color(0xFF7A5A00), const Color(0xFFFFF3CD));
+      } else if (semanticColor == errorColor) {
+        return (colorScheme.onErrorContainer, colorScheme.errorContainer);
+      }
+      return (colorScheme.onSecondaryContainer, colorScheme.secondaryContainer);
     }
 
     return [
-      // TODO: organize output in sections: general, vpn, proxy, etc
-      _buildBodyItemText(Icons.cloud_download_outlined, "Download rate ", _peerInfo!.networkStats.inAsString()),
-      _buildBodyItemText(Icons.cloud_upload_outlined, "Upload rate ", _peerInfo!.networkStats.outAsString()),
-      _buildBodyItemText(Icons.devices, "Bootstrap peers", bootstrapText, textColor: bootstrapColor),
-      _buildBodyItemText(Icons.dns_outlined, "DNS", dnsText, textColor: dnsColor),
+      // Network section
+      _buildSectionHeader('NETWORK'),
+      _buildBodyItemText(Icons.cloud_download_outlined, "Download", _peerInfo!.networkStats.inAsString()),
+      _buildBodyItemText(Icons.cloud_upload_outlined, "Upload", _peerInfo!.networkStats.outAsString()),
+      _buildBodyItemWidget(Icons.wifi_tethering, "Reachability",
+          _buildStatusChip(reachabilityText, chipColors(reachabilityColor).$1, chipColors(reachabilityColor).$2),
+          tooltip: "Whether this device can be reached directly. Public = direct connections, Private = connections go through relays"),
+      _buildBodyItemWidget(Icons.hub_outlined, "Bootstrap peers",
+          _buildStatusChip(bootstrapText, chipColors(bootstrapColor).$1, chipColors(bootstrapColor).$2),
+          tooltip: "Connected bootstrap nodes used for peer discovery, should be at least 1"),
 
-      _buildBodyItemText(Icons.router_outlined, "SOCKS5 Proxy", socks5Text, textColor: socks5Color),
+      // Services section
+      _buildSectionHeader('SERVICES'),
+      _buildBodyItemWidget(Icons.dns_outlined, "DNS", _buildStatusChip(dnsText, chipColors(dnsColor).$1, chipColors(dnsColor).$2),
+          tooltip: "AWL DNS resolver for .awl domain names"),
+      _buildBodyItemWidget(Icons.router_outlined, "SOCKS5 Proxy",
+          _buildStatusChip(socks5Text, chipColors(socks5Color).$1, chipColors(socks5Color).$2),
+          tooltip: "SOCKS5 proxy for routing traffic through a peer's network"),
       if (_peerInfo!.socks5.listenerEnabled)
-        _buildBodyItemText(Icons.router_outlined, "SOCKS5 Proxy address", "${_peerInfo!.socks5.listenAddress}"),
-      _buildProxySelectorWidget("SOCKS5 Proxy exit peer"),
-
-      _buildBodyItemText(Icons.my_location, "Reachability", reachabilityText, textColor: reachabilityColor),
-      _buildBodyItemText(Icons.access_time, "Uptime", formatDuration(_peerInfo!.uptime)),
-      _buildBodyItemText(Icons.label_outlined, "Server version ", _peerInfo!.serverVersion),
+        _buildBodyItemText(Icons.link, "Proxy address", "${_peerInfo!.socks5.listenAddress}"),
+      _buildProxySelectorWidget("Proxy exit peer"),
     ];
   }
 
-  Widget _buildBodyItemText(IconData icon, String label, String text, {Color? textColor}) {
-    return _buildBodyItemWidget(icon, label, SelectableText(text, style: TextStyle(color: textColor)));
+  Widget _buildBodyItemText(IconData icon, String label, String text, {Color? textColor, String? tooltip}) {
+    return _buildBodyItemWidget(icon, label, SelectableText(text, style: TextStyle(color: textColor)), tooltip: tooltip);
   }
 
-  Widget _buildBodyItemWidget(IconData icon, String label, Widget child) {
-    // Use a breakpoint to determine if the screen is wide.
+  Widget _buildBodyItemWidget(IconData icon, String label, Widget child, {String? tooltip}) {
     const double wideScreenBreakpoint = 800.0;
     final bool isWideScreen = MediaQuery
         .of(context)
         .size
         .width > wideScreenBreakpoint;
-    // On mobile (narrower screens), we use a larger padding to increase readability.
     final verticalPadding = isWideScreen ? 4.0 : 6.0;
+
+    Widget labelWidget = Text(label);
+    if (tooltip != null) {
+      labelWidget = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          SizedBox(width: 4),
+          Tooltip(message: tooltip, child: Icon(Icons.help_outline, size: 16, color: Theme
+              .of(context)
+              .colorScheme
+              .onSurfaceVariant)),
+        ],
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 0, vertical: verticalPadding),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(children: [Icon(icon), SizedBox(width: 10), Text(label), SizedBox(width: 35)]),
+          Row(children: [Icon(icon), SizedBox(width: 10), labelWidget, SizedBox(width: 30)]),
           Flexible(fit: FlexFit.loose, child: child),
         ],
       ),
@@ -191,6 +288,9 @@ class _StatusPageState extends State<StatusPage> {
   }
 
   Widget _buildProxySelectorWidget(String label) {
+    // Eagerly refresh available proxies so the dropdown is up-to-date
+    availableProxiesDataService.fetchData();
+
     var socks5UsingPeer = _peerInfo!.socks5.usingPeerName;
     if (socks5UsingPeer == "") {
       socks5UsingPeer = "None";
@@ -210,50 +310,67 @@ class _StatusPageState extends State<StatusPage> {
     }
 
     return _buildBodyItemWidget(
-      Icons.router_outlined,
+      Icons.exit_to_app,
       label,
-      DropdownButton<String>(
-        value: socks5UsingPeer,
-        alignment: AlignmentDirectional.centerEnd,
-        onChanged: (String? value) async {
-          var usingPeerName = value ?? "";
+      PopupMenuButton<String>(
+        tooltip: '',
+        initialValue: socks5UsingPeer,
+        onSelected: (String value) async {
+          var usingPeerName = value;
           var usingPeerID = "";
           if (usingPeerName == "None") {
             usingPeerID = "";
           } else {
             var proxiesData = availableProxiesDataService.getData();
-
             var found = proxiesData!.proxies.firstWhere((element) => element.peerName == usingPeerName);
             usingPeerID = found.peerID;
           }
 
           var response = await updateProxySettings(http.Client(), usingPeerID);
           if (response != "") {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text("Failed to update proxy settings: $response")));
-
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: Theme
+                  .of(context)
+                  .colorScheme
+                  .error,
+              content: Text("Failed to update proxy settings: $response"),
+            ));
             return;
           }
 
           var futures = <Future>[myPeerInfoDataService.fetchData(), availableProxiesDataService.fetchData()];
           await Future.wait(futures);
 
-          setState(() {
-            // to trigger rebuild after fetching
-          });
+          setState(() {});
         },
-        onTap: () {
-          availableProxiesDataService.fetchData();
-        },
-        items: socks5PeersList.map<DropdownMenuItem<String>>((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
-            alignment: AlignmentDirectional.centerEnd,
-          );
+        itemBuilder: (context) =>
+            socks5PeersList.map((String value) {
+              return PopupMenuItem<String>(value: value, child: Text(value));
         }).toList(),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Theme
+                .of(context)
+                .colorScheme
+                .outlineVariant),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 2),
+              Text(socks5UsingPeer, style: TextStyle(fontSize: 14)),
+              SizedBox(width: 6),
+              Icon(Icons.arrow_drop_down, size: 20, color: Theme
+                  .of(context)
+                  .colorScheme
+                  .onSurfaceVariant),
+            ],
+          ),
+        ),
       ),
+      tooltip: "Peer used as the exit point for SOCKS5 proxy traffic",
     );
   }
 }
@@ -300,7 +417,7 @@ class _SettingsFormState extends State<SettingsForm> {
       Navigator.pop(context);
       _serverError = "";
       _formKey.currentState!.validate();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text("Successfully saved")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Successfully saved")));
     } else {
       _serverError = response;
       _formKey.currentState!.validate();

@@ -57,145 +57,324 @@ class _PeersListPageState extends State<PeersListPage> {
         }
 
         if (_knownPeers == null || _knownPeers!.isEmpty) {
-          return ConstrainedBox(
-            constraints: const BoxConstraints.expand(height: 80),
-            child: Container(
-              margin: EdgeInsets.only(top: 10),
-              alignment: Alignment.topCenter,
-              child: Text(
-                "No known peers",
-                style: Theme
-                    .of(context)
-                    .textTheme
-                    .titleLarge,
-              ),
+          final colorScheme = Theme.of(context).colorScheme;
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lan_outlined, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                SizedBox(height: 12),
+                Text("No known peers", style: Theme.of(context).textTheme.titleMedium),
+                SizedBox(height: 4),
+                Text("Use Add peer to connect to someone",
+                  style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+              ],
             ),
           );
         }
 
-        var expansionList = ExpansionPanelList(
-          expandedHeaderPadding: EdgeInsets.only(top: 5, bottom: 5),
-          expansionCallback: (int index, bool isExpanded) {
-            setState(() {
-              var peer = _knownPeers![index];
-              _expandedState[peer.peerID] = isExpanded;
-            });
-          },
-          children: _knownPeers!.map<ExpansionPanel>((KnownPeer item) {
-            var isExpanded = _expandedState[item.peerID];
-            if (isExpanded == null) {
-              isExpanded = false;
-              _expandedState[item.peerID] = false;
-            }
-
-            return ExpansionPanel(
-              headerBuilder: (BuildContext context, bool isExpanded) {
-                return _buildRowTitle(context, item);
-              },
-              body: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 24, 24),
-                child: _buildExpansionPanelBody(item),
-              ),
-              isExpanded: isExpanded,
-              canTapOnHeader: true,
-            );
-          }).toList(),
-        );
+        // Peer count summary
+        final onlineCount = _knownPeers!.where((p) => p.connected && p.confirmed).length;
+        final totalCount = _knownPeers!.length;
 
         return SingleChildScrollView(
-          child: expansionList,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text('$totalCount peers · $onlineCount online',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              ..._knownPeers!.map((item) {
+                var isExpanded = _expandedState[item.peerID] ?? false;
+                return _buildPeerCard(item, isExpanded);
+              }),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildRowTitle(BuildContext context, KnownPeer peer) {
-    Text trailingText;
-    if (peer.declined) {
-      trailingText = Text("Rejected", style: TextStyle(color: redColor));
-    } else if (!peer.confirmed) {
-      trailingText = Text("Not accepted", style: TextStyle(color: unknownColor));
-    } else if (!peer.connected) {
-      trailingText = Text("Disconnected", style: TextStyle(color: redColor));
-    } else {
-      trailingText = Text("Connected", style: TextStyle(color: greenColor));
-    }
+  String _peerStatusText(KnownPeer peer) {
+    if (peer.declined) return "Rejected";
+    if (!peer.confirmed) return "Not accepted";
+    if (!peer.connected) return "Disconnected";
+    return "Connected";
+  }
 
+  Color _peerStatusColor(BuildContext context, KnownPeer peer) {
+    if (peer.declined) return errorColor;
+    if (!peer.confirmed) return unknownStatusColor(context);
+    if (!peer.connected) return errorColor;
+    return successColor;
+  }
+
+  Widget _buildPeerCard(KnownPeer peer, bool isExpanded) {
+    final colorScheme = Theme.of(context).colorScheme;
     var subtitle = peer.ipAddr;
     if (peer.domainName.isNotEmpty) {
       subtitle = peer.domainName + ".awl";
     }
+    // "last seen" as a separate line for disconnected confirmed peers
+    String? lastSeenText;
+    if (!peer.connected && peer.confirmed && peer.lastSeen.isAfter(zeroGoTime)) {
+      lastSeenText = "last seen ${formatDurationRough(peer.lastSeen.difference(DateTime.now()))} ago";
+    }
 
-    return ListTile(
-      title: Text(
-        peer.displayName,
-        style: Theme.of(context).textTheme.titleLarge,
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      elevation: 0,
+      color: colorScheme.surfaceContainerLowest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
       ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Text(subtitle),
-      ),
-      isThreeLine: false,
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          trailingText,
-        ],
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: _peerStatusColor(context, peer), width: 4)),
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _expandedState[peer.peerID] = !isExpanded;
+                });
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(peer.displayName, style: Theme.of(context).textTheme.titleMedium),
+                          SizedBox(height: 2),
+                          Text(subtitle, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+                          if (lastSeenText != null) ...[
+                            SizedBox(height: 1),
+                            Text(lastSeenText, style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7))),
+                          ],
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(_peerStatusText(peer), style: TextStyle(fontSize: 13, color: _peerStatusColor(context, peer))),
+                    SizedBox(width: 4),
+                    Icon(
+                      isExpanded ? Icons.expand_less : Icons.expand_more,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            AnimatedSize(
+              duration: Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: isExpanded
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: _buildExpansionPanelBody(peer),
+                  )
+                : SizedBox.shrink(),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildExpansionPanelBody(KnownPeer item) {
+    final isWide = MediaQuery.of(context).size.width > 850;
+
+    // Collect detail entries as (label, value) pairs
+    final details = <MapEntry<String, String>>[];
+
+    if (!item.connected && item.confirmed) {
+      details.add(MapEntry("LAST SEEN", "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"));
+    }
+    details.add(MapEntry("VPN ADDRESS", "${item.domainName}.awl | ${item.ipAddr}"));
+    // Connections handled separately for widget
+    details.add(MapEntry("EXIT NODE", formatExitNodeStatus(item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)));
+    if (item.ping.inMicroseconds != 0) {
+      details.add(MapEntry("PING", formatLatencyDuration(item.ping)));
+    }
+    if (item.networkStats.totalIn != 0) {
+      details.add(MapEntry("DOWNLOAD", item.networkStats.inAsString()));
+    }
+    if (item.networkStats.totalOut != 0) {
+      details.add(MapEntry("UPLOAD", item.networkStats.outAsString()));
+    }
+    if (item.version.isNotEmpty) {
+      details.add(MapEntry("VERSION", item.version));
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // Connection widget (needs special handling — not a simple string)
+    Widget? connectionWidget;
+    if (item.connections.isNotEmpty) {
+      connectionWidget = _buildGridCell("CONNECTION", _buildConnectionsWidget(item.connections), colorScheme);
+    }
+
+    Widget detailsWidget;
+    if (isWide) {
+      // 2-column grid on desktop
+      final cells = <Widget>[];
+      for (var entry in details) {
+        final color = entry.key == "EXIT NODE"
+            ? exitNodeStatusColor(context, item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)
+            : null;
+        cells.add(_buildGridCell(entry.key, SelectableText(entry.value, style: TextStyle(fontSize: 14, color: color)), colorScheme));
+      }
+      if (connectionWidget != null) {
+        // Insert connection after VPN ADDRESS (index 1, or 2 if last seen is present)
+        final insertIdx = (!item.connected && item.confirmed) ? 2 : 1;
+        cells.insert(insertIdx, connectionWidget);
+      }
+
+      detailsWidget = LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth;
+          if (availableWidth < 300) {
+            // Fall back to single column on very narrow panels
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: cells);
+          }
+          final cellWidth = (availableWidth - 16) / 2; // 2 columns with 16px gap
+          return Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: cells.map((c) => SizedBox(width: cellWidth, child: c)).toList(),
+          );
+        },
+      );
+    } else {
+      // Single column rows on mobile: label left, value right
+      final rows = <Widget>[];
+      for (var entry in details) {
+        final color = entry.key == "EXIT NODE"
+            ? exitNodeStatusColor(context, item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)
+            : null;
+        rows.add(_buildMobileRow(entry.key, SelectableText(entry.value, style: TextStyle(fontSize: 14, color: color))));
+      }
+      if (item.connections.isNotEmpty) {
+        final insertIdx = (!item.connected && item.confirmed) ? 2 : 1;
+        rows.insert(insertIdx, _buildMobileRow("CONNECTION", _buildConnectionsWidget(item.connections)));
+      }
+      detailsWidget = Column(children: rows);
+    }
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!item.connected && item.confirmed)
-          _buildBodyItem(Icons.visibility_outlined, "Last seen",
-              SelectableText("${formatDuration(item.lastSeen.difference(DateTime.now()))} ago")),
-        _buildBodyItem(Icons.computer_outlined, "VPN address", SelectableText("${item.domainName}.awl┃${item.ipAddr}")),
-        if (item.connections.isNotEmpty)
-          _buildBodyItem(Icons.place_outlined, "Connection", _buildConnectionsWidget(item.connections)),
-        _buildBodyItem(Icons.router_outlined, "Exit node",
-            SelectableText("We allow: ${formatBoolWithEmoji(item.weAllowUsingAsExitNode)}  Peer allowed us: ${formatBoolWithEmoji(
-                item.allowedUsingAsExitNode)}")),
-        if (item.networkStats.totalIn != 0)
-          _buildBodyItem(Icons.cloud_download_outlined, "Download rate", SelectableText(item.networkStats.inAsString())),
-        if (item.networkStats.totalOut != 0)
-          _buildBodyItem(Icons.cloud_upload_outlined, "Upload rate", SelectableText(item.networkStats.outAsString())),
-        if (item.ping.inMicroseconds != 0)
-          _buildBodyItem(Icons.speed_outlined, "Ping", SelectableText(formatLatencyDuration(item.ping))),
-        if (item.version.isNotEmpty) _buildBodyItem(Icons.label_outlined, "Version", SelectableText(item.version)),
-        SizedBox(height: 10),
+        Divider(height: 1, color: colorScheme.outlineVariant),
+        SizedBox(height: 12),
+        detailsWidget,
+        SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            OutlinedButton.icon(
-              icon: Icon(
-                Icons.qr_code,
-                color: Colors.black87,
-              ),
-              label: Text("SHOW ID"),
-              onPressed: () async {
-                knownPeersDataService.unsubscribe(_onNewKnownPeers);
-                await showQRDialog(context, item.peerID, item.displayName);
-                knownPeersDataService.subscribe(_onNewKnownPeers);
-              },
-            ),
-            SizedBox(width: 15),
-            OutlinedButton.icon(
-              icon: Icon(
-                Icons.settings,
-                color: Colors.black87,
-              ),
-              label: Text("SETTINGS"),
+            FilledButton.tonalIcon(
+              icon: Icon(Icons.settings),
+              label: Text("Settings"),
               onPressed: () async {
                 knownPeersDataService.unsubscribe(_onNewKnownPeers);
                 await Navigator.of(context).pushNamed(KnownPeerSettingsScreen.routeFor(item.peerID));
                 knownPeersDataService.subscribe(_onNewKnownPeers);
               },
             ),
+            SizedBox(width: 12),
+            OutlinedButton.icon(
+              icon: Icon(Icons.qr_code),
+              label: Text("Show ID"),
+              onPressed: () async {
+                knownPeersDataService.unsubscribe(_onNewKnownPeers);
+                await showQRDialog(context, item.peerID, item.displayName);
+                knownPeersDataService.subscribe(_onNewKnownPeers);
+              },
+            ),
           ],
         ),
       ],
+    );
+  }
+
+  static const _detailIcons = <String, IconData>{
+    'LAST SEEN': Icons.schedule,
+    'VPN ADDRESS': Icons.language,
+    'CONNECTION': Icons.sync_alt,
+    'EXIT NODE': Icons.vpn_key_outlined,
+    'PING': Icons.timer_outlined,
+    'DOWNLOAD': Icons.cloud_download_outlined,
+    'UPLOAD': Icons.cloud_upload_outlined,
+    'VERSION': Icons.info_outlined,
+  };
+
+  static const _detailLabels = <String, String>{
+    'LAST SEEN': 'Last seen',
+    'VPN ADDRESS': 'VPN address',
+    'CONNECTION': 'Connection',
+    'EXIT NODE': 'Exit node',
+    'PING': 'Ping',
+    'DOWNLOAD': 'Download',
+    'UPLOAD': 'Upload',
+    'VERSION': 'Version',
+  };
+
+  Widget _buildGridCell(String label, Widget value, ColorScheme colorScheme) {
+    final icon = _detailIcons[label];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
+              SizedBox(width: 4),
+            ],
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant, letterSpacing: 0.5)),
+          ],
+        ),
+        SizedBox(height: 4),
+        value,
+      ],
+    );
+  }
+
+  Widget _buildMobileRow(String label, Widget value) {
+    final displayLabel = _detailLabels[label] ?? label;
+    final icon = _detailIcons[label];
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
+                SizedBox(width: 6),
+              ],
+              Text(displayLabel, style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant)),
+            ],
+          ),
+          SizedBox(width: 16),
+          Flexible(fit: FlexFit.loose, child: value),
+        ],
+      ),
     );
   }
 
@@ -222,37 +401,6 @@ class _PeersListPageState extends State<PeersListPage> {
     );
   }
 
-  Widget _buildBodyItem(IconData icon, String label, Widget child) {
-    // Use a breakpoint to determine if the screen is wide.
-    const double wideScreenBreakpoint = 800.0;
-    final bool isWideScreen = MediaQuery
-        .of(context)
-        .size
-        .width > wideScreenBreakpoint;
-    // On mobile (narrower screens), we use a larger padding to increase readability.
-    final verticalPadding = isWideScreen ? 4.0 : 6.0;
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 0, vertical: verticalPadding),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(icon),
-              SizedBox(width: 10),
-              Text(label),
-              SizedBox(width: 35),
-            ],
-          ),
-          Flexible(
-            fit: FlexFit.loose,
-            child: child,
-          )
-        ],
-      ),
-    );
-  }
 }
 
 String formatLatencyDuration(Duration duration) {

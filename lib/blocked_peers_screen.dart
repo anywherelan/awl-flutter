@@ -82,14 +82,20 @@ class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
             SelectableText(
               "Peer ID ${peer.peerId}",
               style: TextStyle(
-                color: Colors.grey,
+                color: Theme
+                    .of(context)
+                    .colorScheme
+                    .onSurfaceVariant,
               ),
             ),
             SizedBox(height: 6.0),
             SelectableText(
               "Blocked on ${peer.createdAt.toString()}",
               style: TextStyle(
-                color: Colors.grey,
+                color: Theme
+                    .of(context)
+                    .colorScheme
+                    .onSurfaceVariant,
               ),
             ),
           ],

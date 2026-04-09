@@ -108,7 +108,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 var result = await _exportSettings();
                 if (result.message != "") {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    backgroundColor: result.success ? Colors.green : Colors.red,
+                    backgroundColor: result.success ? Theme
+                        .of(context)
+                        .colorScheme
+                        .primary : Theme
+                        .of(context)
+                        .colorScheme
+                        .error,
                     content: Text(result.message),
                   ));
                 }
@@ -129,7 +135,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   var result = await _importSettings();
                   if (result.message != "") {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      backgroundColor: result.success ? Colors.green : Colors.red,
+                      backgroundColor: result.success ? Theme
+                          .of(context)
+                          .colorScheme
+                          .primary : Theme
+                          .of(context)
+                          .colorScheme
+                          .error,
                       content: Text(result.message),
                     ));
                   }
@@ -147,12 +159,18 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   var status = await Permission.ignoreBatteryOptimizations.request();
                   if (status == PermissionStatus.granted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Theme
+                          .of(context)
+                          .colorScheme
+                          .primary,
                       content: Text("Permission granted"),
                     ));
                   } else if (status == PermissionStatus.denied) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      backgroundColor: Colors.red,
+                      backgroundColor: Theme
+                          .of(context)
+                          .colorScheme
+                          .error,
                       content: Text("Permission denied"),
                     ));
                   }

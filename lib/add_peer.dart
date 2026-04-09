@@ -152,18 +152,16 @@ class _AddPeerFormState extends State<AddPeerForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              ElevatedButton.icon(
-                icon: Icon(
-                  Icons.qr_code_scanner,
-                  color: Colors.black87,
-                ),
+              OutlinedButton.icon(
+                icon: Icon(Icons.qr_code_scanner),
                 label: Text('Scan QR'),
                 onPressed: () async {
                   _scanQR(context);
                 },
               ),
-              ElevatedButton(
-                child: Text('Invite peer'),
+              FilledButton.icon(
+                icon: Icon(Icons.send, size: 18),
+                label: Text('Invite peer'),
                 onPressed: () async {
                   _onPressInvite();
                 },
