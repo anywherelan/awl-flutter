@@ -203,7 +203,7 @@ class _PeersListPageState extends State<PeersListPage> {
     if (!item.connected && item.confirmed) {
       details.add(MapEntry("LAST SEEN", "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"));
     }
-    details.add(MapEntry("VPN ADDRESS", "${item.domainName}.awl | ${item.ipAddr}"));
+    details.add(MapEntry("VPN ADDRESS", "${item.domainName}.awl┃${item.ipAddr}"));
     // Connections handled separately for widget
     details.add(MapEntry("EXIT NODE", formatExitNodeStatus(item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)));
     if (item.ping.inMicroseconds != 0) {
