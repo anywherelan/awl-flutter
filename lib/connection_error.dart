@@ -12,7 +12,10 @@ Widget showDefaultServerConnectionError(BuildContext context) {
             var startResponse = await initServer();
 
             if (startResponse != "") {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(startResponse)));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Theme
+                  .of(context)
+                  .colorScheme
+                  .error, content: Text(startResponse)));
             } else {
               await fetchAllDataAfterStart();
             }
@@ -34,21 +37,27 @@ class ServerConnectionError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off, size: 75, color: Colors.grey),
+            Icon(Icons.cloud_off, size: 75, color: Theme
+                .of(context)
+                .colorScheme
+                .onSurfaceVariant),
             const SizedBox(height: 16),
             const Text('Connection lost', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Unable to reach the server. '
               'Please make sure the server is running and try again.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: Theme
+                  .of(context)
+                  .colorScheme
+                  .onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             Wrap(
               spacing: 12,
               children: [
-                if (onRetry != null) ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+                if (onRetry != null) FilledButton(onPressed: onRetry, child: const Text('Retry')),
                 if (onStartServer != null) OutlinedButton(onPressed: onStartServer, child: const Text('Start Server')),
               ],
             ),

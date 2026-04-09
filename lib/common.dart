@@ -3,10 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
-const redColor = Color.fromRGBO(214, 37, 69, 1);
-const warnColor = Color.fromRGBO(231, 163, 45, 1);
-const greenColor = Color.fromRGBO(82, 189, 44, 1);
-const unknownColor = Color.fromRGBO(136, 77, 185, 1);
+// Semantic status colors — fixed regardless of brand/theme seed
+const errorColor = Color(0xFFBA1A1A);
+const successColor = Color(0xFF1B6D2F);
+const warningColor = Color(0xFFB8860B);
+
+Color unknownStatusColor(BuildContext context) =>
+    Theme
+        .of(context)
+        .colorScheme
+        .secondary;
 
 Future<void> showQRDialog(BuildContext context, String peerID, String peerName) async {
   await showDialog(
@@ -24,14 +30,8 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
                   fit: FlexFit.loose,
                   child: SelectableText(peerID),
                 ),
-                RawMaterialButton(
-                  elevation: 0.0,
-                  child: Icon(Icons.content_copy),
-                  constraints: BoxConstraints.tightFor(
-                    width: 40.0,
-                    height: 50.0,
-                  ),
-                  shape: CircleBorder(),
+                IconButton(
+                  icon: Icon(Icons.content_copy),
                   onPressed: () {
                     var data = ClipboardData(text: peerID);
                     Clipboard.setData(data);
@@ -40,14 +40,8 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
                     ));
                   },
                 ),
-                RawMaterialButton(
-                  elevation: 0.0,
-                  child: Icon(Icons.share),
-                  constraints: BoxConstraints.tightFor(
-                    width: 40.0,
-                    height: 50.0,
-                  ),
-                  shape: CircleBorder(),
+                IconButton(
+                  icon: Icon(Icons.share),
                   onPressed: () {
                     SharePlus.instance.share(
                       ShareParams(text: peerID),
@@ -76,7 +70,7 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
                 child: TextButton(
                   child: Text(
-                    "CLOSE",
+                    "Close",
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   onPressed: () {
@@ -93,6 +87,13 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
 }
 
 final zeroGoTime = DateTime.fromMicrosecondsSinceEpoch(-62135596800000000, isUtc: true);
+
+String formatDurationRough(Duration duration) {
+  if (duration.inDays.abs() >= 1) {
+    return '${duration.inDays.abs()}d';
+  }
+  return formatDuration(duration);
+}
 
 String formatDuration(Duration duration) {
   if (duration.inMicroseconds == 0) {
@@ -156,9 +157,17 @@ String byteCountIEC(int b) {
   return "${format(val)} ${"KMGTPE"[exp]}iB";
 }
 
-String formatBoolWithEmoji(bool val) {
-  if (val) {
-    return "✅";
-  }
-  return "❌";
+String formatExitNodeStatus(bool weAllow, bool peerAllows) {
+  if (weAllow && peerAllows) return "Mutual";
+  if (weAllow) return "We allow";
+  if (peerAllows) return "Peer allows me";
+  return "None";
+}
+
+Color exitNodeStatusColor(BuildContext context, bool weAllow, bool peerAllows) {
+  if (weAllow && peerAllows) return successColor;
+  return Theme
+      .of(context)
+      .colorScheme
+      .onSurfaceVariant;
 }

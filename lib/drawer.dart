@@ -22,19 +22,9 @@ class MyDrawer extends StatefulWidget {
 class _MyDrawerState extends State<MyDrawer> {
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     var listView = Column(
       children: [
-        if (widget.isRetractable) ...[
-          ListTile(
-            title: Text(
-              "Anywherelan",
-              style: textTheme.headlineSmall,
-            ),
-          ),
-          const Divider(),
-        ],
+        if (widget.isRetractable) const SizedBox(height: 16),
         if (!kIsWeb)
           ListTile(
             title: Text(
@@ -44,7 +34,7 @@ class _MyDrawerState extends State<MyDrawer> {
             leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
             onTap: () async {
               var message = "";
-              var color = Colors.green;
+              var isError = false;
               if (isServerRunning()) {
                 await stopServer();
                 message = "Server stopped";
@@ -56,12 +46,18 @@ class _MyDrawerState extends State<MyDrawer> {
                   fetchAllDataAfterStart();
                 } else {
                   message = "Failed to start server: $startResponse";
-                  color = Colors.red;
+                  isError = true;
                 }
               }
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                backgroundColor: color,
+                backgroundColor: isError ? Theme
+                    .of(context)
+                    .colorScheme
+                    .error : Theme
+                    .of(context)
+                    .colorScheme
+                    .primary,
                 content: Text(message),
               ));
             },
@@ -82,12 +78,18 @@ class _MyDrawerState extends State<MyDrawer> {
               if (startResponse == "") {
                 fetchAllDataAfterStart();
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  backgroundColor: Colors.green,
+                  backgroundColor: Theme
+                      .of(context)
+                      .colorScheme
+                      .primary,
                   content: Text("Server restarted"),
                 ));
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  backgroundColor: Colors.red,
+                  backgroundColor: Theme
+                      .of(context)
+                      .colorScheme
+                      .error,
                   content: Text("Failed to start server: $startResponse"),
                 ));
               }
@@ -132,12 +134,11 @@ class _MyDrawerState extends State<MyDrawer> {
             Navigator.of(context).pushNamed(LogsScreen.routeName);
           },
         ),
-        // TODO update text
         AboutListTile(
           icon: Icon(Icons.info),
-          applicationIcon: Image.asset('assets/icons/awl.png', width: 24, height: 24),
+          applicationIcon: Image.asset('assets/icons/awl.png', width: 48, height: 48, filterQuality: FilterQuality.high),
           applicationName: 'Anywherelan',
-          applicationVersion: 'February 2026',
+          applicationVersion: 'April 2026',
           applicationLegalese: '© 2026 The Anywherelan Authors',
           aboutBoxChildren: _buildAboutBox(),
         ),
@@ -175,7 +176,6 @@ class _MyDrawerState extends State<MyDrawer> {
                   if (await canLaunchUrlString(url)) await launchUrlString(url);
                 },
             ),
-            TextSpan(style: textStyle, text: '.'),
           ],
         ),
       ),
