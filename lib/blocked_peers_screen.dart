@@ -6,19 +6,17 @@ import 'package:http/http.dart' as http;
 class BlockedPeersScreen extends StatefulWidget {
   static String routeName = "/blocked_peers";
 
-  BlockedPeersScreen({Key? key}) : super(key: key);
+  const BlockedPeersScreen({super.key});
 
   @override
-  _BlockedPeersScreenState createState() => _BlockedPeersScreenState();
+  State<BlockedPeersScreen> createState() => _BlockedPeersScreenState();
 }
 
 class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Blocked peers'),
-      ),
+      appBar: AppBar(title: const Text('Blocked peers')),
       body: SafeArea(
         child: FutureBuilder<List<BlockedPeer>>(
           future: fetchBlockedPeers(http.Client()),
@@ -42,24 +40,15 @@ class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
                   ),
                   SizedBox(height: 10),
                   Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      children: peersWidgets,
-                    ),
+                    child: ListView(padding: EdgeInsets.fromLTRB(16, 0, 16, 16), children: peersWidgets),
                   ),
                 ],
               );
             } else if (snapshot.hasError) {
-              return Padding(
-                padding: const EdgeInsets.all(15.0),
-                child: Text('Error: ${snapshot.error}'),
-              );
+              return Padding(padding: const EdgeInsets.all(15.0), child: Text('Error: ${snapshot.error}'));
             }
 
-            return Padding(
-              padding: const EdgeInsets.all(15),
-              child: const CircularProgressIndicator(),
-            );
+            return Padding(padding: const EdgeInsets.all(15), child: const CircularProgressIndicator());
           },
         ),
       ),
@@ -74,29 +63,16 @@ class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            SelectableText(
-              peer.displayName,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            SelectableText(peer.displayName, style: Theme.of(context).textTheme.titleLarge),
             SizedBox(height: 10.0),
             SelectableText(
               "Peer ID ${peer.peerId}",
-              style: TextStyle(
-                color: Theme
-                    .of(context)
-                    .colorScheme
-                    .onSurfaceVariant,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             SizedBox(height: 6.0),
             SelectableText(
               "Blocked on ${peer.createdAt.toString()}",
-              style: TextStyle(
-                color: Theme
-                    .of(context)
-                    .colorScheme
-                    .onSurfaceVariant,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),

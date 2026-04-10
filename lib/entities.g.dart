@@ -1,5 +1,7 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
+// dart format off
+
 part of 'entities.dart';
 
 // **************************************************************************
@@ -135,15 +137,17 @@ Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) =>
       'IpAddr': instance.ipAddr,
     };
 
-ListAvailableProxiesResponse _$ListAvailableProxiesResponseFromJson(Map<String, dynamic> json,) =>
-    ListAvailableProxiesResponse(
-      (json['Proxies'] as List<dynamic>)
-          .map((e) => AvailableProxy.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
+ListAvailableProxiesResponse _$ListAvailableProxiesResponseFromJson(
+  Map<String, dynamic> json,
+) => ListAvailableProxiesResponse(
+  (json['Proxies'] as List<dynamic>)
+      .map((e) => AvailableProxy.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
 
-Map<String, dynamic> _$ListAvailableProxiesResponseToJson(ListAvailableProxiesResponse instance,) =>
-    <String, dynamic>{'Proxies': instance.proxies};
+Map<String, dynamic> _$ListAvailableProxiesResponseToJson(
+  ListAvailableProxiesResponse instance,
+) => <String, dynamic>{'Proxies': instance.proxies};
 
 AvailableProxy _$AvailableProxyFromJson(Map<String, dynamic> json) =>
     AvailableProxy(json['PeerID'] as String, json['PeerName'] as String);
@@ -174,12 +178,11 @@ Map<String, dynamic> _$ApiErrorToJson(ApiError instance) => <String, dynamic>{
   'error': instance.error,
 };
 
-AuthRequest _$AuthRequestFromJson(Map<String, dynamic> json) =>
-    AuthRequest(
-      json['PeerID'] as String,
-      json['Name'] as String,
-      json['SuggestedIP'] as String,
-    );
+AuthRequest _$AuthRequestFromJson(Map<String, dynamic> json) => AuthRequest(
+  json['PeerID'] as String,
+  json['Name'] as String,
+  json['SuggestedIP'] as String,
+);
 
 Map<String, dynamic> _$AuthRequestToJson(AuthRequest instance) =>
     <String, dynamic>{
@@ -214,23 +217,25 @@ Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) =>
       'weAllowUsingAsExitNode': instance.weAllowUsingAsExitNode,
     };
 
-UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(Map<String, dynamic> json,) =>
-    UpdateKnownPeerConfigRequest(
-      json['PeerID'] as String,
-      json['Alias'] as String,
-      json['DomainName'] as String,
-      json['IpAddr'] as String,
-      json['AllowUsingAsExitNode'] as bool,
-    );
+UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(
+  Map<String, dynamic> json,
+) => UpdateKnownPeerConfigRequest(
+  json['PeerID'] as String,
+  json['Alias'] as String,
+  json['DomainName'] as String,
+  json['IpAddr'] as String,
+  json['AllowUsingAsExitNode'] as bool,
+);
 
-Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(UpdateKnownPeerConfigRequest instance,) =>
-    <String, dynamic>{
-      'PeerID': instance.peerID,
-      'Alias': instance.alias,
-      'DomainName': instance.domainName,
-      'IpAddr': instance.ipAddr,
-      'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
-    };
+Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(
+  UpdateKnownPeerConfigRequest instance,
+) => <String, dynamic>{
+  'PeerID': instance.peerID,
+  'Alias': instance.alias,
+  'DomainName': instance.domainName,
+  'IpAddr': instance.ipAddr,
+  'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
+};
 
 BlockedPeer _$BlockedPeerFromJson(Map<String, dynamic> json) => BlockedPeer(
   json['peerId'] as String,

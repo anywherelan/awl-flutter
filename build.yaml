@@ -1,0 +1,4 @@
+global_options:
+  source_gen|combining_builder:
+    options:
+      preamble: "// dart format off"

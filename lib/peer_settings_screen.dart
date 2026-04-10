@@ -7,55 +7,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+/// Adapter for [PeerSettingsView] that loads the peer config from the
+/// backend and wires save/remove callbacks. The pure presentation logic
+/// lives in [PeerSettingsView].
 class KnownPeerSettingsScreen extends StatefulWidget {
   static String routeFor(String peerId) => '/peers/$peerId/settings';
 
   static String peerIdFromRoute(String route) {
-    final segments = Uri
-        .parse(route)
-        .pathSegments;
+    final segments = Uri.parse(route).pathSegments;
     // segments: ['peers', peer_id, 'settings']
     return segments[1];
   }
 
-  KnownPeerSettingsScreen({Key? key}) : super(key: key);
+  const KnownPeerSettingsScreen({super.key});
 
   @override
-  _KnownPeerSettingsScreenState createState() => _KnownPeerSettingsScreenState();
+  State<KnownPeerSettingsScreen> createState() => _KnownPeerSettingsScreenState();
 }
 
 class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
-  late TextEditingController _aliasTextController;
-  late TextEditingController _domainNameTextController;
-  late TextEditingController _ipAddrTextController;
-  late bool _weAllowUsingAsExitNode;
-
-  bool _hasPeerConfig = false;
+  bool _hasFetchedConfig = false;
   String? _loadError;
   late String _peerID;
-  late KnownPeerConfig _peerConfig;
-  late String _peerDisplayName;
-
-  final _generalFormKey = GlobalKey<FormState>();
+  KnownPeerConfig? _peerConfig;
 
   void _refreshPeerConfig() async {
     try {
       var peerConfig = await fetchKnownPeerConfig(http.Client(), _peerID);
-      if (!this.mounted) {
+      if (!mounted) {
         return;
       }
-
-      _aliasTextController = TextEditingController(text: peerConfig.alias);
-      _domainNameTextController = TextEditingController(text: peerConfig.domainName);
-      _ipAddrTextController = TextEditingController(text: peerConfig.ipAddr);
-      _weAllowUsingAsExitNode = peerConfig.weAllowUsingAsExitNode;
-
       setState(() {
         _peerConfig = peerConfig;
-        _peerDisplayName = _peerConfig.alias != "" ? _peerConfig.alias : _peerConfig.name;
       });
     } catch (e) {
-      if (!this.mounted) {
+      if (!mounted) {
         return;
       }
       setState(() {
@@ -64,25 +50,25 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
     }
   }
 
-  Future<String> _sendNewPeerConfig() async {
-    var payload = UpdateKnownPeerConfigRequest(
-        _peerConfig.peerId, _aliasTextController.text, _domainNameTextController.text, _ipAddrTextController.text,
-        _weAllowUsingAsExitNode);
+  Future<String> _onSave(UpdateKnownPeerConfigRequest payload) {
+    return updateKnownPeerConfig(http.Client(), payload);
+  }
 
-    var response = await updateKnownPeerConfig(http.Client(), payload);
+  Future<String> _onRemove() async {
+    final response = await removePeer(http.Client(), _peerID);
+    if (response == "") {
+      knownPeersDataService.fetchData();
+    }
     return response;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_hasPeerConfig) {
-      _peerID = KnownPeerSettingsScreen.peerIdFromRoute(ModalRoute
-          .of(context)!
-          .settings
-          .name!);
+    if (!_hasFetchedConfig) {
+      _peerID = KnownPeerSettingsScreen.peerIdFromRoute(ModalRoute.of(context)!.settings.name!);
 
       _refreshPeerConfig();
-      _hasPeerConfig = true;
+      _hasFetchedConfig = true;
       return Container();
     }
 
@@ -93,39 +79,90 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_loadError!, style: TextStyle(color: Theme
-                  .of(context)
-                  .colorScheme
-                  .error)),
+              Text(_loadError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
               const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Go back'),
-              ),
+              FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Go back')),
             ],
           ),
         ),
       );
     }
 
-    final colorScheme = Theme
-        .of(context)
-        .colorScheme;
+    if (_peerConfig == null) {
+      return Container();
+    }
+
+    return PeerSettingsView(peerConfig: _peerConfig!, onSave: _onSave, onRemove: _onRemove);
+  }
+}
+
+/// Pure presentation widget for the peer settings screen. Receives the
+/// loaded [KnownPeerConfig] plus save/remove callbacks via constructor.
+/// Tests target this widget directly with fixture data.
+class PeerSettingsView extends StatefulWidget {
+  final KnownPeerConfig peerConfig;
+  final Future<String> Function(UpdateKnownPeerConfigRequest)? onSave;
+  final Future<String> Function()? onRemove;
+
+  const PeerSettingsView({super.key, required this.peerConfig, this.onSave, this.onRemove});
+
+  @override
+  State<PeerSettingsView> createState() => _PeerSettingsViewState();
+}
+
+class _PeerSettingsViewState extends State<PeerSettingsView> {
+  late TextEditingController _aliasTextController;
+  late TextEditingController _domainNameTextController;
+  late TextEditingController _ipAddrTextController;
+  late bool _weAllowUsingAsExitNode;
+  late String _peerDisplayName;
+
+  final _generalFormKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    final cfg = widget.peerConfig;
+    _aliasTextController = TextEditingController(text: cfg.alias);
+    _domainNameTextController = TextEditingController(text: cfg.domainName);
+    _ipAddrTextController = TextEditingController(text: cfg.ipAddr);
+    _weAllowUsingAsExitNode = cfg.weAllowUsingAsExitNode;
+    _peerDisplayName = cfg.alias != "" ? cfg.alias : cfg.name;
+  }
+
+  @override
+  void dispose() {
+    _aliasTextController.dispose();
+    _domainNameTextController.dispose();
+    _ipAddrTextController.dispose();
+    super.dispose();
+  }
+
+  Future<String> _sendNewPeerConfig() async {
+    var payload = UpdateKnownPeerConfigRequest(
+      widget.peerConfig.peerId,
+      _aliasTextController.text,
+      _domainNameTextController.text,
+      _ipAddrTextController.text,
+      _weAllowUsingAsExitNode,
+    );
+
+    if (widget.onSave == null) return "";
+    return widget.onSave!(payload);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Peer settings'),
-      ),
+      appBar: AppBar(title: const Text('Peer settings')),
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 560),
           child: ListView(
             padding: EdgeInsets.all(16.0),
-            children: [
-              _buildGeneralForm(),
-              SizedBox(height: 40),
-              _buildDangerZone(colorScheme),
-            ],
+            children: [_buildGeneralForm(), SizedBox(height: 40), _buildDangerZone(colorScheme)],
           ),
         ),
       ),
@@ -137,10 +174,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () => Navigator.pop(context),
-            ),
+            TextButton(child: Text('Cancel'), onPressed: () => Navigator.pop(context)),
             SizedBox(width: 12),
             FilledButton(
               child: Text('Save changes'),
@@ -149,15 +183,13 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
                   return;
                 }
                 var result = await _sendNewPeerConfig();
+                if (!context.mounted) return;
                 if (result == "") {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text("Successfully saved"),
-                  ));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Successfully saved")));
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    backgroundColor: colorScheme.error,
-                    content: Text(result),
-                  ));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(backgroundColor: colorScheme.error, content: Text(result)));
                 }
               },
             ),
@@ -173,10 +205,15 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Theme
-              .of(context)
-              .colorScheme
-              .onSurfaceVariant, letterSpacing: 0.5)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              letterSpacing: 0.5,
+            ),
+          ),
           SizedBox(height: 8),
           Divider(height: 1),
         ],
@@ -198,7 +235,10 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
             children: [
               Icon(Icons.warning, size: 18, color: colorScheme.error),
               SizedBox(width: 8),
-              Text('Danger zone', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colorScheme.error)),
+              Text(
+                'Danger zone',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colorScheme.error),
+              ),
             ],
           ),
           SizedBox(height: 8),
@@ -233,7 +273,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           Padding(
             padding: EdgeInsets.only(bottom: 16),
             child: TextFormField(
-              initialValue: _peerConfig.name,
+              initialValue: widget.peerConfig.name,
               readOnly: true,
               decoration: InputDecoration(
                 labelText: 'Name',
@@ -246,20 +286,23 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           Padding(
             padding: EdgeInsets.only(bottom: 16),
             child: TextFormField(
-              initialValue: _peerConfig.peerId,
+              initialValue: widget.peerConfig.peerId,
               readOnly: true,
               style: TextStyle(fontSize: 13),
               decoration: InputDecoration(
                 labelText: 'Peer ID',
-                helperText: 'Unique identifier used to connect to this peer. Also serves as a cryptographic public key for end-to-end encryption.',
+                helperText:
+                    'Unique identifier used to connect to this peer. Also serves as a cryptographic public key for end-to-end encryption.',
                 helperMaxLines: 3,
                 filled: false,
                 suffixIcon: IconButton(
                   icon: Icon(Icons.content_copy),
                   tooltip: 'Copy Peer ID',
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: _peerConfig.peerId));
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Peer ID copied to clipboard")));
+                    Clipboard.setData(ClipboardData(text: widget.peerConfig.peerId));
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("Peer ID copied to clipboard")));
                   },
                 ),
               ),
@@ -327,34 +370,28 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
           _buildSectionTitle('PERMISSIONS'),
           Row(
             children: [
-              Icon(Icons.vpn_key, color: Theme
-                  .of(context)
-                  .colorScheme
-                  .onSurfaceVariant),
+              Icon(Icons.vpn_key, color: Theme.of(context).colorScheme.onSurfaceVariant),
               SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Allow as exit node', style: TextStyle(fontSize: 16)),
-                    Text('Allow this peer to route traffic through your network',
-                        style: TextStyle(fontSize: 13, color: Theme
-                            .of(context)
-                            .colorScheme
-                            .onSurfaceVariant)),
+                    Text(
+                      'Allow this peer to route traffic through your network',
+                      style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
                   ],
                 ),
               ),
               Tooltip(
                 triggerMode: TooltipTriggerMode.tap,
-                message: 'This allows peer to pass their traffic through your network via SOCKS5 proxy, for instance peer will have access to your local WiFi network',
+                message:
+                    'This allows peer to pass their traffic through your network via SOCKS5 proxy, for instance peer will have access to your local WiFi network',
                 child: IconButton(
                   icon: Icon(Icons.info_outline, size: 20),
                   onPressed: null,
-                  color: Theme
-                      .of(context)
-                      .colorScheme
-                      .onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               Switch(
@@ -380,23 +417,14 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
         title: const Text('Remove Peer'),
         content: Text('Are you sure you want to remove peer "$_peerDisplayName"?'),
         actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
             style: FilledButton.styleFrom(
-              backgroundColor: Theme
-                  .of(context)
-                  .colorScheme
-                  .error,
-              foregroundColor: Theme
-                  .of(context)
-                  .colorScheme
-                  .onError,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
+            child: const Text('Remove'),
           ),
         ],
       ),
@@ -406,19 +434,19 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
       return;
     }
 
-    var response = await removePeer(http.Client(), _peerID);
+    if (widget.onRemove == null) return;
+    var response = await widget.onRemove!();
+    if (!context.mounted) return;
     if (response != "") {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: Theme
-            .of(context)
-            .colorScheme
-            .error,
-        content: Text("Failed to remove peer: $response"),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).colorScheme.error,
+          content: Text("Failed to remove peer: $response"),
+        ),
+      );
       return;
     }
 
-    knownPeersDataService.fetchData();
     Navigator.pop(context);
   }
 }

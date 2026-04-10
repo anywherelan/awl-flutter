@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:anywherelan/api.dart';
@@ -52,7 +53,7 @@ class NotificationsService {
           ?.requestNotificationsPermission();
     }
 
-    _timer = new Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
+    _timer = Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
   }
 
   void close() async {
@@ -61,12 +62,12 @@ class NotificationsService {
 
   void setTimerIntervalShort() async {
     _timer?.cancel();
-    _timer = new Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
+    _timer = Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
   }
 
   void setTimerIntervalLong() async {
     _timer?.cancel();
-    _timer = new Timer.periodic(_timerIntervalLong, (Timer t) => _checkForNotifications());
+    _timer = Timer.periodic(_timerIntervalLong, (Timer t) => _checkForNotifications());
   }
 
   void _checkForNotifications() async {
@@ -92,11 +93,18 @@ class NotificationsService {
 
   Future<void> _showMobileNotification(AuthRequest req) async {
     var notificationId = generateNotificationId(req.peerID);
-    print("$notificationId  ${req.name}");
+    developer.log(
+      'Showing auth request notification $notificationId for ${req.name}',
+      name: 'NotificationsService',
+    );
 
     await _notificationsPlugin.show(
-        notificationId, 'Incoming friend request', 'from ${req.name} with peerId ${req.peerID}', _notificationDetails,
-        payload: req.peerID);
+      notificationId,
+      'Incoming friend request',
+      'from ${req.name} with peerId ${req.peerID}',
+      _notificationDetails,
+      payload: req.peerID,
+    );
   }
 
   Future<void> _showOverlayNotification(AuthRequest req) async {
@@ -107,20 +115,19 @@ class NotificationsService {
           child: ListTile(
             leading: SizedBox.fromSize(
               size: const Size(40, 40),
-              child: ClipOval(
-                child: Icon(Icons.devices),
-              ),
+              child: ClipOval(child: Icon(Icons.devices)),
             ),
             title: Text('Incoming friend request'),
             subtitle: req.name == ""
                 ? Text("from PeerID ${req.peerID}")
                 : Text("from '${req.name}' with peerId ${req.peerID}"),
             trailing: IconButton(
-                icon: Icon(Icons.add),
-                onPressed: () {
-                  OverlaySupportEntry.of(context)!.dismiss();
-                  _showAuthRequestDialog(req);
-                }),
+              icon: Icon(Icons.add),
+              onPressed: () {
+                OverlaySupportEntry.of(context)!.dismiss();
+                _showAuthRequestDialog(req);
+              },
+            ),
             onTap: () {
               OverlaySupportEntry.of(context)!.dismiss();
               _showAuthRequestDialog(req);
@@ -136,7 +143,10 @@ class NotificationsService {
       return;
     }
     final payload = notificationResponse.payload!;
-    var authReq = _lastRequests.firstWhere((obj) => obj.peerID == payload, orElse: () => AuthRequest(payload, "", ""));
+    var authReq = _lastRequests.firstWhere(
+      (obj) => obj.peerID == payload,
+      orElse: () => AuthRequest(payload, "", ""),
+    );
     _showAuthRequestDialog(authReq);
   }
 }
@@ -147,13 +157,12 @@ Future _showAuthRequestDialog(AuthRequest req) async {
     context: navigatorKey.currentContext!,
     builder: (context) {
       return SimpleDialog(
-        title: req.name != "" ? Text("Incoming friend request from '${req.name}'") : Text("Incoming friend request"),
+        title: req.name != ""
+            ? Text("Incoming friend request from '${req.name}'")
+            : Text("Incoming friend request"),
         children: [
           Center(
-            child: SizedBox(
-              width: 450,
-              child: IncomingAuthRequestForm(request: req),
-            ),
+            child: SizedBox(width: 450, child: IncomingAuthRequestForm(request: req)),
           ),
         ],
       );
@@ -164,10 +173,10 @@ Future _showAuthRequestDialog(AuthRequest req) async {
 class IncomingAuthRequestForm extends StatefulWidget {
   final AuthRequest request;
 
-  IncomingAuthRequestForm({Key? key, required this.request}) : super(key: key);
+  const IncomingAuthRequestForm({super.key, required this.request});
 
   @override
-  _IncomingAuthRequestFormState createState() => _IncomingAuthRequestFormState();
+  State<IncomingAuthRequestForm> createState() => _IncomingAuthRequestFormState();
 }
 
 class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
@@ -179,9 +188,14 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
   String? _serverError = "";
 
   void _sendRequest(bool decline) async {
-    var response =
-    await replyFriendRequest(
-        http.Client(), _peerIdTextController.text, _aliasTextController.text, decline, _ipAddrTextController.text);
+    var response = await replyFriendRequest(
+      http.Client(),
+      _peerIdTextController.text,
+      _aliasTextController.text,
+      decline,
+      _ipAddrTextController.text,
+    );
+    if (!mounted) return;
     if (response == "") {
       Navigator.pop(context);
       _serverError = "";
@@ -260,7 +274,8 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-                "If you decline the invitation, it will no longer be shown. You can still add the peer yourself later if you want."),
+              "If you decline the invitation, it will no longer be shown. You can still add the peer yourself later if you want.",
+            ),
           ),
           SizedBox(height: 10),
           Row(
@@ -285,7 +300,7 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
                 },
               ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -293,14 +308,14 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
 }
 
 int generateNotificationId(String id) {
-  var content = new Utf8Encoder().convert(id);
+  var content = Utf8Encoder().convert(id);
   var md5 = crypto.md5;
   var digest = md5.convert(content);
 
   // TODO: try
-//  return getCrc32(digest.bytes);
+  //  return getCrc32(digest.bytes);
 
-  var bdata = new ByteData(4);
+  var bdata = ByteData(4);
   bdata.setUint8(0, digest.bytes[0]);
   bdata.setUint8(1, digest.bytes[1]);
   bdata.setUint8(2, digest.bytes[2]);
@@ -309,4 +324,4 @@ int generateNotificationId(String id) {
   return bdata.getInt32(0);
 }
 
-final GlobalKey<NavigatorState> navigatorKey = new GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

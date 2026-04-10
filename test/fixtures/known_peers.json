@@ -1,0 +1,42 @@
+[
+    {
+        "PeerID": "12D3KooWJMUjt9b5T1umzgzjLv5yG2ViuuF4qjmN65tsRXZGS1p8",
+        "Name": "awl-tester",
+        "DisplayName": "awl-tester",
+        "Alias": "awl-tester",
+        "Version": "v0.15.0",
+        "IpAddr": "10.66.0.2",
+        "DomainName": "awl-tester",
+        "Connected": true,
+        "Confirmed": true,
+        "Declined": false,
+        "WeAllowUsingAsExitNode": false,
+        "AllowedUsingAsExitNode": true,
+        "LastSeen": "2026-04-10T08:24:50.522115354+03:00",
+        "Connections": [
+            {
+                "Multiaddr": "/ip4/194.104.136.241/udp/4363/quic-v1",
+                "ThroughRelay": false,
+                "RelayPeerID": "",
+                "Address": "194.104.136.241:4363",
+                "Protocol": "quic",
+                "Direction": "outbound",
+                "Opened": "2026-04-10T08:24:49.949154291+03:00",
+                "Transient": false
+            }
+        ],
+        "NetworkStats": {
+            "TotalIn": 11838,
+            "TotalOut": 2356,
+            "RateIn": 84.8030222335251,
+            "RateOut": 83.53078921392873
+        },
+        "NetworkStatsInIECUnits": {
+            "TotalIn": "11.56 KiB",
+            "TotalOut": "2.3 KiB",
+            "RateIn": "84.8 B/s",
+            "RateOut": "83.53 B/s"
+        },
+        "Ping": 473433159
+    }
+]

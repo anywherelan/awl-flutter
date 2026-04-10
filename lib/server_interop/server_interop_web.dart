@@ -1,14 +1,16 @@
-import 'dart:html';
+// This file is only imported on the web target via conditional imports in
+// `server_interop.dart`.
 
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/server_interop/config.dart' as conf;
 import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:web/web.dart' as web;
 
 Future<String> initAppImpl() async {
   if (kDebugMode) {
     serverAddress = conf.getServerAddress();
   } else {
-    serverAddress = window.location.origin;
+    serverAddress = web.window.location.origin;
   }
   return "";
 }

@@ -13,10 +13,10 @@ import 'package:url_launcher/url_launcher_string.dart';
 class MyDrawer extends StatefulWidget {
   final bool isRetractable;
 
-  MyDrawer({Key? key, this.isRetractable = true}) : super(key: key);
+  const MyDrawer({super.key, this.isRetractable = true});
 
   @override
-  _MyDrawerState createState() => _MyDrawerState();
+  State<MyDrawer> createState() => _MyDrawerState();
 }
 
 class _MyDrawerState extends State<MyDrawer> {
@@ -27,9 +27,7 @@ class _MyDrawerState extends State<MyDrawer> {
         if (widget.isRetractable) const SizedBox(height: 16),
         if (!kIsWeb)
           ListTile(
-            title: Text(
-              isServerRunning() ? "Stop" : "Start",
-            ),
+            title: Text(isServerRunning() ? "Stop" : "Start"),
             enabled: true,
             leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
             onTap: () async {
@@ -49,24 +47,21 @@ class _MyDrawerState extends State<MyDrawer> {
                   isError = true;
                 }
               }
+              if (!context.mounted) return;
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                backgroundColor: isError ? Theme
-                    .of(context)
-                    .colorScheme
-                    .error : Theme
-                    .of(context)
-                    .colorScheme
-                    .primary,
-                content: Text(message),
-              ));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: isError
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).colorScheme.primary,
+                  content: Text(message),
+                ),
+              );
             },
           ),
         if (!kIsWeb && isServerRunning())
           ListTile(
-            title: Text(
-              "Restart",
-            ),
+            title: Text("Restart"),
             enabled: true,
             leading: const Icon(Icons.refresh),
             onTap: () async {
@@ -74,24 +69,23 @@ class _MyDrawerState extends State<MyDrawer> {
                 await stopServer();
               }
               var startResponse = await initServer();
+              if (!context.mounted) return;
               Navigator.of(context).pop();
               if (startResponse == "") {
                 fetchAllDataAfterStart();
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  backgroundColor: Theme
-                      .of(context)
-                      .colorScheme
-                      .primary,
-                  content: Text("Server restarted"),
-                ));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    content: Text("Server restarted"),
+                  ),
+                );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  backgroundColor: Theme
-                      .of(context)
-                      .colorScheme
-                      .error,
-                  content: Text("Failed to start server: $startResponse"),
-                ));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    content: Text("Failed to start server: $startResponse"),
+                  ),
+                );
               }
             },
           ),
@@ -104,9 +98,7 @@ class _MyDrawerState extends State<MyDrawer> {
           },
         ),
         ListTile(
-          title: Text(
-            "Settings",
-          ),
+          title: Text("Settings"),
           enabled: true,
           leading: const Icon(Icons.settings),
           onTap: () {
@@ -114,9 +106,7 @@ class _MyDrawerState extends State<MyDrawer> {
           },
         ),
         ListTile(
-          title: Text(
-            "Debug info",
-          ),
+          title: Text("Debug info"),
           enabled: kIsWeb || isServerRunning(),
           leading: const Icon(Icons.developer_mode),
           onTap: () {
@@ -124,9 +114,7 @@ class _MyDrawerState extends State<MyDrawer> {
           },
         ),
         ListTile(
-          title: Text(
-            "Server logs",
-          ),
+          title: Text("Server logs"),
           enabled: kIsWeb || isServerRunning(),
           selected: false,
           leading: const Icon(Icons.insert_drive_file),
@@ -136,7 +124,12 @@ class _MyDrawerState extends State<MyDrawer> {
         ),
         AboutListTile(
           icon: Icon(Icons.info),
-          applicationIcon: Image.asset('assets/icons/awl.png', width: 48, height: 48, filterQuality: FilterQuality.high),
+          applicationIcon: Image.asset(
+            'assets/icons/awl.png',
+            width: 48,
+            height: 48,
+            filterQuality: FilterQuality.high,
+          ),
           applicationName: 'Anywherelan',
           applicationVersion: 'April 2026',
           applicationLegalese: '© 2026 The Anywherelan Authors',
@@ -146,16 +139,11 @@ class _MyDrawerState extends State<MyDrawer> {
     );
 
     if (widget.isRetractable) {
-      return Drawer(
-          child: SafeArea(
-        child: listView,
-      ));
+      return Drawer(child: SafeArea(child: listView));
     } else {
       return ConstrainedBox(
         constraints: const BoxConstraints.expand(width: 250),
-        child: Drawer(
-          child: listView,
-        ),
+        child: Drawer(child: listView),
       );
     }
   }
@@ -186,18 +174,18 @@ class _MyDrawerState extends State<MyDrawer> {
 class DebugScreen extends StatefulWidget {
   static String routeName = "/debug";
 
-  DebugScreen({Key? key}) : super(key: key);
+  const DebugScreen({super.key});
 
   @override
-  _DebugScreenState createState() => _DebugScreenState();
+  State<DebugScreen> createState() => _DebugScreenState();
 }
 
 class _DebugScreenState extends State<DebugScreen> {
-  late Map<String, dynamic> _debugInfo = Map();
+  late Map<String, dynamic> _debugInfo = {};
 
   void _refreshDebugInfo() async {
     var debugInfo = await fetchDebugInfo(http.Client());
-    if (!this.mounted) {
+    if (!mounted) {
       return;
     }
     setState(() {
@@ -230,9 +218,7 @@ class _DebugScreenState extends State<DebugScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: JsonViewerWidget(_debugInfo, openOnStart: true),
-          ),
+          child: SingleChildScrollView(child: JsonViewerWidget(_debugInfo, openOnStart: true)),
         ),
       ),
     );
@@ -242,19 +228,19 @@ class _DebugScreenState extends State<DebugScreen> {
 class LogsScreen extends StatefulWidget {
   static String routeName = "/logs";
 
-  LogsScreen({Key? key}) : super(key: key);
+  const LogsScreen({super.key});
 
   @override
-  _LogsScreenState createState() => _LogsScreenState();
+  State<LogsScreen> createState() => _LogsScreenState();
 }
 
 class _LogsScreenState extends State<LogsScreen> {
   String _logsText = "";
-  ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
   bool _needScroll = true;
 
-  _scrollToEnd() async {
-    if (_needScroll && _logsText.length > 0) {
+  Future<void> _scrollToEnd() async {
+    if (_needScroll && _logsText.isNotEmpty) {
       _needScroll = false;
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     }
@@ -262,7 +248,7 @@ class _LogsScreenState extends State<LogsScreen> {
 
   void _refreshLogsText() async {
     var logs = await fetchLogs(http.Client());
-    if (!this.mounted) {
+    if (!mounted) {
       return;
     }
     setState(() {
@@ -317,12 +303,7 @@ class _LogsScreenState extends State<LogsScreen> {
         right: false,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            child: SelectableText(
-              _logsText,
-            ),
-          ),
+          child: SingleChildScrollView(controller: _scrollController, child: SelectableText(_logsText)),
         ),
       ),
     );

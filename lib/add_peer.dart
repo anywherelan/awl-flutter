@@ -13,22 +13,17 @@ void showAddPeerDialog(BuildContext context) {
     builder: (context) {
       return SimpleDialog(
         title: Text("Add new peer"),
-        children: [
-          Center(
-            child: SizedBox(
-              width: 450,
-              child: AddPeerForm(),
-            ),
-          ),
-        ],
+        children: [Center(child: SizedBox(width: 450, child: AddPeerForm()))],
       );
     },
   );
 }
 
 class AddPeerForm extends StatefulWidget {
+  const AddPeerForm({super.key});
+
   @override
-  _AddPeerFormState createState() => _AddPeerFormState();
+  State<AddPeerForm> createState() => _AddPeerFormState();
 }
 
 class _AddPeerFormState extends State<AddPeerForm> {
@@ -46,7 +41,12 @@ class _AddPeerFormState extends State<AddPeerForm> {
     }
 
     var response = await sendFriendRequest(
-        http.Client(), _peerIdTextController.text, _aliasTextController.text, _ipAddrTextController.text);
+      http.Client(),
+      _peerIdTextController.text,
+      _aliasTextController.text,
+      _ipAddrTextController.text,
+    );
+    if (!mounted) return;
     if (response == "") {
       // "Invitation was sent"
       _serverError = "";
@@ -70,8 +70,11 @@ class _AddPeerFormState extends State<AddPeerForm> {
     } else {
       return;
     }
+    if (!context.mounted) return;
 
-    var res = await Navigator.of(context).push<Barcode>(MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
+    var res = await Navigator.of(
+      context,
+    ).push<Barcode>(MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
     if (res == null || res.displayValue == null || res.displayValue == '') {
       return;
     }
@@ -167,7 +170,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
                 },
               ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -202,11 +205,7 @@ class _QRScanPageState extends State<QRScanPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('PeerID QR Scanner')),
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          MobileScanner(onDetect: _handleBarcode),
-        ],
-      ),
+      body: Stack(children: [MobileScanner(onDetect: _handleBarcode)]),
     );
   }
 }

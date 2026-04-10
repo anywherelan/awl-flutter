@@ -1,0 +1,35 @@
+{
+    "PeerID": "12D3KooWPxx4CkH2AL45tzKUR2g6Ht55g82eFuSMevAximtCQfwR",
+    "Name": "myawesomelaptop",
+    "Uptime": 9190163479,
+    "ServerVersion": "dev",
+    "NetworkStats": {
+        "TotalIn": 147875,
+        "TotalOut": 132478,
+        "RateIn": 249.0595598488663,
+        "RateOut": 14488.997670933866
+    },
+    "NetworkStatsInIECUnits": {
+        "TotalIn": "144.41 KiB",
+        "TotalOut": "129.37 KiB",
+        "RateIn": "249.06 B/s",
+        "RateOut": "14.15 KiB/s"
+    },
+    "TotalBootstrapPeers": 5,
+    "ConnectedBootstrapPeers": 4,
+    "Reachability": "Unknown",
+    "AwlDNSAddress": "127.0.0.66:53",
+    "IsAwlDNSSetAsSystem": true,
+    "VPN": {
+        "VPNInterfaceEnabled": true,
+        "InterfaceName": "awl0",
+        "IPNet": "10.66.0.1/24"
+    },
+    "SOCKS5": {
+        "ListenAddress": "127.0.0.66:8080",
+        "ProxyingEnabled": true,
+        "ListenerEnabled": true,
+        "UsingPeerID": "12D3KooWJMUjt9b5T1umzgzjLv5yG2ViuuF4qjmN65tsRXZGS1p8",
+        "UsingPeerName": "awl-tester"
+    }
+}
