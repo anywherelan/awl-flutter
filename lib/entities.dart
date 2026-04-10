@@ -57,6 +57,7 @@ class ConnectionInfo {
 
   Map<String, dynamic> toJson() => _$ConnectionInfoToJson(this);
 
+  @override
   String toString() {
     if (throughRelay) {
       return "through public relay";

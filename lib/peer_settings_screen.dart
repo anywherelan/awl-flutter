@@ -19,10 +19,10 @@ class KnownPeerSettingsScreen extends StatefulWidget {
     return segments[1];
   }
 
-  KnownPeerSettingsScreen({Key? key}) : super(key: key);
+  const KnownPeerSettingsScreen({super.key});
 
   @override
-  _KnownPeerSettingsScreenState createState() => _KnownPeerSettingsScreenState();
+  State<KnownPeerSettingsScreen> createState() => _KnownPeerSettingsScreenState();
 }
 
 class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
@@ -34,14 +34,14 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   void _refreshPeerConfig() async {
     try {
       var peerConfig = await fetchKnownPeerConfig(http.Client(), _peerID);
-      if (!this.mounted) {
+      if (!mounted) {
         return;
       }
       setState(() {
         _peerConfig = peerConfig;
       });
     } catch (e) {
-      if (!this.mounted) {
+      if (!mounted) {
         return;
       }
       setState(() {
@@ -104,7 +104,7 @@ class PeerSettingsView extends StatefulWidget {
   final Future<String> Function(UpdateKnownPeerConfigRequest)? onSave;
   final Future<String> Function()? onRemove;
 
-  const PeerSettingsView({Key? key, required this.peerConfig, this.onSave, this.onRemove}) : super(key: key);
+  const PeerSettingsView({super.key, required this.peerConfig, this.onSave, this.onRemove});
 
   @override
   State<PeerSettingsView> createState() => _PeerSettingsViewState();
@@ -183,7 +183,7 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
                   return;
                 }
                 var result = await _sendNewPeerConfig();
-                if (!mounted) return;
+                if (!context.mounted) return;
                 if (result == "") {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Successfully saved")));
                 } else {
@@ -420,11 +420,11 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
+            child: const Text('Remove'),
           ),
         ],
       ),
@@ -436,7 +436,7 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
 
     if (widget.onRemove == null) return;
     var response = await widget.onRemove!();
-    if (!mounted) return;
+    if (!context.mounted) return;
     if (response != "") {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

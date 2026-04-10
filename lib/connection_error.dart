@@ -12,6 +12,7 @@ Widget showDefaultServerConnectionError(BuildContext context) {
             var startResponse = await initServer();
 
             if (startResponse != "") {
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(backgroundColor: Theme.of(context).colorScheme.error, content: Text(startResponse)),
               );

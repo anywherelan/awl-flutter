@@ -11,17 +11,17 @@ import 'connection_error.dart';
 /// [PeersListView] so it can be tested without that global. This adapter will
 /// go away when ServerDataService is replaced.
 class PeersListPage extends StatefulWidget {
-  PeersListPage({Key? key}) : super(key: key);
+  const PeersListPage({super.key});
 
   @override
-  _PeersListPageState createState() => _PeersListPageState();
+  State<PeersListPage> createState() => _PeersListPageState();
 }
 
 class _PeersListPageState extends State<PeersListPage> {
   List<KnownPeer>? _knownPeers;
 
   void _onNewKnownPeers(List<KnownPeer>? newPeers) async {
-    if (!this.mounted) {
+    if (!mounted) {
       return;
     }
     setState(() {
@@ -78,14 +78,14 @@ class PeersListView extends StatefulWidget {
   final Future<void> Function(KnownPeer)? onPeerSettings;
   final Future<void> Function(KnownPeer)? onShowQR;
 
-  const PeersListView({Key? key, required this.peers, this.onPeerSettings, this.onShowQR}) : super(key: key);
+  const PeersListView({super.key, required this.peers, this.onPeerSettings, this.onShowQR});
 
   @override
   State<PeersListView> createState() => _PeersListViewState();
 }
 
 class _PeersListViewState extends State<PeersListView> {
-  final Map<String?, bool> _expandedState = Map();
+  final Map<String?, bool> _expandedState = {};
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +156,7 @@ class _PeersListViewState extends State<PeersListView> {
     final colorScheme = Theme.of(context).colorScheme;
     var subtitle = peer.ipAddr;
     if (peer.domainName.isNotEmpty) {
-      subtitle = peer.domainName + ".awl";
+      subtitle = "${peer.domainName}.awl";
     }
     // "last seen" as a separate line for disconnected confirmed peers
     String? lastSeenText;

@@ -6,10 +6,10 @@ import 'package:http/http.dart' as http;
 class BlockedPeersScreen extends StatefulWidget {
   static String routeName = "/blocked_peers";
 
-  BlockedPeersScreen({Key? key}) : super(key: key);
+  const BlockedPeersScreen({super.key});
 
   @override
-  _BlockedPeersScreenState createState() => _BlockedPeersScreenState();
+  State<BlockedPeersScreen> createState() => _BlockedPeersScreenState();
 }
 
 class _BlockedPeersScreenState extends State<BlockedPeersScreen> {

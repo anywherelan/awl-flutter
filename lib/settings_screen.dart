@@ -15,10 +15,10 @@ import 'package:permission_handler/permission_handler.dart';
 class AppSettingsScreen extends StatefulWidget {
   static String routeName = "/settings";
 
-  AppSettingsScreen({Key? key}) : super(key: key);
+  const AppSettingsScreen({super.key});
 
   @override
-  _AppSettingsScreenState createState() => _AppSettingsScreenState();
+  State<AppSettingsScreen> createState() => _AppSettingsScreenState();
 }
 
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
@@ -118,6 +118,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               leading: const Icon(Icons.import_export),
               onTap: () async {
                 var result = await _exportSettings();
+                if (!context.mounted) return;
                 if (result.message != "") {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -142,6 +143,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 leading: const Icon(Icons.import_export),
                 onTap: () async {
                   var result = await _importSettings();
+                  if (!context.mounted) return;
                   if (result.message != "") {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -162,6 +164,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 leading: const Icon(Icons.adb),
                 onTap: () async {
                   var status = await Permission.ignoreBatteryOptimizations.request();
+                  if (!context.mounted) return;
                   if (status == PermissionStatus.granted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

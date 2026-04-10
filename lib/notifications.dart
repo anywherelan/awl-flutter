@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:anywherelan/api.dart';
@@ -52,7 +53,7 @@ class NotificationsService {
           ?.requestNotificationsPermission();
     }
 
-    _timer = new Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
+    _timer = Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
   }
 
   void close() async {
@@ -61,12 +62,12 @@ class NotificationsService {
 
   void setTimerIntervalShort() async {
     _timer?.cancel();
-    _timer = new Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
+    _timer = Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
   }
 
   void setTimerIntervalLong() async {
     _timer?.cancel();
-    _timer = new Timer.periodic(_timerIntervalLong, (Timer t) => _checkForNotifications());
+    _timer = Timer.periodic(_timerIntervalLong, (Timer t) => _checkForNotifications());
   }
 
   void _checkForNotifications() async {
@@ -92,7 +93,10 @@ class NotificationsService {
 
   Future<void> _showMobileNotification(AuthRequest req) async {
     var notificationId = generateNotificationId(req.peerID);
-    print("$notificationId  ${req.name}");
+    developer.log(
+      'Showing auth request notification $notificationId for ${req.name}',
+      name: 'NotificationsService',
+    );
 
     await _notificationsPlugin.show(
       notificationId,
@@ -169,10 +173,10 @@ Future _showAuthRequestDialog(AuthRequest req) async {
 class IncomingAuthRequestForm extends StatefulWidget {
   final AuthRequest request;
 
-  IncomingAuthRequestForm({Key? key, required this.request}) : super(key: key);
+  const IncomingAuthRequestForm({super.key, required this.request});
 
   @override
-  _IncomingAuthRequestFormState createState() => _IncomingAuthRequestFormState();
+  State<IncomingAuthRequestForm> createState() => _IncomingAuthRequestFormState();
 }
 
 class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
@@ -191,6 +195,7 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
       decline,
       _ipAddrTextController.text,
     );
+    if (!mounted) return;
     if (response == "") {
       Navigator.pop(context);
       _serverError = "";
@@ -303,14 +308,14 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
 }
 
 int generateNotificationId(String id) {
-  var content = new Utf8Encoder().convert(id);
+  var content = Utf8Encoder().convert(id);
   var md5 = crypto.md5;
   var digest = md5.convert(content);
 
   // TODO: try
   //  return getCrc32(digest.bytes);
 
-  var bdata = new ByteData(4);
+  var bdata = ByteData(4);
   bdata.setUint8(0, digest.bytes[0]);
   bdata.setUint8(1, digest.bytes[1]);
   bdata.setUint8(2, digest.bytes[2]);
@@ -319,4 +324,4 @@ int generateNotificationId(String id) {
   return bdata.getInt32(0);
 }
 
-final GlobalKey<NavigatorState> navigatorKey = new GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

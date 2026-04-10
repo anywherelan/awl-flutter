@@ -16,7 +16,7 @@ class ServerDataService<T> {
   Future<T> Function() fetchDataFunc;
 
   T? _data;
-  List<void Function(T)> _subscribers = [];
+  final List<void Function(T)> _subscribers = [];
 
   ServerDataService(this.fetchDataFunc);
 
@@ -30,7 +30,7 @@ class ServerDataService<T> {
   void _updateTimer() {
     if (_timer == null && _enabled && _subscribers.isNotEmpty) {
       fetchData();
-      _timer = new Timer.periodic(_timerDuration, _timerCallback);
+      _timer = Timer.periodic(_timerDuration, _timerCallback);
     }
   }
 
@@ -54,9 +54,9 @@ class ServerDataService<T> {
       _data = newData;
       isServerAvailable.value = true;
 
-      _subscribers.forEach((f) {
+      for (var f in _subscribers) {
         f(newData);
-      });
+      }
     } catch (e, s) {
       isServerAvailable.value = false;
       log('Failed to fetch data', error: e, stackTrace: s, name: 'ServerDataService');

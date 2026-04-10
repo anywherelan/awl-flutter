@@ -14,10 +14,10 @@ import 'package:http/http.dart' as http;
 /// without those globals. This adapter will go away when ServerDataService
 /// is replaced.
 class StatusPage extends StatefulWidget {
-  StatusPage({Key? key}) : super(key: key);
+  const StatusPage({super.key});
 
   @override
-  _StatusPageState createState() => _StatusPageState();
+  State<StatusPage> createState() => _StatusPageState();
 }
 
 class _StatusPageState extends State<StatusPage> {
@@ -26,7 +26,7 @@ class _StatusPageState extends State<StatusPage> {
   bool _openedSetupDialog = false;
 
   void _onNewPeerInfo(MyPeerInfo newPeerInfo) async {
-    if (!this.mounted) {
+    if (!mounted) {
       return;
     }
 
@@ -36,7 +36,7 @@ class _StatusPageState extends State<StatusPage> {
   }
 
   void _onNewProxies(ListAvailableProxiesResponse? newProxies) async {
-    if (!this.mounted) {
+    if (!mounted) {
       return;
     }
     setState(() {
@@ -126,13 +126,13 @@ class StatusPageView extends StatefulWidget {
   final Future<void> Function()? onShowSettings;
 
   const StatusPageView({
-    Key? key,
+    super.key,
     required this.peerInfo,
     this.proxiesData,
     this.onUpdateProxy,
     this.onShowQR,
     this.onShowSettings,
-  }) : super(key: key);
+  });
 
   @override
   State<StatusPageView> createState() => _StatusPageViewState();
@@ -332,7 +332,7 @@ class _StatusPageViewState extends State<StatusPageView> {
         tooltip: "SOCKS5 proxy for routing traffic through a peer's network",
       ),
       if (_peerInfo.socks5.listenerEnabled)
-        _buildBodyItemText(Icons.link, "Proxy address", "${_peerInfo.socks5.listenAddress}"),
+        _buildBodyItemText(Icons.link, "Proxy address", _peerInfo.socks5.listenAddress),
       _buildProxySelectorWidget("Proxy exit peer"),
     ];
   }
@@ -471,10 +471,10 @@ Future<void> showSettingsDialog(BuildContext context, MyPeerInfo? peerInfo, bool
 class SettingsForm extends StatefulWidget {
   final MyPeerInfo? peerInfo;
 
-  SettingsForm({Key? key, this.peerInfo}) : super(key: key);
+  const SettingsForm({super.key, this.peerInfo});
 
   @override
-  _SettingsFormState createState() => _SettingsFormState();
+  State<SettingsForm> createState() => _SettingsFormState();
 }
 
 class _SettingsFormState extends State<SettingsForm> {
@@ -489,6 +489,7 @@ class _SettingsFormState extends State<SettingsForm> {
     }
 
     var response = await updateMySettings(http.Client(), _peerNameTextController!.text);
+    if (!mounted) return;
     if (response == "") {
       Navigator.pop(context);
       _serverError = "";

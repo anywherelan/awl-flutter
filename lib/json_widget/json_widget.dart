@@ -7,10 +7,10 @@ class JsonViewerWidget extends StatefulWidget {
   final bool? notRoot;
   final bool openOnStart;
 
-  JsonViewerWidget(this.jsonObj, {this.notRoot, required this.openOnStart});
+  const JsonViewerWidget(this.jsonObj, {super.key, this.notRoot, required this.openOnStart});
 
   @override
-  JsonViewerWidgetState createState() => new JsonViewerWidgetState();
+  JsonViewerWidgetState createState() => JsonViewerWidgetState();
 }
 
 class JsonViewerWidgetState extends State<JsonViewerWidget> {
@@ -28,7 +28,7 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: _getList());
   }
 
-  _getList() {
+  List<Widget> _getList() {
     List<Widget> list = [];
     for (MapEntry entry in widget.jsonObj.entries) {
       bool ex = isExtensible(entry.value);
@@ -36,8 +36,8 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
       bool? open = openFlag[entry.key];
       if (widget.openOnStart && (open == null) && ex) {
         open = true;
-      } else if (open == null) {
-        open = false;
+      } else {
+        open ??= false;
       }
       openFlag[entry.key] = open;
 
@@ -87,7 +87,7 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
     return list;
   }
 
-  static getContentWidget(dynamic content, bool openOnStart) {
+  static StatefulWidget getContentWidget(dynamic content, bool openOnStart) {
     if (content is List) {
       return JsonArrayViewerWidget(content, notRoot: true, openOnStart: openOnStart);
     } else {
@@ -95,7 +95,7 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
     }
   }
 
-  static isInkWell(dynamic content) {
+  static bool isInkWell(dynamic content) {
     if (content == null) {
       return false;
     } else if (content is int) {
@@ -116,7 +116,7 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
     return true;
   }
 
-  getValueWidget(MapEntry entry) {
+  Widget getValueWidget(MapEntry entry) {
     if (entry.value == null) {
       return Expanded(
         child: SelectableText('undefined', style: TextStyle(color: Colors.grey)),
@@ -127,7 +127,7 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
       );
     } else if (entry.value is String) {
       return Expanded(
-        child: SelectableText('\"' + entry.value + '\"', style: TextStyle(color: Colors.redAccent)),
+        child: SelectableText('"${entry.value}"', style: TextStyle(color: Colors.redAccent)),
       );
     } else if (entry.value is bool) {
       return Expanded(
@@ -164,7 +164,7 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
     );
   }
 
-  static isExtensible(dynamic content) {
+  static bool isExtensible(dynamic content) {
     if (content == null) {
       return false;
     } else if (content is int) {
@@ -179,7 +179,7 @@ class JsonViewerWidgetState extends State<JsonViewerWidget> {
     return true;
   }
 
-  static getTypeName(dynamic content) {
+  static String getTypeName(dynamic content) {
     if (content is int) {
       return 'int';
     } else if (content is String) {
@@ -200,10 +200,10 @@ class JsonArrayViewerWidget extends StatefulWidget {
   final bool? notRoot;
   final bool openOnStart;
 
-  JsonArrayViewerWidget(this.jsonArray, {this.notRoot, required this.openOnStart});
+  const JsonArrayViewerWidget(this.jsonArray, {super.key, this.notRoot, required this.openOnStart});
 
   @override
-  _JsonArrayViewerWidgetState createState() => new _JsonArrayViewerWidgetState();
+  State<JsonArrayViewerWidget> createState() => _JsonArrayViewerWidgetState();
 }
 
 class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
@@ -226,7 +226,7 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
     openFlag = List.filled(widget.jsonArray.length, null, growable: false);
   }
 
-  _getList() {
+  List<Widget> _getList() {
     List<Widget> list = [];
     int i = 0;
     for (dynamic content in widget.jsonArray) {
@@ -235,8 +235,8 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
       bool? open = openFlag[i];
       if (widget.openOnStart && (open == null) && ex) {
         open = true;
-      } else if (open == null) {
-        open = false;
+      } else {
+        open ??= false;
       }
       openFlag[i] = open;
       var currentIndex = i;
@@ -278,7 +278,7 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
     return list;
   }
 
-  getInkWell(int index) {
+  InkWell getInkWell(int index) {
     return InkWell(
       child: SelectableText('[$index]', style: TextStyle(color: Colors.purple[900])),
       onTap: () {
@@ -289,7 +289,7 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
     );
   }
 
-  getValueWidget(dynamic content, int index) {
+  Widget getValueWidget(dynamic content, int index) {
     if (content == null) {
       return Expanded(
         child: SelectableText('undefined', style: TextStyle(color: Colors.grey)),
@@ -300,7 +300,7 @@ class _JsonArrayViewerWidgetState extends State<JsonArrayViewerWidget> {
       );
     } else if (content is String) {
       return Expanded(
-        child: SelectableText('\"' + content + '\"', style: TextStyle(color: Colors.redAccent)),
+        child: SelectableText('"$content"', style: TextStyle(color: Colors.redAccent)),
       );
     } else if (content is bool) {
       return Expanded(

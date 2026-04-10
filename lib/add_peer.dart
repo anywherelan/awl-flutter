@@ -20,8 +20,10 @@ void showAddPeerDialog(BuildContext context) {
 }
 
 class AddPeerForm extends StatefulWidget {
+  const AddPeerForm({super.key});
+
   @override
-  _AddPeerFormState createState() => _AddPeerFormState();
+  State<AddPeerForm> createState() => _AddPeerFormState();
 }
 
 class _AddPeerFormState extends State<AddPeerForm> {
@@ -44,6 +46,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
       _aliasTextController.text,
       _ipAddrTextController.text,
     );
+    if (!mounted) return;
     if (response == "") {
       // "Invitation was sent"
       _serverError = "";
@@ -67,6 +70,7 @@ class _AddPeerFormState extends State<AddPeerForm> {
     } else {
       return;
     }
+    if (!context.mounted) return;
 
     var res = await Navigator.of(
       context,

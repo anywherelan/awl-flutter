@@ -13,10 +13,10 @@ import 'package:url_launcher/url_launcher_string.dart';
 class MyDrawer extends StatefulWidget {
   final bool isRetractable;
 
-  MyDrawer({Key? key, this.isRetractable = true}) : super(key: key);
+  const MyDrawer({super.key, this.isRetractable = true});
 
   @override
-  _MyDrawerState createState() => _MyDrawerState();
+  State<MyDrawer> createState() => _MyDrawerState();
 }
 
 class _MyDrawerState extends State<MyDrawer> {
@@ -47,6 +47,7 @@ class _MyDrawerState extends State<MyDrawer> {
                   isError = true;
                 }
               }
+              if (!context.mounted) return;
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -68,6 +69,7 @@ class _MyDrawerState extends State<MyDrawer> {
                 await stopServer();
               }
               var startResponse = await initServer();
+              if (!context.mounted) return;
               Navigator.of(context).pop();
               if (startResponse == "") {
                 fetchAllDataAfterStart();
@@ -172,18 +174,18 @@ class _MyDrawerState extends State<MyDrawer> {
 class DebugScreen extends StatefulWidget {
   static String routeName = "/debug";
 
-  DebugScreen({Key? key}) : super(key: key);
+  const DebugScreen({super.key});
 
   @override
-  _DebugScreenState createState() => _DebugScreenState();
+  State<DebugScreen> createState() => _DebugScreenState();
 }
 
 class _DebugScreenState extends State<DebugScreen> {
-  late Map<String, dynamic> _debugInfo = Map();
+  late Map<String, dynamic> _debugInfo = {};
 
   void _refreshDebugInfo() async {
     var debugInfo = await fetchDebugInfo(http.Client());
-    if (!this.mounted) {
+    if (!mounted) {
       return;
     }
     setState(() {
@@ -226,19 +228,19 @@ class _DebugScreenState extends State<DebugScreen> {
 class LogsScreen extends StatefulWidget {
   static String routeName = "/logs";
 
-  LogsScreen({Key? key}) : super(key: key);
+  const LogsScreen({super.key});
 
   @override
-  _LogsScreenState createState() => _LogsScreenState();
+  State<LogsScreen> createState() => _LogsScreenState();
 }
 
 class _LogsScreenState extends State<LogsScreen> {
   String _logsText = "";
-  ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
   bool _needScroll = true;
 
-  _scrollToEnd() async {
-    if (_needScroll && _logsText.length > 0) {
+  Future<void> _scrollToEnd() async {
+    if (_needScroll && _logsText.isNotEmpty) {
       _needScroll = false;
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     }
@@ -246,7 +248,7 @@ class _LogsScreenState extends State<LogsScreen> {
 
   void _refreshLogsText() async {
     var logs = await fetchLogs(http.Client());
-    if (!this.mounted) {
+    if (!mounted) {
       return;
     }
     setState(() {

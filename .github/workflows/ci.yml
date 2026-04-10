@@ -31,17 +31,19 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Generate code (json_serializable)
-        run: dart run build_runner build --delete-conflicting-outputs
+      - name: Generate code (json_serializable) and check for diff
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code || {
+            echo "::error::Generated files are out of date. Run 'dart run build_runner build --delete-conflicting-outputs' and commit the result.";
+            exit 1;
+          }
 
       - name: Format check
         run: dart format --output=none --set-exit-if-changed .
 
       - name: Static analysis
-        # --no-fatal-infos lets pre-existing info-level deprecations (e.g.
-        # dart:html in lib/server_interop/server_interop_web.dart) coexist
-        # with the gate. Warnings and errors are still fatal.
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze --fatal-infos
 
       - name: Run tests with coverage
         run: flutter test --coverage
@@ -69,9 +71,6 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Generate code (json_serializable)
-        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build web release
         run: flutter build web --release --no-web-resources-cdn --pwa-strategy=none --csp

@@ -73,6 +73,8 @@ Future<void> initAndroid() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     final app = MaterialApp(
@@ -107,12 +109,12 @@ class MyApp extends StatelessWidget {
 class HomeScreen extends StatefulWidget {
   static String routeName = "/";
 
-  HomeScreen({Key? key, required this.title}) : super(key: key);
+  const HomeScreen({super.key, required this.title});
 
   final String title;
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
@@ -315,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurface),
           ),
           Spacer(),
-          if (trailing != null) trailing,
+          ?trailing,
         ],
       ),
     );

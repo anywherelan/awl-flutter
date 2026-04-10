@@ -38,7 +38,7 @@ void main() {
 
       expect(info.peerID, isNotEmpty);
       expect(info.serverVersion, 'dev');
-      verify(() => client.get(Uri.parse('$_baseUrl${api.GetMyPeerInfoPath}'))).called(1);
+      verify(() => client.get(Uri.parse('$_baseUrl${api.getMyPeerInfoPath}'))).called(1);
     });
 
     test('fetchMyPeerInfo throws on malformed JSON', () async {
@@ -57,7 +57,7 @@ void main() {
       expect(peers, isNotNull);
       expect(peers!, hasLength(greaterThanOrEqualTo(1)));
       expect(peers.first.peerID, isNotEmpty);
-      verify(() => client.get(Uri.parse('$_baseUrl${api.GetKnownPeersPath}'))).called(1);
+      verify(() => client.get(Uri.parse('$_baseUrl${api.getKnownPeersPath}'))).called(1);
     });
 
     test('fetchKnownPeers throws on malformed JSON', () async {
@@ -75,7 +75,7 @@ void main() {
 
       expect(resp, isNotNull);
       expect(resp!.proxies, isA<List<AvailableProxy>>());
-      verify(() => client.get(Uri.parse('$_baseUrl${api.ListAvailableProxiesPath}'))).called(1);
+      verify(() => client.get(Uri.parse('$_baseUrl${api.listAvailableProxiesPath}'))).called(1);
     });
 
     test('fetchAuthRequests returns empty list on empty fixture', () async {
@@ -124,7 +124,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!['foo'], 'bar');
       expect(result['n'], 42);
-      verify(() => client.get(Uri.parse('$_baseUrl${api.GetP2pDebugInfoPath}'))).called(1);
+      verify(() => client.get(Uri.parse('$_baseUrl${api.getP2pDebugInfoPath}'))).called(1);
     });
 
     test('fetchLogs returns the response body verbatim', () async {
@@ -152,7 +152,7 @@ void main() {
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
       expect(captured.method, 'POST');
-      expect(captured.url.toString(), '$_baseUrl${api.SendFriendRequestPath}');
+      expect(captured.url.toString(), '$_baseUrl${api.sendFriendRequestPath}');
       expect(captured.headers['Content-Type'], 'application/json');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['PeerID'], 'pid');
@@ -176,7 +176,7 @@ void main() {
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.AcceptPeerInvitationPath}');
+      expect(captured.url.toString(), '$_baseUrl${api.acceptPeerInvitationPath}');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['Decline'], true);
     });
@@ -219,7 +219,7 @@ void main() {
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.UpdatePeerSettingsPath}');
+      expect(captured.url.toString(), '$_baseUrl${api.updatePeerSettingsPath}');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['PeerID'], 'pid');
       expect(decoded['Alias'], 'alias');
@@ -242,7 +242,7 @@ void main() {
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.UpdateMyInfoPath}');
+      expect(captured.url.toString(), '$_baseUrl${api.updateMyInfoPath}');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['Name'], 'newname');
     });
@@ -261,7 +261,7 @@ void main() {
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.UpdateProxySettingsPath}');
+      expect(captured.url.toString(), '$_baseUrl${api.updateProxySettingsPath}');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['UsingPeerID'], 'exit-peer-id');
     });
@@ -280,7 +280,7 @@ void main() {
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.RemovePeerSettingsPath}');
+      expect(captured.url.toString(), '$_baseUrl${api.removePeerSettingsPath}');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['PeerID'], 'pid');
     });

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io' as io;
 
 import 'package:anywherelan/api.dart';
@@ -13,7 +14,7 @@ Future<String> initAppImpl() async {
   }
 }
 
-const platform = const MethodChannel('anywherelan');
+const platform = MethodChannel('anywherelan');
 var serverRunning = false;
 
 Future<String> initServerImpl() async {
@@ -23,8 +24,8 @@ Future<String> initServerImpl() async {
     final String apiAddress = await platform.invokeMethod('start_server');
     serverAddress = "http://$apiAddress";
     serverRunning = true;
-  } catch (e) {
-    print("Failed to start server: '${e.toString()}'");
+  } catch (e, s) {
+    developer.log('Failed to start server', error: e, stackTrace: s, name: 'server_interop');
     return e.toString();
   }
   return "";
@@ -35,8 +36,8 @@ Future<void> stopServerImpl() async {
 
   try {
     await platform.invokeMethod('stop_server');
-  } catch (e) {
-    print("Failed to stop server: '${e.toString()}'.");
+  } catch (e, s) {
+    developer.log('Failed to stop server', error: e, stackTrace: s, name: 'server_interop');
   }
   serverRunning = false;
 }
@@ -50,8 +51,8 @@ Future<String> importConfigImpl(String config) async {
 
   try {
     await platform.invokeMethod('import_config', {'config': config});
-  } catch (e) {
-    print("Failed to import server config: '${e.toString()}'");
+  } catch (e, s) {
+    developer.log('Failed to import server config', error: e, stackTrace: s, name: 'server_interop');
     return e.toString();
   }
 
