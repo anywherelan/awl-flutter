@@ -40,10 +40,7 @@ Future<MyPeerInfo> fetchMyPeerInfo(http.Client client) async {
 
     return MyPeerInfo.fromJson(parsed);
   } catch (e, s) {
-    Error.throwWithStackTrace(
-      Exception('Failed to fetchMyPeerInfo: $e'),
-      s,
-    );
+    Error.throwWithStackTrace(Exception('Failed to fetchMyPeerInfo: $e'), s);
   }
 }
 
@@ -54,10 +51,7 @@ Future<List<KnownPeer>?> fetchKnownPeers(http.Client client) async {
 
     return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
   } catch (e, s) {
-    Error.throwWithStackTrace(
-      Exception('Failed to fetchKnownPeers: $e'),
-      s,
-    );
+    Error.throwWithStackTrace(Exception('Failed to fetchKnownPeers: $e'), s);
   }
 }
 
@@ -68,16 +62,13 @@ Future<ListAvailableProxiesResponse?> fetchAvailableProxies(http.Client client) 
 
     return ListAvailableProxiesResponse.fromJson(parsed);
   } catch (e, s) {
-    Error.throwWithStackTrace(
-      Exception('Failed to fetchAvailableProxies: $e'),
-      s,
-    );
+    Error.throwWithStackTrace(Exception('Failed to fetchAvailableProxies: $e'), s);
   }
 }
 
 Future<Map<String, dynamic>?> fetchDebugInfo(http.Client client) async {
   final response = await client.get(Uri.parse(serverAddress + GetP2pDebugInfoPath));
-//  final parsed = await compute(jsonDecode, response.body);
+  //  final parsed = await compute(jsonDecode, response.body);
   final parsed = jsonDecode(response.body);
 
   return parsed;
@@ -96,12 +87,7 @@ Future<List<AuthRequest>> fetchAuthRequests(http.Client client) async {
 
     return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
   } catch (e, s) {
-    log(
-      'Failed to fetchAuthRequests',
-      error: e,
-      stackTrace: s,
-      name: 'api',
-    );
+    log('Failed to fetchAuthRequests', error: e, stackTrace: s, name: 'api');
     return [];
   }
 }
@@ -123,7 +109,13 @@ Future<String> sendFriendRequest(http.Client client, String peerID, String alias
   return "";
 }
 
-Future<String> replyFriendRequest(http.Client client, String peerID, String alias, bool decline, String ipAddr) async {
+Future<String> replyFriendRequest(
+  http.Client client,
+  String peerID,
+  String alias,
+  bool decline,
+  String ipAddr,
+) async {
   var payload = FriendRequestReply(peerID, alias, decline, ipAddr);
 
   var request = http.Request("POST", Uri.parse(serverAddress + AcceptPeerInvitationPath));
@@ -157,9 +149,7 @@ Future<KnownPeerConfig> fetchKnownPeerConfig(http.Client client, String peerID) 
   var responseBody = await response.stream.bytesToString();
   if (response.statusCode != 200) {
     final Map<String, dynamic> parsed = jsonDecode(responseBody);
-    throw Exception(ApiError
-        .fromJson(parsed)
-        .error);
+    throw Exception(ApiError.fromJson(parsed).error);
   }
 
   final Map<String, dynamic> parsed = jsonDecode(responseBody);
@@ -182,9 +172,7 @@ Future<String> updateKnownPeerConfig(http.Client client, UpdateKnownPeerConfigRe
 }
 
 Future<String> updateMySettings(http.Client client, String name) async {
-  var payload = {
-    "Name": name,
-  };
+  var payload = {"Name": name};
 
   var request = http.Request("POST", Uri.parse(serverAddress + UpdateMyInfoPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});
@@ -201,9 +189,7 @@ Future<String> updateMySettings(http.Client client, String name) async {
 }
 
 Future<String> updateProxySettings(http.Client client, String usingPeerID) async {
-  var payload = {
-    "UsingPeerID": usingPeerID,
-  };
+  var payload = {"UsingPeerID": usingPeerID};
 
   var request = http.Request("POST", Uri.parse(serverAddress + UpdateProxySettingsPath));
   request.headers.addAll(<String, String>{"Content-Type": "application/json"});

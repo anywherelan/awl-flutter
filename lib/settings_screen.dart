@@ -27,13 +27,21 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     try {
       String? response;
       if (kIsWeb) {
-        response = await FileSaver.instance
-            .saveFile(name: "config_awl", bytes: exportedSettings, fileExtension: "json", mimeType: MimeType.json);
+        response = await FileSaver.instance.saveFile(
+          name: "config_awl",
+          bytes: exportedSettings,
+          fileExtension: "json",
+          mimeType: MimeType.json,
+        );
       } else {
         // saveAs is not implemented on web
         // see https://github.com/incrediblezayed/file_saver/issues/130
-        response = await FileSaver.instance
-            .saveAs(name: "config_awl", bytes: exportedSettings, fileExtension: "json", mimeType: MimeType.json);
+        response = await FileSaver.instance.saveAs(
+          name: "config_awl",
+          bytes: exportedSettings,
+          fileExtension: "json",
+          mimeType: MimeType.json,
+        );
       }
 
       if (response == null) {
@@ -57,9 +65,17 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     try {
       FilePickerResult? result;
       if (kIsWeb) {
-        result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ["json"], withData: true);
+        result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ["json"],
+          withData: true,
+        );
       } else {
-        result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ["json"], withData: true);
+        result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ["json"],
+          withData: true,
+        );
       }
 
       if (result == null) {
@@ -91,88 +107,75 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: SafeArea(
         child: ListView(
           children: [
             ListTile(
-              title: Text(
-                "Export settings",
-              ),
+              title: Text("Export settings"),
               enabled: true,
               selected: false,
               leading: const Icon(Icons.import_export),
               onTap: () async {
                 var result = await _exportSettings();
                 if (result.message != "") {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    backgroundColor: result.success ? Theme
-                        .of(context)
-                        .colorScheme
-                        .primary : Theme
-                        .of(context)
-                        .colorScheme
-                        .error,
-                    content: Text(result.message),
-                  ));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: result.success
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.error,
+                      content: Text(result.message),
+                    ),
+                  );
                 }
               },
             ),
             if (!kIsWeb)
               ListTile(
-                title: Text(
-                  "Import settings",
-                ),
+                title: Text("Import settings"),
                 subtitle: Text(
-                    "This action will overwrite current settings, therefore it is recommended to export them first."
-                    " Server will be restarted automatically with new configuration."),
+                  "This action will overwrite current settings, therefore it is recommended to export them first."
+                  " Server will be restarted automatically with new configuration.",
+                ),
                 enabled: true,
                 selected: false,
                 leading: const Icon(Icons.import_export),
                 onTap: () async {
                   var result = await _importSettings();
                   if (result.message != "") {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      backgroundColor: result.success ? Theme
-                          .of(context)
-                          .colorScheme
-                          .primary : Theme
-                          .of(context)
-                          .colorScheme
-                          .error,
-                      content: Text(result.message),
-                    ));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: result.success
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.error,
+                        content: Text(result.message),
+                      ),
+                    );
                   }
                 },
               ),
             if (!kIsWeb)
               ListTile(
-                title: Text(
-                  "Request ignore battery optimizations",
-                ),
+                title: Text("Request ignore battery optimizations"),
                 enabled: true,
                 selected: false,
                 leading: const Icon(Icons.adb),
                 onTap: () async {
                   var status = await Permission.ignoreBatteryOptimizations.request();
                   if (status == PermissionStatus.granted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      backgroundColor: Theme
-                          .of(context)
-                          .colorScheme
-                          .primary,
-                      content: Text("Permission granted"),
-                    ));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        content: Text("Permission granted"),
+                      ),
+                    );
                   } else if (status == PermissionStatus.denied) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      backgroundColor: Theme
-                          .of(context)
-                          .colorScheme
-                          .error,
-                      content: Text("Permission denied"),
-                    ));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                        content: Text("Permission denied"),
+                      ),
+                    );
                   }
                 },
               ),

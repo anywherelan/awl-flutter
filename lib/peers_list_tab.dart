@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 
 import 'connection_error.dart';
 
+/// Adapter for [PeersListView] that wires the widget to the global
+/// [knownPeersDataService] singleton. The pure presentation logic lives in
+/// [PeersListView] so it can be tested without that global. This adapter will
+/// go away when ServerDataService is replaced.
 class PeersListPage extends StatefulWidget {
   PeersListPage({Key? key}) : super(key: key);
 
@@ -15,7 +19,6 @@ class PeersListPage extends StatefulWidget {
 
 class _PeersListPageState extends State<PeersListPage> {
   List<KnownPeer>? _knownPeers;
-  Map<String?, bool> _expandedState = Map();
 
   void _onNewKnownPeers(List<KnownPeer>? newPeers) async {
     if (!this.mounted) {
@@ -35,14 +38,21 @@ class _PeersListPageState extends State<PeersListPage> {
   }
 
   @override
-  void deactivate() {
-    super.deactivate();
-  }
-
-  @override
   void dispose() {
     super.dispose();
     knownPeersDataService.unsubscribe(_onNewKnownPeers);
+  }
+
+  Future<void> _onPeerSettings(KnownPeer peer) async {
+    knownPeersDataService.unsubscribe(_onNewKnownPeers);
+    await Navigator.of(context).pushNamed(KnownPeerSettingsScreen.routeFor(peer.peerID));
+    knownPeersDataService.subscribe(_onNewKnownPeers);
+  }
+
+  Future<void> _onShowQR(KnownPeer peer) async {
+    knownPeersDataService.unsubscribe(_onNewKnownPeers);
+    await showQRDialog(context, peer.peerID, peer.displayName);
+    knownPeersDataService.subscribe(_onNewKnownPeers);
   }
 
   @override
@@ -51,54 +61,80 @@ class _PeersListPageState extends State<PeersListPage> {
       valueListenable: isServerAvailable,
       builder: (context, isAvailable, child) {
         if (!isAvailable) {
-          return Center(
-            child: showDefaultServerConnectionError(context),
-          );
+          return Center(child: showDefaultServerConnectionError(context));
         }
 
-        if (_knownPeers == null || _knownPeers!.isEmpty) {
-          final colorScheme = Theme.of(context).colorScheme;
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        return PeersListView(peers: _knownPeers, onPeerSettings: _onPeerSettings, onShowQR: _onShowQR);
+      },
+    );
+  }
+}
+
+/// Pure presentation widget for the peers list. Receives all data via
+/// constructor params; never reads global services. Tests target this widget
+/// directly with fixture data.
+class PeersListView extends StatefulWidget {
+  final List<KnownPeer>? peers;
+  final Future<void> Function(KnownPeer)? onPeerSettings;
+  final Future<void> Function(KnownPeer)? onShowQR;
+
+  const PeersListView({Key? key, required this.peers, this.onPeerSettings, this.onShowQR}) : super(key: key);
+
+  @override
+  State<PeersListView> createState() => _PeersListViewState();
+}
+
+class _PeersListViewState extends State<PeersListView> {
+  final Map<String?, bool> _expandedState = Map();
+
+  @override
+  Widget build(BuildContext context) {
+    final knownPeers = widget.peers;
+    if (knownPeers == null || knownPeers.isEmpty) {
+      final colorScheme = Theme.of(context).colorScheme;
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lan_outlined, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+            SizedBox(height: 12),
+            Text("No known peers", style: Theme.of(context).textTheme.titleMedium),
+            SizedBox(height: 4),
+            Text(
+              "Use Add peer to connect to someone",
+              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Peer count summary
+    final onlineCount = knownPeers.where((p) => p.connected && p.confirmed).length;
+    final totalCount = knownPeers.length;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Icon(Icons.lan_outlined, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-                SizedBox(height: 12),
-                Text("No known peers", style: Theme.of(context).textTheme.titleMedium),
-                SizedBox(height: 4),
-                Text("Use Add peer to connect to someone",
-                  style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+                Text(
+                  '$totalCount peers · $onlineCount online',
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
               ],
             ),
-          );
-        }
-
-        // Peer count summary
-        final onlineCount = _knownPeers!.where((p) => p.connected && p.confirmed).length;
-        final totalCount = _knownPeers!.length;
-
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text('$totalCount peers · $onlineCount online',
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                  ],
-                ),
-              ),
-              ..._knownPeers!.map((item) {
-                var isExpanded = _expandedState[item.peerID] ?? false;
-                return _buildPeerCard(item, isExpanded);
-              }),
-            ],
           ),
-        );
-      },
+          ...knownPeers.map((item) {
+            var isExpanded = _expandedState[item.peerID] ?? false;
+            return _buildPeerCard(item, isExpanded);
+          }),
+        ],
+      ),
     );
   }
 
@@ -162,13 +198,22 @@ class _PeersListPageState extends State<PeersListPage> {
                           Text(subtitle, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
                           if (lastSeenText != null) ...[
                             SizedBox(height: 1),
-                            Text(lastSeenText, style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7))),
+                            Text(
+                              lastSeenText,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                              ),
+                            ),
                           ],
                         ],
                       ),
                     ),
                     SizedBox(width: 8),
-                    Text(_peerStatusText(peer), style: TextStyle(fontSize: 13, color: _peerStatusColor(context, peer))),
+                    Text(
+                      _peerStatusText(peer),
+                      style: TextStyle(fontSize: 13, color: _peerStatusColor(context, peer)),
+                    ),
                     SizedBox(width: 4),
                     Icon(
                       isExpanded ? Icons.expand_less : Icons.expand_more,
@@ -182,11 +227,11 @@ class _PeersListPageState extends State<PeersListPage> {
               duration: Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               child: isExpanded
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: _buildExpansionPanelBody(peer),
-                  )
-                : SizedBox.shrink(),
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: _buildExpansionPanelBody(peer),
+                    )
+                  : SizedBox.shrink(),
             ),
           ],
         ),
@@ -205,7 +250,9 @@ class _PeersListPageState extends State<PeersListPage> {
     }
     details.add(MapEntry("VPN ADDRESS", "${item.domainName}.awl┃${item.ipAddr}"));
     // Connections handled separately for widget
-    details.add(MapEntry("EXIT NODE", formatExitNodeStatus(item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)));
+    details.add(
+      MapEntry("EXIT NODE", formatExitNodeStatus(item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)),
+    );
     if (item.ping.inMicroseconds != 0) {
       details.add(MapEntry("PING", formatLatencyDuration(item.ping)));
     }
@@ -235,7 +282,13 @@ class _PeersListPageState extends State<PeersListPage> {
         final color = entry.key == "EXIT NODE"
             ? exitNodeStatusColor(context, item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)
             : null;
-        cells.add(_buildGridCell(entry.key, SelectableText(entry.value, style: TextStyle(fontSize: 14, color: color)), colorScheme));
+        cells.add(
+          _buildGridCell(
+            entry.key,
+            SelectableText(entry.value, style: TextStyle(fontSize: 14, color: color)),
+            colorScheme,
+          ),
+        );
       }
       if (connectionWidget != null) {
         // Insert connection after VPN ADDRESS (index 1, or 2 if last seen is present)
@@ -265,7 +318,12 @@ class _PeersListPageState extends State<PeersListPage> {
         final color = entry.key == "EXIT NODE"
             ? exitNodeStatusColor(context, item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)
             : null;
-        rows.add(_buildMobileRow(entry.key, SelectableText(entry.value, style: TextStyle(fontSize: 14, color: color))));
+        rows.add(
+          _buildMobileRow(
+            entry.key,
+            SelectableText(entry.value, style: TextStyle(fontSize: 14, color: color)),
+          ),
+        );
       }
       if (item.connections.isNotEmpty) {
         final insertIdx = (!item.connected && item.confirmed) ? 2 : 1;
@@ -287,21 +345,13 @@ class _PeersListPageState extends State<PeersListPage> {
             FilledButton.tonalIcon(
               icon: Icon(Icons.settings),
               label: Text("Settings"),
-              onPressed: () async {
-                knownPeersDataService.unsubscribe(_onNewKnownPeers);
-                await Navigator.of(context).pushNamed(KnownPeerSettingsScreen.routeFor(item.peerID));
-                knownPeersDataService.subscribe(_onNewKnownPeers);
-              },
+              onPressed: () => widget.onPeerSettings?.call(item),
             ),
             SizedBox(width: 12),
             OutlinedButton.icon(
               icon: Icon(Icons.qr_code),
               label: Text("Show ID"),
-              onPressed: () async {
-                knownPeersDataService.unsubscribe(_onNewKnownPeers);
-                await showQRDialog(context, item.peerID, item.displayName);
-                knownPeersDataService.subscribe(_onNewKnownPeers);
-              },
+              onPressed: () => widget.onShowQR?.call(item),
             ),
           ],
         ),
@@ -343,7 +393,15 @@ class _PeersListPageState extends State<PeersListPage> {
               Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
               SizedBox(width: 4),
             ],
-            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant, letterSpacing: 0.5)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurfaceVariant,
+                letterSpacing: 0.5,
+              ),
+            ),
           ],
         ),
         SizedBox(height: 4),
@@ -400,7 +458,6 @@ class _PeersListPageState extends State<PeersListPage> {
       }).toList(),
     );
   }
-
 }
 
 String formatLatencyDuration(Duration duration) {

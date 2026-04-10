@@ -8,6 +8,7 @@ import 'package:anywherelan/peers_list_tab.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:anywherelan/settings_screen.dart';
 import 'package:anywherelan/status_tab.dart';
+import 'package:anywherelan/theme.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:overlay_support/overlay_support.dart';
@@ -77,14 +78,7 @@ class MyApp extends StatelessWidget {
     final app = MaterialApp(
       title: 'Anywherelan',
       navigatorKey: notif.navigatorKey,
-      theme: ThemeData(
-        // Default fallback fonts
-        // See bug https://github.com/flutter/flutter/issues/60069
-        fontFamilyFallback: const ['Noto Color Emoji 2', 'Noto Sans SC 71'],
-        useMaterial3: true,
-        colorSchemeSeed: Color(0xFF1565C0),
-        brightness: Brightness.light,
-      ),
+      theme: buildAppTheme(),
       initialRoute: HomeScreen.routeName,
       routes: {
         HomeScreen.routeName: (context) => HomeScreen(title: 'Anywherelan'),
@@ -97,14 +91,10 @@ class MyApp extends StatelessWidget {
         final uri = Uri.parse(settings.name ?? '');
         final segments = uri.pathSegments;
         if (segments.length == 3 && segments[0] == 'peers' && segments[2] == 'settings') {
-          return MaterialPageRoute(
-            settings: settings,
-            builder: (context) => KnownPeerSettingsScreen(),
-          );
+          return MaterialPageRoute(settings: settings, builder: (context) => KnownPeerSettingsScreen());
         }
         return null;
       },
-//      navigatorObservers: [],
     );
 
     if (kIsWeb) {
@@ -282,14 +272,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               flex: 4,
               child: Column(
                 children: [
-                  _buildSectionTitle("Peers", trailing: FilledButton.tonalIcon(
-                    icon: Icon(Icons.add, size: 18),
-                    label: Text("Add peer"),
-                    onPressed: () => showAddPeerDialog(context),
-                  )),
-                  Flexible(
-                    child: _buildCard(PeersListPage()),
+                  _buildSectionTitle(
+                    "Peers",
+                    trailing: FilledButton.tonalIcon(
+                      icon: Icon(Icons.add, size: 18),
+                      label: Text("Add peer"),
+                      onPressed: () => showAddPeerDialog(context),
+                    ),
                   ),
+                  Flexible(child: _buildCard(PeersListPage())),
                   SizedBox(height: 20),
                 ],
               ),
@@ -300,11 +291,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: Column(
                 children: [
                   _buildSectionTitle("This Device"),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: _buildCard(StatusPage()),
-                    ),
-                  ),
+                  Expanded(child: SingleChildScrollView(child: _buildCard(StatusPage()))),
                   SizedBox(height: 20),
                 ],
               ),
@@ -321,16 +308,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       padding: EdgeInsets.only(left: 4, top: 20, bottom: 14, right: 4),
       child: Row(
         children: [
-          Text(title, style: Theme
-              .of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(
-            color: Theme
-                .of(context)
-                .colorScheme
-                .onSurface,
-          )),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurface),
+          ),
           Spacer(),
           if (trailing != null) trailing,
         ],
@@ -353,10 +336,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme
-            .of(context)
-            .colorScheme
-            .surfaceContainerLowest,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.all(Radius.circular(16)),
       ),
       child: child,

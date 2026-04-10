@@ -59,12 +59,7 @@ class ServerDataService<T> {
       });
     } catch (e, s) {
       isServerAvailable.value = false;
-      log(
-        'Failed to fetch data',
-        error: e,
-        stackTrace: s,
-        name: 'ServerDataService',
-      );
+      log('Failed to fetch data', error: e, stackTrace: s, name: 'ServerDataService');
     }
   }
 

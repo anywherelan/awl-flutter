@@ -8,11 +8,7 @@ const errorColor = Color(0xFFBA1A1A);
 const successColor = Color(0xFF1B6D2F);
 const warningColor = Color(0xFFB8860B);
 
-Color unknownStatusColor(BuildContext context) =>
-    Theme
-        .of(context)
-        .colorScheme
-        .secondary;
+Color unknownStatusColor(BuildContext context) => Theme.of(context).colorScheme.secondary;
 
 Future<void> showQRDialog(BuildContext context, String peerID, String peerName) async {
   await showDialog(
@@ -26,26 +22,21 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Flexible(
-                  fit: FlexFit.loose,
-                  child: SelectableText(peerID),
-                ),
+                Flexible(fit: FlexFit.loose, child: SelectableText(peerID)),
                 IconButton(
                   icon: Icon(Icons.content_copy),
                   onPressed: () {
                     var data = ClipboardData(text: peerID);
                     Clipboard.setData(data);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text("Peer ID copied to clipboard"),
-                    ));
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("Peer ID copied to clipboard")));
                   },
                 ),
                 IconButton(
                   icon: Icon(Icons.share),
                   onPressed: () {
-                    SharePlus.instance.share(
-                      ShareParams(text: peerID),
-                    );
+                    SharePlus.instance.share(ShareParams(text: peerID));
                   },
                 ),
               ],
@@ -57,9 +48,7 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
               child: Container(
                 constraints: BoxConstraints.tightFor(width: 350),
                 alignment: Alignment.center,
-                child: QrImageView(
-                  data: peerID,
-                ),
+                child: QrImageView(data: peerID),
               ),
             ),
           ),
@@ -69,17 +58,14 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
                 child: TextButton(
-                  child: Text(
-                    "Close",
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+                  child: Text("Close", style: Theme.of(context).textTheme.titleLarge),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                 ),
               ),
             ],
-          )
+          ),
         ],
       );
     },
@@ -118,8 +104,6 @@ String formatDuration(Duration duration) {
   if (tokens.isNotEmpty || minutes != 0) {
     tokens.add('${minutes}m');
   }
-
-//  tokens.add('${seconds}s');
 
   if (tokens.isEmpty) {
     tokens.add('0m');
@@ -166,8 +150,5 @@ String formatExitNodeStatus(bool weAllow, bool peerAllows) {
 
 Color exitNodeStatusColor(BuildContext context, bool weAllow, bool peerAllows) {
   if (weAllow && peerAllows) return successColor;
-  return Theme
-      .of(context)
-      .colorScheme
-      .onSurfaceVariant;
+  return Theme.of(context).colorScheme.onSurfaceVariant;
 }

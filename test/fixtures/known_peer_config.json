@@ -1,0 +1,13 @@
+{
+    "peerId": "12D3KooWJMUjt9b5T1umzgzjLv5yG2ViuuF4qjmN65tsRXZGS2s7",
+    "name": "awl-tester",
+    "alias": "awl-tester",
+    "ipAddr": "10.66.0.2",
+    "domainName": "awl-tester",
+    "createdAt": "2023-06-02T22:50:09.051012361+03:00",
+    "lastSeen": "2026-04-10T08:24:50.522115354+03:00",
+    "confirmed": true,
+    "declined": false,
+    "weAllowUsingAsExitNode": false,
+    "allowedUsingAsExitNode": true
+}

@@ -8,6 +8,11 @@ import 'package:anywherelan/entities.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+/// Adapter for [StatusPageView] that wires the widget to the global
+/// [myPeerInfoDataService] / [availableProxiesDataService] singletons. The
+/// pure presentation logic lives in [StatusPageView] so it can be tested
+/// without those globals. This adapter will go away when ServerDataService
+/// is replaced.
 class StatusPage extends StatefulWidget {
   StatusPage({Key? key}) : super(key: key);
 
@@ -17,6 +22,7 @@ class StatusPage extends StatefulWidget {
 
 class _StatusPageState extends State<StatusPage> {
   MyPeerInfo? _peerInfo;
+  ListAvailableProxiesResponse? _proxiesData;
   bool _openedSetupDialog = false;
 
   void _onNewPeerInfo(MyPeerInfo newPeerInfo) async {
@@ -29,18 +35,51 @@ class _StatusPageState extends State<StatusPage> {
     });
   }
 
+  void _onNewProxies(ListAvailableProxiesResponse? newProxies) async {
+    if (!this.mounted) {
+      return;
+    }
+    setState(() {
+      _proxiesData = newProxies;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
 
     _peerInfo = myPeerInfoDataService.getData();
+    _proxiesData = availableProxiesDataService.getData();
     myPeerInfoDataService.subscribe(_onNewPeerInfo);
+    availableProxiesDataService.subscribe(_onNewProxies);
   }
 
   @override
   void dispose() {
     myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
+    availableProxiesDataService.unsubscribe(_onNewProxies);
     super.dispose();
+  }
+
+  Future<String> _onUpdateProxy(String usingPeerID) async {
+    var response = await updateProxySettings(http.Client(), usingPeerID);
+    if (response == "") {
+      var futures = <Future>[myPeerInfoDataService.fetchData(), availableProxiesDataService.fetchData()];
+      await Future.wait(futures);
+    }
+    return response;
+  }
+
+  Future<void> _onShowQR() async {
+    myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
+    await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
+    myPeerInfoDataService.subscribe(_onNewPeerInfo);
+  }
+
+  Future<void> _onShowSettings({bool firstSetup = false}) async {
+    myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
+    await showSettingsDialog(context, _peerInfo, firstSetup);
+    myPeerInfoDataService.subscribe(_onNewPeerInfo);
   }
 
   @override
@@ -49,67 +88,98 @@ class _StatusPageState extends State<StatusPage> {
       valueListenable: isServerAvailable,
       builder: (context, isAvailable, child) {
         if (!isAvailable) {
-          return Center(
-            child: showDefaultServerConnectionError(context),
-          );
+          return Center(child: showDefaultServerConnectionError(context));
         }
 
-        if (_peerInfo == null) {
-          return Container();
+        // First-run auto-popup: open settings dialog when the server is up
+        // but the user hasn't picked a name yet. Lives in the adapter because
+        // it touches the global subscribe/unsubscribe dance.
+        final info = _peerInfo;
+        if (info != null) {
+          final serverIsUp = info.uptime.inMicroseconds > 0;
+          if (!_openedSetupDialog && serverIsUp && info.name.isEmpty) {
+            _openedSetupDialog = true;
+            Future.delayed(Duration(seconds: 2), () => _onShowSettings(firstSetup: true));
+          }
         }
 
-        final serverIsUp = _peerInfo!.uptime.inMicroseconds > 0;
-
-        if (!_openedSetupDialog && serverIsUp && _peerInfo!.name.isEmpty) {
-          _openedSetupDialog = true;
-          Future.delayed(Duration(seconds: 2), () => showSettingsDialog(context, _peerInfo, true));
-        }
-
-        return SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Device header
-              SizedBox(height: 4),
-              _buildDeviceHeader(context),
-              SizedBox(height: 12),
-              ..._buildSections(context),
-              SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  FilledButton.tonalIcon(
-                    icon: Icon(Icons.qr_code, size: 18),
-                    label: Text("My ID"),
-                    onPressed: () async {
-                      myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                      await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
-                      myPeerInfoDataService.subscribe(_onNewPeerInfo);
-                    },
-                  ),
-                  SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    icon: Icon(Icons.settings, size: 18),
-                    label: Text("Settings"),
-                    onPressed: () async {
-                      myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-                      await showSettingsDialog(context, _peerInfo, false);
-                      myPeerInfoDataService.subscribe(_onNewPeerInfo);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
+        return StatusPageView(
+          peerInfo: _peerInfo,
+          proxiesData: _proxiesData,
+          onUpdateProxy: _onUpdateProxy,
+          onShowQR: _onShowQR,
+          onShowSettings: _onShowSettings,
         );
       },
     );
   }
+}
+
+/// Pure presentation widget for the status screen. Receives all data via
+/// constructor params; never reads global services. Tests target this widget
+/// directly with fixture data.
+class StatusPageView extends StatefulWidget {
+  final MyPeerInfo? peerInfo;
+  final ListAvailableProxiesResponse? proxiesData;
+  final Future<String> Function(String usingPeerID)? onUpdateProxy;
+  final Future<void> Function()? onShowQR;
+  final Future<void> Function()? onShowSettings;
+
+  const StatusPageView({
+    Key? key,
+    required this.peerInfo,
+    this.proxiesData,
+    this.onUpdateProxy,
+    this.onShowQR,
+    this.onShowSettings,
+  }) : super(key: key);
+
+  @override
+  State<StatusPageView> createState() => _StatusPageViewState();
+}
+
+class _StatusPageViewState extends State<StatusPageView> {
+  MyPeerInfo get _peerInfo => widget.peerInfo!;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.peerInfo == null) {
+      return Container();
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Device header
+          SizedBox(height: 4),
+          _buildDeviceHeader(context),
+          SizedBox(height: 12),
+          ..._buildSections(context),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FilledButton.tonalIcon(
+                icon: Icon(Icons.qr_code, size: 18),
+                label: Text("My ID"),
+                onPressed: () => widget.onShowQR?.call(),
+              ),
+              SizedBox(width: 12),
+              OutlinedButton.icon(
+                icon: Icon(Icons.settings, size: 18),
+                label: Text("Settings"),
+                onPressed: () => widget.onShowSettings?.call(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildDeviceHeader(BuildContext context) {
-    final colorScheme = Theme
-        .of(context)
-        .colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Icon(Icons.computer, size: 24, color: colorScheme.primary),
@@ -118,10 +188,14 @@ class _StatusPageState extends State<StatusPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_peerInfo!.name.isNotEmpty ? _peerInfo!.name : 'This Device',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-              Text('${_peerInfo!.serverVersion} · up ${formatDuration(_peerInfo!.uptime)}',
-                  style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+              Text(
+                _peerInfo.name.isNotEmpty ? _peerInfo.name : 'This Device',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              Text(
+                '${_peerInfo.serverVersion} · up ${formatDuration(_peerInfo.uptime)}',
+                style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+              ),
             ],
           ),
         ),
@@ -130,14 +204,13 @@ class _StatusPageState extends State<StatusPage> {
   }
 
   Widget _buildSectionHeader(String title) {
-    final colorScheme = Theme
-        .of(context)
-        .colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 16),
-        Text(title,
+        Text(
+          title,
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
@@ -153,18 +226,18 @@ class _StatusPageState extends State<StatusPage> {
   Widget _buildStatusChip(String text, Color textColor, Color bgColor) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textColor),
       ),
-      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textColor)),
     );
   }
 
   List<Widget> _buildSections(BuildContext context) {
     var reachabilityText = "Unknown";
     var reachabilityColor = unknownStatusColor(context);
-    switch (_peerInfo!.reachability) {
+    switch (_peerInfo.reachability) {
       case "Public":
         reachabilityText = "Public";
         reachabilityColor = successColor;
@@ -179,7 +252,7 @@ class _StatusPageState extends State<StatusPage> {
 
     String dnsText;
     Color dnsColor;
-    if (_peerInfo!.isAwlDNSSetAsSystem && _peerInfo!.awlDNSAddress != "") {
+    if (_peerInfo.isAwlDNSSetAsSystem && _peerInfo.awlDNSAddress != "") {
       dnsText = "Working";
       dnsColor = successColor;
     } else {
@@ -189,7 +262,7 @@ class _StatusPageState extends State<StatusPage> {
 
     String socks5Text;
     Color socks5Color;
-    if (_peerInfo!.socks5.listenerEnabled && _peerInfo!.socks5.listenAddress != "") {
+    if (_peerInfo.socks5.listenerEnabled && _peerInfo.socks5.listenAddress != "") {
       socks5Text = "Working";
       socks5Color = successColor;
     } else {
@@ -197,19 +270,17 @@ class _StatusPageState extends State<StatusPage> {
       socks5Color = errorColor;
     }
 
-    String bootstrapText = "${_peerInfo!.connectedBootstrapPeers}/${_peerInfo!.totalBootstrapPeers}";
+    String bootstrapText = "${_peerInfo.connectedBootstrapPeers}/${_peerInfo.totalBootstrapPeers}";
     Color bootstrapColor;
-    if (_peerInfo!.connectedBootstrapPeers == 0) {
+    if (_peerInfo.connectedBootstrapPeers == 0) {
       bootstrapColor = errorColor;
-    } else if (_peerInfo!.connectedBootstrapPeers <= _peerInfo!.totalBootstrapPeers * 0.6) {
+    } else if (_peerInfo.connectedBootstrapPeers <= _peerInfo.totalBootstrapPeers * 0.6) {
       bootstrapColor = warningColor;
     } else {
       bootstrapColor = successColor;
     }
 
-    final colorScheme = Theme
-        .of(context)
-        .colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     // Map semantic colors to vivid chip color pairs (text, background)
     (Color, Color) chipColors(Color semanticColor) {
@@ -226,38 +297,58 @@ class _StatusPageState extends State<StatusPage> {
     return [
       // Network section
       _buildSectionHeader('NETWORK'),
-      _buildBodyItemText(Icons.cloud_download_outlined, "Download", _peerInfo!.networkStats.inAsString()),
-      _buildBodyItemText(Icons.cloud_upload_outlined, "Upload", _peerInfo!.networkStats.outAsString()),
-      _buildBodyItemWidget(Icons.wifi_tethering, "Reachability",
-          _buildStatusChip(reachabilityText, chipColors(reachabilityColor).$1, chipColors(reachabilityColor).$2),
-          tooltip: "Whether this device can be reached directly. Public = direct connections, Private = connections go through relays"),
-      _buildBodyItemWidget(Icons.hub_outlined, "Bootstrap peers",
-          _buildStatusChip(bootstrapText, chipColors(bootstrapColor).$1, chipColors(bootstrapColor).$2),
-          tooltip: "Connected bootstrap nodes used for peer discovery, should be at least 1"),
+      _buildBodyItemText(Icons.cloud_download_outlined, "Download", _peerInfo.networkStats.inAsString()),
+      _buildBodyItemText(Icons.cloud_upload_outlined, "Upload", _peerInfo.networkStats.outAsString()),
+      _buildBodyItemWidget(
+        Icons.wifi_tethering,
+        "Reachability",
+        _buildStatusChip(
+          reachabilityText,
+          chipColors(reachabilityColor).$1,
+          chipColors(reachabilityColor).$2,
+        ),
+        tooltip:
+            "Whether this device can be reached directly. Public = direct connections, Private = connections go through relays",
+      ),
+      _buildBodyItemWidget(
+        Icons.hub_outlined,
+        "Bootstrap peers",
+        _buildStatusChip(bootstrapText, chipColors(bootstrapColor).$1, chipColors(bootstrapColor).$2),
+        tooltip: "Connected bootstrap nodes used for peer discovery, should be at least 1",
+      ),
 
       // Services section
       _buildSectionHeader('SERVICES'),
-      _buildBodyItemWidget(Icons.dns_outlined, "DNS", _buildStatusChip(dnsText, chipColors(dnsColor).$1, chipColors(dnsColor).$2),
-          tooltip: "AWL DNS resolver for .awl domain names"),
-      _buildBodyItemWidget(Icons.router_outlined, "SOCKS5 Proxy",
-          _buildStatusChip(socks5Text, chipColors(socks5Color).$1, chipColors(socks5Color).$2),
-          tooltip: "SOCKS5 proxy for routing traffic through a peer's network"),
-      if (_peerInfo!.socks5.listenerEnabled)
-        _buildBodyItemText(Icons.link, "Proxy address", "${_peerInfo!.socks5.listenAddress}"),
+      _buildBodyItemWidget(
+        Icons.dns_outlined,
+        "DNS",
+        _buildStatusChip(dnsText, chipColors(dnsColor).$1, chipColors(dnsColor).$2),
+        tooltip: "AWL DNS resolver for .awl domain names",
+      ),
+      _buildBodyItemWidget(
+        Icons.router_outlined,
+        "SOCKS5 Proxy",
+        _buildStatusChip(socks5Text, chipColors(socks5Color).$1, chipColors(socks5Color).$2),
+        tooltip: "SOCKS5 proxy for routing traffic through a peer's network",
+      ),
+      if (_peerInfo.socks5.listenerEnabled)
+        _buildBodyItemText(Icons.link, "Proxy address", "${_peerInfo.socks5.listenAddress}"),
       _buildProxySelectorWidget("Proxy exit peer"),
     ];
   }
 
   Widget _buildBodyItemText(IconData icon, String label, String text, {Color? textColor, String? tooltip}) {
-    return _buildBodyItemWidget(icon, label, SelectableText(text, style: TextStyle(color: textColor)), tooltip: tooltip);
+    return _buildBodyItemWidget(
+      icon,
+      label,
+      SelectableText(text, style: TextStyle(color: textColor)),
+      tooltip: tooltip,
+    );
   }
 
   Widget _buildBodyItemWidget(IconData icon, String label, Widget child, {String? tooltip}) {
     const double wideScreenBreakpoint = 800.0;
-    final bool isWideScreen = MediaQuery
-        .of(context)
-        .size
-        .width > wideScreenBreakpoint;
+    final bool isWideScreen = MediaQuery.of(context).size.width > wideScreenBreakpoint;
     final verticalPadding = isWideScreen ? 4.0 : 6.0;
 
     Widget labelWidget = Text(label);
@@ -267,10 +358,10 @@ class _StatusPageState extends State<StatusPage> {
         children: [
           Text(label),
           SizedBox(width: 4),
-          Tooltip(message: tooltip, child: Icon(Icons.help_outline, size: 16, color: Theme
-              .of(context)
-              .colorScheme
-              .onSurfaceVariant)),
+          Tooltip(
+            message: tooltip,
+            child: Icon(Icons.help_outline, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
         ],
       );
     }
@@ -288,16 +379,13 @@ class _StatusPageState extends State<StatusPage> {
   }
 
   Widget _buildProxySelectorWidget(String label) {
-    // Eagerly refresh available proxies so the dropdown is up-to-date
-    availableProxiesDataService.fetchData();
-
-    var socks5UsingPeer = _peerInfo!.socks5.usingPeerName;
+    var socks5UsingPeer = _peerInfo.socks5.usingPeerName;
     if (socks5UsingPeer == "") {
       socks5UsingPeer = "None";
     }
 
     List<String> socks5PeersList = <String>['None'];
-    var proxiesData = availableProxiesDataService.getData();
+    final proxiesData = widget.proxiesData;
     if (proxiesData != null) {
       for (var proxy in proxiesData.proxies) {
         socks5PeersList.add(proxy.peerName);
@@ -316,45 +404,36 @@ class _StatusPageState extends State<StatusPage> {
         tooltip: '',
         initialValue: socks5UsingPeer,
         onSelected: (String value) async {
+          if (widget.onUpdateProxy == null) return;
           var usingPeerName = value;
           var usingPeerID = "";
-          if (usingPeerName == "None") {
-            usingPeerID = "";
-          } else {
-            var proxiesData = availableProxiesDataService.getData();
-            var found = proxiesData!.proxies.firstWhere((element) => element.peerName == usingPeerName);
+          if (usingPeerName != "None") {
+            final proxies = widget.proxiesData;
+            if (proxies == null) return;
+            var found = proxies.proxies.firstWhere((element) => element.peerName == usingPeerName);
             usingPeerID = found.peerID;
           }
 
-          var response = await updateProxySettings(http.Client(), usingPeerID);
+          var response = await widget.onUpdateProxy!(usingPeerID);
+          if (!mounted) return;
           if (response != "") {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              backgroundColor: Theme
-                  .of(context)
-                  .colorScheme
-                  .error,
-              content: Text("Failed to update proxy settings: $response"),
-            ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                content: Text("Failed to update proxy settings: $response"),
+              ),
+            );
             return;
           }
-
-          var futures = <Future>[myPeerInfoDataService.fetchData(), availableProxiesDataService.fetchData()];
-          await Future.wait(futures);
-
-          setState(() {});
         },
-        itemBuilder: (context) =>
-            socks5PeersList.map((String value) {
-              return PopupMenuItem<String>(value: value, child: Text(value));
+        itemBuilder: (context) => socks5PeersList.map((String value) {
+          return PopupMenuItem<String>(value: value, child: Text(value));
         }).toList(),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Theme
-                .of(context)
-                .colorScheme
-                .outlineVariant),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -362,10 +441,7 @@ class _StatusPageState extends State<StatusPage> {
               SizedBox(width: 2),
               Text(socks5UsingPeer, style: TextStyle(fontSize: 14)),
               SizedBox(width: 6),
-              Icon(Icons.arrow_drop_down, size: 20, color: Theme
-                  .of(context)
-                  .colorScheme
-                  .onSurfaceVariant),
+              Icon(Icons.arrow_drop_down, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ],
           ),
         ),

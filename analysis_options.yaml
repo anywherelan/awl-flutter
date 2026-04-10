@@ -1,0 +1,6 @@
+formatter:
+  page_width: 110
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
