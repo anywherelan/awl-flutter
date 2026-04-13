@@ -4,7 +4,7 @@ import 'package:anywherelan/providers.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 void showAddPeerDialog(BuildContext context) {
@@ -57,9 +57,7 @@ class _AddPeerFormState extends ConsumerState<AddPeerForm> {
   }
 
   void _scanQR(BuildContext context) async {
-    if (kIsWeb) {
-      // supported
-    } else if (Platform.isAndroid) {
+    if (Platform.isAndroid) {
       var status = await Permission.camera.request();
       if (status != PermissionStatus.granted) {
         return;
@@ -71,13 +69,13 @@ class _AddPeerFormState extends ConsumerState<AddPeerForm> {
 
     var res = await Navigator.of(
       context,
-    ).push<Barcode>(MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
-    if (res == null || res.displayValue == null || res.displayValue == '') {
+    ).push<String>(MaterialPageRoute(builder: (BuildContext context) => QRScanPage()));
+    if (res == null || res.isEmpty) {
       return;
     }
 
     setState(() {
-      _peerIdTextController.text = res.displayValue!;
+      _peerIdTextController.text = res;
     });
   }
 
@@ -152,13 +150,14 @@ class _AddPeerFormState extends ConsumerState<AddPeerForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              OutlinedButton.icon(
-                icon: Icon(Icons.qr_code_scanner),
-                label: Text('Scan QR'),
-                onPressed: () async {
-                  _scanQR(context);
-                },
-              ),
+              if (!kIsWeb)
+                OutlinedButton.icon(
+                  icon: Icon(Icons.qr_code_scanner),
+                  label: Text('Scan QR'),
+                  onPressed: () async {
+                    _scanQR(context);
+                  },
+                ),
               FilledButton.icon(
                 icon: Icon(Icons.send, size: 18),
                 label: Text('Invite peer'),
@@ -182,27 +181,25 @@ class QRScanPage extends StatefulWidget {
 }
 
 class _QRScanPageState extends State<QRScanPage> {
-  Barcode? _barcode;
-
-  void _handleBarcode(BarcodeCapture barcodes) {
-    if (mounted && _barcode == null) {
-      setState(() {
-        _barcode = barcodes.barcodes.firstOrNull;
-      });
-    }
-  }
+  String? _result;
 
   @override
   Widget build(BuildContext context) {
-    if (_barcode != null) {
-      Navigator.of(context).pop(_barcode!);
-      return Scaffold();
+    if (_result != null) {
+      Navigator.of(context).pop(_result);
+      return const Scaffold();
     }
-
     return Scaffold(
       appBar: AppBar(title: const Text('PeerID QR Scanner')),
       backgroundColor: Colors.black,
-      body: Stack(children: [MobileScanner(onDetect: _handleBarcode)]),
+      body: ReaderWidget(
+        cropPercent: 0.9,
+        onScan: (Code code) {
+          if (_result == null && code.isValid && (code.text ?? '').isNotEmpty) {
+            setState(() => _result = code.text);
+          }
+        },
+      ),
     );
   }
 }
