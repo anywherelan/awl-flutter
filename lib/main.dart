@@ -1,27 +1,32 @@
+import 'dart:async';
+
 import 'package:anywherelan/add_peer.dart';
 import 'package:anywherelan/blocked_peers_screen.dart';
-import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/drawer.dart';
 import 'package:anywherelan/notifications.dart' as notif;
 import 'package:anywherelan/peer_settings_screen.dart';
 import 'package:anywherelan/peers_list_tab.dart';
+import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:anywherelan/settings_screen.dart';
 import 'package:anywherelan/status_tab.dart';
 import 'package:anywherelan/theme.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:overlay_support/overlay_support.dart';
+
+final _container = ProviderContainer();
 
 void main() async {
   if (kIsWeb) {
     await initApp();
-    await fetchAllData();
+    await refreshProviders(_container).catchError((_) {});
   } else {
     initAndroid();
   }
 
-  runApp(MyApp());
+  runApp(UncontrolledProviderScope(container: _container, child: MyApp()));
 }
 
 Future<void> initAndroid() async {
@@ -31,8 +36,8 @@ Future<void> initAndroid() async {
     var stopLoop = false;
     var startError = await initApp();
     if (isServerRunning()) {
-      await fetchAllData();
-      fetchAllDataAfterStart();
+      await refreshProviders(_container);
+      unawaited(refreshProvidersRepeated(_container));
       return;
     } else if (startError.contains("vpn not authorized")) {
       dialogTitle = "You need to accept vpn connection to use this app";
@@ -106,7 +111,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   static String routeName = "/";
 
   const HomeScreen({super.key, required this.title});
@@ -114,28 +119,27 @@ class HomeScreen extends StatefulWidget {
   final String title;
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
-  final _notificationsService = notif.NotificationsService();
+  late final notif.NotificationsService _notificationsService;
 
   @override
   void initState() {
     super.initState();
 
+    _notificationsService = notif.NotificationsService(ref.read(apiProvider));
     _notificationsService.init();
     WidgetsBinding.instance.addObserver(this);
 
     _tabController = TabController(vsync: this, length: 2, initialIndex: 1);
     _tabController.addListener(() {
-      _tabChangeListener();
       // to trigger build and refresh FloatingActionButton
       setState(() {});
     });
-
-    _tabChangeListener();
   }
 
   @override
@@ -147,19 +151,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  void _tabChangeListener() {
-    myPeerInfoDataService.disableTimer();
-    knownPeersDataService.disableTimer();
-    switch (_tabController.index) {
-      case 0:
-        myPeerInfoDataService.enableTimer();
-        break;
-      case 1:
-        knownPeersDataService.enableTimer();
-        break;
-    }
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
@@ -168,13 +159,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
       case AppLifecycleState.paused:
-        myPeerInfoDataService.disableTimer();
-        knownPeersDataService.disableTimer();
+        ref.read(pollingPolicyProvider.notifier).state = PollingPolicy.paused;
         _notificationsService.setTimerIntervalLong();
         break;
       case AppLifecycleState.resumed:
-        myPeerInfoDataService.enableTimer();
-        knownPeersDataService.enableTimer();
+        ref.read(pollingPolicyProvider.notifier).state = PollingPolicy.active;
         _notificationsService.setTimerIntervalShort();
         break;
     }
@@ -185,8 +174,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 800) {
-          myPeerInfoDataService.enableTimer();
-          knownPeersDataService.enableTimer();
           return _buildWideAdaptiveScreen(constraints, context);
         }
 

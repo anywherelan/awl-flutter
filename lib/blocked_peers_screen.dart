@@ -1,25 +1,27 @@
-import 'package:anywherelan/api.dart';
 import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/providers.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class BlockedPeersScreen extends StatefulWidget {
+class BlockedPeersScreen extends ConsumerStatefulWidget {
   static String routeName = "/blocked_peers";
 
   const BlockedPeersScreen({super.key});
 
   @override
-  State<BlockedPeersScreen> createState() => _BlockedPeersScreenState();
+  ConsumerState<BlockedPeersScreen> createState() => _BlockedPeersScreenState();
 }
 
-class _BlockedPeersScreenState extends State<BlockedPeersScreen> {
+class _BlockedPeersScreenState extends ConsumerState<BlockedPeersScreen> {
+  late final Future<List<BlockedPeer>> _blockedPeers = ref.read(apiProvider).fetchBlockedPeers();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Blocked peers')),
       body: SafeArea(
         child: FutureBuilder<List<BlockedPeer>>(
-          future: fetchBlockedPeers(http.Client()),
+          future: _blockedPeers,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               final declinedPeers = snapshot.data!;

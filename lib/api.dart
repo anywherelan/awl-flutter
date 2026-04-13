@@ -31,200 +31,156 @@ const updateProxySettingsPath = "${v0Prefix}settings/set_proxy";
 const getP2pDebugInfoPath = "${v0Prefix}debug/p2p_info";
 const getDebugLogPath = "${v0Prefix}debug/log";
 
+// Base address of the AWL backend. Set once at startup by platform-specific
+// `initApp` code in `server_interop/`; read by [ApiClient] when building each
+// request URL.
 var serverAddress = "";
 
-Future<MyPeerInfo> fetchMyPeerInfo(http.Client client) async {
-  try {
-    final response = await client.get(Uri.parse(serverAddress + getMyPeerInfoPath));
-    final Map<String, dynamic> parsed = jsonDecode(response.body);
+/// HTTP client for the AWL backend REST API.
+///
+/// Wraps a [http.Client] and exposes one method per endpoint. The duplicated
+/// POST-JSON dance (build request → set content-type → send → parse-or-error)
+/// is absorbed into [_postJson] / [_postJsonOrError].
+class ApiClient {
+  ApiClient(this._client);
 
-    return MyPeerInfo.fromJson(parsed);
-  } catch (e, s) {
-    Error.throwWithStackTrace(Exception('Failed to fetchMyPeerInfo: $e'), s);
+  final http.Client _client;
+
+  Uri _uri(String path) => Uri.parse(serverAddress + path);
+
+  // ---- GETs ----
+
+  Future<MyPeerInfo> fetchMyPeerInfo() async {
+    try {
+      final response = await _client.get(_uri(getMyPeerInfoPath));
+      final Map<String, dynamic> parsed = jsonDecode(response.body);
+      return MyPeerInfo.fromJson(parsed);
+    } catch (e, s) {
+      Error.throwWithStackTrace(Exception('Failed to fetchMyPeerInfo: $e'), s);
+    }
   }
-}
 
-Future<List<KnownPeer>?> fetchKnownPeers(http.Client client) async {
-  try {
-    final response = await client.get(Uri.parse(serverAddress + getKnownPeersPath));
+  Future<List<KnownPeer>?> fetchKnownPeers() async {
+    try {
+      final response = await _client.get(_uri(getKnownPeersPath));
+      final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
+      return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
+    } catch (e, s) {
+      Error.throwWithStackTrace(Exception('Failed to fetchKnownPeers: $e'), s);
+    }
+  }
+
+  Future<ListAvailableProxiesResponse?> fetchAvailableProxies() async {
+    try {
+      final response = await _client.get(_uri(listAvailableProxiesPath));
+      final Map<String, dynamic> parsed = jsonDecode(response.body);
+      return ListAvailableProxiesResponse.fromJson(parsed);
+    } catch (e, s) {
+      Error.throwWithStackTrace(Exception('Failed to fetchAvailableProxies: $e'), s);
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchDebugInfo() async {
+    final response = await _client.get(_uri(getP2pDebugInfoPath));
+    final parsed = jsonDecode(response.body);
+    return parsed;
+  }
+
+  Future<String> fetchLogs() async {
+    final response = await _client.get(_uri(getDebugLogPath));
+    return response.body;
+  }
+
+  Future<List<AuthRequest>> fetchAuthRequests() async {
+    try {
+      final response = await _client.get(_uri(getAuthRequestsPath));
+      final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
+      return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
+    } catch (e, s) {
+      log('Failed to fetchAuthRequests', error: e, stackTrace: s, name: 'api');
+      return [];
+    }
+  }
+
+  Future<Uint8List> fetchExportedServerConfig() async {
+    final response = await _client.get(_uri(exportServerConfigPath));
+    return response.bodyBytes;
+  }
+
+  Future<List<BlockedPeer>> fetchBlockedPeers() async {
+    final response = await _client.get(_uri(getBlockedPeersPath));
     final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
-
-    return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
-  } catch (e, s) {
-    Error.throwWithStackTrace(Exception('Failed to fetchKnownPeers: $e'), s);
-  }
-}
-
-Future<ListAvailableProxiesResponse?> fetchAvailableProxies(http.Client client) async {
-  try {
-    final response = await client.get(Uri.parse(serverAddress + listAvailableProxiesPath));
-    final Map<String, dynamic> parsed = jsonDecode(response.body);
-
-    return ListAvailableProxiesResponse.fromJson(parsed);
-  } catch (e, s) {
-    Error.throwWithStackTrace(Exception('Failed to fetchAvailableProxies: $e'), s);
-  }
-}
-
-Future<Map<String, dynamic>?> fetchDebugInfo(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + getP2pDebugInfoPath));
-  //  final parsed = await compute(jsonDecode, response.body);
-  final parsed = jsonDecode(response.body);
-
-  return parsed;
-}
-
-Future<String> fetchLogs(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + getDebugLogPath));
-
-  return response.body;
-}
-
-Future<List<AuthRequest>> fetchAuthRequests(http.Client client) async {
-  try {
-    final response = await client.get(Uri.parse(serverAddress + getAuthRequestsPath));
-    final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
-
-    return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
-  } catch (e, s) {
-    log('Failed to fetchAuthRequests', error: e, stackTrace: s, name: 'api');
-    return [];
-  }
-}
-
-Future<String> sendFriendRequest(http.Client client, String peerID, String alias, String ipAddr) async {
-  var payload = FriendRequest(peerID, alias, ipAddr);
-
-  var request = http.Request("POST", Uri.parse(serverAddress + sendFriendRequestPath));
-  request.headers.addAll(<String, String>{"Content-Type": "application/json"});
-  request.body = jsonEncode(payload.toJson());
-
-  final response = await client.send(request);
-  var responseBody = await response.stream.bytesToString();
-  if (response.statusCode != 200) {
-    final Map<String, dynamic> parsed = jsonDecode(responseBody);
-    return ApiError.fromJson(parsed).error;
+    return parsed.map<BlockedPeer>((json) => BlockedPeer.fromJson(json)).toList();
   }
 
-  return "";
-}
+  // ---- POSTs ----
 
-Future<String> replyFriendRequest(
-  http.Client client,
-  String peerID,
-  String alias,
-  bool decline,
-  String ipAddr,
-) async {
-  var payload = FriendRequestReply(peerID, alias, decline, ipAddr);
-
-  var request = http.Request("POST", Uri.parse(serverAddress + acceptPeerInvitationPath));
-  request.headers.addAll(<String, String>{"Content-Type": "application/json"});
-  request.body = jsonEncode(payload.toJson());
-
-  final response = await client.send(request);
-  var responseBody = await response.stream.bytesToString();
-  if (response.statusCode != 200) {
-    final Map<String, dynamic> parsed = jsonDecode(responseBody);
-    return ApiError.fromJson(parsed).error;
+  Future<String> sendFriendRequest(String peerID, String alias, String ipAddr) {
+    return _postJsonOrError(sendFriendRequestPath, FriendRequest(peerID, alias, ipAddr).toJson());
   }
 
-  return "";
-}
-
-Future<Uint8List> fetchExportedServerConfig(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + exportServerConfigPath));
-
-  return response.bodyBytes;
-}
-
-Future<KnownPeerConfig> fetchKnownPeerConfig(http.Client client, String peerID) async {
-  var payload = PeerIDRequest(peerID);
-
-  var request = http.Request("POST", Uri.parse(serverAddress + getKnownPeerSettingsPath));
-  request.headers.addAll(<String, String>{"Content-Type": "application/json"});
-  request.body = jsonEncode(payload.toJson());
-
-  final response = await client.send(request);
-  var responseBody = await response.stream.bytesToString();
-  if (response.statusCode != 200) {
-    final Map<String, dynamic> parsed = jsonDecode(responseBody);
-    throw Exception(ApiError.fromJson(parsed).error);
+  Future<String> replyFriendRequest(String peerID, String alias, bool decline, String ipAddr) {
+    return _postJsonOrError(
+      acceptPeerInvitationPath,
+      FriendRequestReply(peerID, alias, decline, ipAddr).toJson(),
+    );
   }
 
-  final Map<String, dynamic> parsed = jsonDecode(responseBody);
-  return KnownPeerConfig.fromJson(parsed);
-}
-
-Future<String> updateKnownPeerConfig(http.Client client, UpdateKnownPeerConfigRequest payload) async {
-  var request = http.Request("POST", Uri.parse(serverAddress + updatePeerSettingsPath));
-  request.headers.addAll(<String, String>{"Content-Type": "application/json"});
-  request.body = jsonEncode(payload.toJson());
-
-  final response = await client.send(request);
-  var responseBody = await response.stream.bytesToString();
-  if (response.statusCode != 200) {
-    final Map<String, dynamic> parsed = jsonDecode(responseBody);
-    return ApiError.fromJson(parsed).error;
+  Future<KnownPeerConfig> fetchKnownPeerConfig(String peerID) async {
+    final body = await _postJson(getKnownPeerSettingsPath, PeerIDRequest(peerID).toJson());
+    final Map<String, dynamic> parsed = jsonDecode(body);
+    return KnownPeerConfig.fromJson(parsed);
   }
 
-  return "";
-}
-
-Future<String> updateMySettings(http.Client client, String name) async {
-  var payload = {"Name": name};
-
-  var request = http.Request("POST", Uri.parse(serverAddress + updateMyInfoPath));
-  request.headers.addAll(<String, String>{"Content-Type": "application/json"});
-  request.body = jsonEncode(payload);
-
-  final response = await client.send(request);
-  var responseBody = await response.stream.bytesToString();
-  if (response.statusCode != 200) {
-    final Map<String, dynamic> parsed = jsonDecode(responseBody);
-    return ApiError.fromJson(parsed).error;
+  Future<String> updateKnownPeerConfig(UpdateKnownPeerConfigRequest payload) {
+    return _postJsonOrError(updatePeerSettingsPath, payload.toJson());
   }
 
-  return "";
-}
-
-Future<String> updateProxySettings(http.Client client, String usingPeerID) async {
-  var payload = {"UsingPeerID": usingPeerID};
-
-  var request = http.Request("POST", Uri.parse(serverAddress + updateProxySettingsPath));
-  request.headers.addAll(<String, String>{"Content-Type": "application/json"});
-  request.body = jsonEncode(payload);
-
-  final response = await client.send(request);
-  var responseBody = await response.stream.bytesToString();
-  if (response.statusCode != 200) {
-    final Map<String, dynamic> parsed = jsonDecode(responseBody);
-    return ApiError.fromJson(parsed).error;
+  Future<String> updateMySettings(String name) {
+    return _postJsonOrError(updateMyInfoPath, {"Name": name});
   }
 
-  return "";
-}
-
-Future<String> removePeer(http.Client client, String peerID) async {
-  var payload = PeerIDRequest(peerID);
-
-  var request = http.Request("POST", Uri.parse(serverAddress + removePeerSettingsPath));
-  request.headers.addAll(<String, String>{"Content-Type": "application/json"});
-  request.body = jsonEncode(payload.toJson());
-
-  final response = await client.send(request);
-  var responseBody = await response.stream.bytesToString();
-  if (response.statusCode != 200) {
-    final Map<String, dynamic> parsed = jsonDecode(responseBody);
-    return ApiError.fromJson(parsed).error;
+  Future<String> updateProxySettings(String usingPeerID) {
+    return _postJsonOrError(updateProxySettingsPath, {"UsingPeerID": usingPeerID});
   }
 
-  return "";
-}
+  Future<String> removePeer(String peerID) {
+    return _postJsonOrError(removePeerSettingsPath, PeerIDRequest(peerID).toJson());
+  }
 
-Future<List<BlockedPeer>> fetchBlockedPeers(http.Client client) async {
-  final response = await client.get(Uri.parse(serverAddress + getBlockedPeersPath));
-  final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
+  // ---- private helpers ----
 
-  return parsed.map<BlockedPeer>((json) => BlockedPeer.fromJson(json)).toList();
+  /// POSTs a JSON payload, returns the raw response body. Throws on non-200
+  /// with the server's [ApiError.error] as the exception message.
+  Future<String> _postJson(String path, Map<String, dynamic> payload) async {
+    final request = http.Request("POST", _uri(path));
+    request.headers["Content-Type"] = "application/json";
+    request.body = jsonEncode(payload);
+
+    final response = await _client.send(request);
+    final body = await response.stream.bytesToString();
+    if (response.statusCode != 200) {
+      final Map<String, dynamic> parsed = jsonDecode(body);
+      throw Exception(ApiError.fromJson(parsed).error);
+    }
+    return body;
+  }
+
+  /// POSTs a JSON payload, returns "" on success or the server's
+  /// [ApiError.error] string on non-200. Matches the existing convention for
+  /// mutation endpoints that want to surface the error string to the UI
+  /// instead of throwing.
+  Future<String> _postJsonOrError(String path, Map<String, dynamic> payload) async {
+    final request = http.Request("POST", _uri(path));
+    request.headers["Content-Type"] = "application/json";
+    request.body = jsonEncode(payload);
+
+    final response = await _client.send(request);
+    final body = await response.stream.bytesToString();
+    if (response.statusCode != 200) {
+      final Map<String, dynamic> parsed = jsonDecode(body);
+      return ApiError.fromJson(parsed).error;
+    }
+    return "";
+  }
 }

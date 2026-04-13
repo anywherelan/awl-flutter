@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:anywherelan/api.dart' as api;
+import 'package:anywherelan/api.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -22,10 +22,12 @@ void main() {
   });
 
   late MockHttpClient client;
+  late ApiClient api;
 
   setUp(() {
     client = MockHttpClient();
-    api.serverAddress = _baseUrl;
+    api = ApiClient(client);
+    serverAddress = _baseUrl;
   });
 
   group('GET endpoints', () {
@@ -34,17 +36,17 @@ void main() {
         () => client.get(any()),
       ).thenAnswer((_) async => http.Response(loadFixture('my_peer_info.json'), 200));
 
-      final info = await api.fetchMyPeerInfo(client);
+      final info = await api.fetchMyPeerInfo();
 
       expect(info.peerID, isNotEmpty);
       expect(info.serverVersion, 'dev');
-      verify(() => client.get(Uri.parse('$_baseUrl${api.getMyPeerInfoPath}'))).called(1);
+      verify(() => client.get(Uri.parse('$_baseUrl$getMyPeerInfoPath'))).called(1);
     });
 
     test('fetchMyPeerInfo throws on malformed JSON', () async {
       when(() => client.get(any())).thenAnswer((_) async => http.Response('not json', 200));
 
-      await expectLater(api.fetchMyPeerInfo(client), throwsA(isA<Exception>()));
+      await expectLater(api.fetchMyPeerInfo(), throwsA(isA<Exception>()));
     });
 
     test('fetchKnownPeers parses fixture list', () async {
@@ -52,18 +54,18 @@ void main() {
         () => client.get(any()),
       ).thenAnswer((_) async => http.Response(loadFixture('known_peers.json'), 200));
 
-      final peers = await api.fetchKnownPeers(client);
+      final peers = await api.fetchKnownPeers();
 
       expect(peers, isNotNull);
       expect(peers!, hasLength(greaterThanOrEqualTo(1)));
       expect(peers.first.peerID, isNotEmpty);
-      verify(() => client.get(Uri.parse('$_baseUrl${api.getKnownPeersPath}'))).called(1);
+      verify(() => client.get(Uri.parse('$_baseUrl$getKnownPeersPath'))).called(1);
     });
 
     test('fetchKnownPeers throws on malformed JSON', () async {
       when(() => client.get(any())).thenAnswer((_) async => http.Response('garbage', 200));
 
-      await expectLater(api.fetchKnownPeers(client), throwsA(isA<Exception>()));
+      await expectLater(api.fetchKnownPeers(), throwsA(isA<Exception>()));
     });
 
     test('fetchAvailableProxies parses fixture', () async {
@@ -71,11 +73,11 @@ void main() {
         () => client.get(any()),
       ).thenAnswer((_) async => http.Response(loadFixture('available_proxies.json'), 200));
 
-      final resp = await api.fetchAvailableProxies(client);
+      final resp = await api.fetchAvailableProxies();
 
       expect(resp, isNotNull);
       expect(resp!.proxies, isA<List<AvailableProxy>>());
-      verify(() => client.get(Uri.parse('$_baseUrl${api.listAvailableProxiesPath}'))).called(1);
+      verify(() => client.get(Uri.parse('$_baseUrl$listAvailableProxiesPath'))).called(1);
     });
 
     test('fetchAuthRequests returns empty list on empty fixture', () async {
@@ -83,7 +85,7 @@ void main() {
         () => client.get(any()),
       ).thenAnswer((_) async => http.Response(loadFixture('auth_requests.json'), 200));
 
-      final reqs = await api.fetchAuthRequests(client);
+      final reqs = await api.fetchAuthRequests();
       expect(reqs, isEmpty);
     });
 
@@ -92,18 +94,18 @@ void main() {
         () => client.get(any()),
       ).thenAnswer((_) async => http.Response(loadFixture('auth_requests_sample.json'), 200));
 
-      final reqs = await api.fetchAuthRequests(client);
+      final reqs = await api.fetchAuthRequests();
       expect(reqs, hasLength(1));
       expect(reqs.first.name, 'incoming-friend');
     });
 
     test('fetchAuthRequests returns empty list on error (does not throw)', () async {
-      // Documented behavior in lib/api.dart:92-107: errors are logged and an
-      // empty list is returned, which keeps the notifications poller from
-      // crashing the UI when the server is unreachable.
+      // Documented behavior in lib/api.dart: errors are logged and an empty
+      // list is returned, which keeps the notifications poller from crashing
+      // the UI when the server is unreachable.
       when(() => client.get(any())).thenAnswer((_) async => http.Response('not json', 200));
 
-      final reqs = await api.fetchAuthRequests(client);
+      final reqs = await api.fetchAuthRequests();
       expect(reqs, isEmpty);
     });
 
@@ -112,7 +114,7 @@ void main() {
         () => client.get(any()),
       ).thenAnswer((_) async => http.Response(loadFixture('blocked_peers_sample.json'), 200));
 
-      final blocked = await api.fetchBlockedPeers(client);
+      final blocked = await api.fetchBlockedPeers();
       expect(blocked, hasLength(1));
       expect(blocked.first.displayName, 'blocked-peer');
     });
@@ -120,17 +122,17 @@ void main() {
     test('fetchDebugInfo parses arbitrary JSON', () async {
       when(() => client.get(any())).thenAnswer((_) async => http.Response('{"foo": "bar", "n": 42}', 200));
 
-      final result = await api.fetchDebugInfo(client);
+      final result = await api.fetchDebugInfo();
       expect(result, isNotNull);
       expect(result!['foo'], 'bar');
       expect(result['n'], 42);
-      verify(() => client.get(Uri.parse('$_baseUrl${api.getP2pDebugInfoPath}'))).called(1);
+      verify(() => client.get(Uri.parse('$_baseUrl$getP2pDebugInfoPath'))).called(1);
     });
 
     test('fetchLogs returns the response body verbatim', () async {
       when(() => client.get(any())).thenAnswer((_) async => http.Response('line1\nline2\n', 200));
 
-      final logs = await api.fetchLogs(client);
+      final logs = await api.fetchLogs();
       expect(logs, 'line1\nline2\n');
     });
 
@@ -138,7 +140,7 @@ void main() {
       final bytes = [0x42, 0x00, 0xFF, 0x10];
       when(() => client.get(any())).thenAnswer((_) async => http.Response.bytes(bytes, 200));
 
-      final result = await api.fetchExportedServerConfig(client);
+      final result = await api.fetchExportedServerConfig();
       expect(result, bytes);
     });
   });
@@ -147,12 +149,12 @@ void main() {
     test('sendFriendRequest returns empty string on success', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
 
-      final result = await api.sendFriendRequest(client, 'pid', 'alias', '10.0.0.1');
+      final result = await api.sendFriendRequest('pid', 'alias', '10.0.0.1');
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
       expect(captured.method, 'POST');
-      expect(captured.url.toString(), '$_baseUrl${api.sendFriendRequestPath}');
+      expect(captured.url.toString(), '$_baseUrl$sendFriendRequestPath');
       expect(captured.headers['Content-Type'], 'application/json');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['PeerID'], 'pid');
@@ -165,18 +167,18 @@ void main() {
         () => client.send(any()),
       ).thenAnswer((_) async => _streamed('{"error": "boom", "message": ""}', 400));
 
-      final result = await api.sendFriendRequest(client, 'pid', 'alias', '10.0.0.1');
+      final result = await api.sendFriendRequest('pid', 'alias', '10.0.0.1');
       expect(result, 'boom');
     });
 
     test('replyFriendRequest sends decline flag and POSTs to accept_peer', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
 
-      final result = await api.replyFriendRequest(client, 'pid', 'alias', true, '10.0.0.1');
+      final result = await api.replyFriendRequest('pid', 'alias', true, '10.0.0.1');
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.acceptPeerInvitationPath}');
+      expect(captured.url.toString(), '$_baseUrl$acceptPeerInvitationPath');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['Decline'], true);
     });
@@ -186,7 +188,7 @@ void main() {
         () => client.send(any()),
       ).thenAnswer((_) async => _streamed('{"error": "nope", "message": ""}', 500));
 
-      final result = await api.replyFriendRequest(client, 'pid', 'alias', false, '10.0.0.1');
+      final result = await api.replyFriendRequest('pid', 'alias', false, '10.0.0.1');
       expect(result, 'nope');
     });
 
@@ -195,7 +197,7 @@ void main() {
         () => client.send(any()),
       ).thenAnswer((_) async => _streamed(loadFixture('known_peer_config.json'), 200));
 
-      final cfg = await api.fetchKnownPeerConfig(client, 'some-peer-id');
+      final cfg = await api.fetchKnownPeerConfig('some-peer-id');
       expect(cfg.name, 'awl-tester');
       expect(cfg.alias, 'awl-tester');
     });
@@ -206,7 +208,7 @@ void main() {
       ).thenAnswer((_) async => _streamed('{"error": "peer not found", "message": ""}', 404));
 
       await expectLater(
-        api.fetchKnownPeerConfig(client, 'missing'),
+        api.fetchKnownPeerConfig('missing'),
         throwsA(isA<Exception>().having((e) => e.toString(), 'toString', contains('peer not found'))),
       );
     });
@@ -215,11 +217,11 @@ void main() {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
 
       final payload = UpdateKnownPeerConfigRequest('pid', 'alias', 'domain', '10.0.0.1', true);
-      final result = await api.updateKnownPeerConfig(client, payload);
+      final result = await api.updateKnownPeerConfig(payload);
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.updatePeerSettingsPath}');
+      expect(captured.url.toString(), '$_baseUrl$updatePeerSettingsPath');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['PeerID'], 'pid');
       expect(decoded['Alias'], 'alias');
@@ -231,18 +233,18 @@ void main() {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('{"error": "invalid"}', 422));
 
       final payload = UpdateKnownPeerConfigRequest('pid', 'alias', 'domain', '10.0.0.1', true);
-      final result = await api.updateKnownPeerConfig(client, payload);
+      final result = await api.updateKnownPeerConfig(payload);
       expect(result, 'invalid');
     });
 
     test('updateMySettings sends Name and returns empty on success', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
 
-      final result = await api.updateMySettings(client, 'newname');
+      final result = await api.updateMySettings('newname');
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.updateMyInfoPath}');
+      expect(captured.url.toString(), '$_baseUrl$updateMyInfoPath');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['Name'], 'newname');
     });
@@ -250,18 +252,18 @@ void main() {
     test('updateMySettings returns error on non-200', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('{"error": "name taken"}', 409));
 
-      final result = await api.updateMySettings(client, 'newname');
+      final result = await api.updateMySettings('newname');
       expect(result, 'name taken');
     });
 
     test('updateProxySettings sends UsingPeerID and returns empty on success', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
 
-      final result = await api.updateProxySettings(client, 'exit-peer-id');
+      final result = await api.updateProxySettings('exit-peer-id');
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.updateProxySettingsPath}');
+      expect(captured.url.toString(), '$_baseUrl$updateProxySettingsPath');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['UsingPeerID'], 'exit-peer-id');
     });
@@ -269,18 +271,18 @@ void main() {
     test('updateProxySettings returns error on non-200', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('{"error": "no such peer"}', 404));
 
-      final result = await api.updateProxySettings(client, 'pid');
+      final result = await api.updateProxySettings('pid');
       expect(result, 'no such peer');
     });
 
     test('removePeer sends PeerID and returns empty on success', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
 
-      final result = await api.removePeer(client, 'pid');
+      final result = await api.removePeer('pid');
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
-      expect(captured.url.toString(), '$_baseUrl${api.removePeerSettingsPath}');
+      expect(captured.url.toString(), '$_baseUrl$removePeerSettingsPath');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['PeerID'], 'pid');
     });
@@ -288,7 +290,7 @@ void main() {
     test('removePeer returns error on non-200', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('{"error": "cannot remove"}', 500));
 
-      final result = await api.removePeer(client, 'pid');
+      final result = await api.removePeer('pid');
       expect(result, 'cannot remove');
     });
   });

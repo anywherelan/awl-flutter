@@ -1,29 +1,28 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:anywherelan/api.dart';
-import 'package:anywherelan/data_service.dart';
+import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class AppSettingsScreen extends StatefulWidget {
+class AppSettingsScreen extends ConsumerStatefulWidget {
   static String routeName = "/settings";
 
   const AppSettingsScreen({super.key});
 
   @override
-  State<AppSettingsScreen> createState() => _AppSettingsScreenState();
+  ConsumerState<AppSettingsScreen> createState() => _AppSettingsScreenState();
 }
 
-class _AppSettingsScreenState extends State<AppSettingsScreen> {
+class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   Future<PickerResponse> _exportSettings() async {
-    final exportedSettings = await fetchExportedServerConfig(http.Client());
+    final exportedSettings = await ref.read(apiProvider).fetchExportedServerConfig();
     try {
       String? response;
       if (kIsWeb) {
@@ -62,6 +61,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   }
 
   Future<PickerResponse> _importSettings() async {
+    final container = ProviderScope.containerOf(this.context);
     try {
       FilePickerResult? result;
       if (kIsWeb) {
@@ -96,7 +96,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         return PickerResponse(false, startResponse);
       }
 
-      fetchAllDataAfterStart();
+      unawaited(refreshProvidersRepeated(container));
 
       return PickerResponse(true, "Imported file $fileName");
     } on Exception catch (e) {

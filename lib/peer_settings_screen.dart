@@ -1,16 +1,15 @@
 import 'dart:async';
 
-import 'package:anywherelan/api.dart';
-import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Adapter for [PeerSettingsView] that loads the peer config from the
 /// backend and wires save/remove callbacks. The pure presentation logic
 /// lives in [PeerSettingsView].
-class KnownPeerSettingsScreen extends StatefulWidget {
+class KnownPeerSettingsScreen extends ConsumerStatefulWidget {
   static String routeFor(String peerId) => '/peers/$peerId/settings';
 
   static String peerIdFromRoute(String route) {
@@ -22,10 +21,10 @@ class KnownPeerSettingsScreen extends StatefulWidget {
   const KnownPeerSettingsScreen({super.key});
 
   @override
-  State<KnownPeerSettingsScreen> createState() => _KnownPeerSettingsScreenState();
+  ConsumerState<KnownPeerSettingsScreen> createState() => _KnownPeerSettingsScreenState();
 }
 
-class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
+class _KnownPeerSettingsScreenState extends ConsumerState<KnownPeerSettingsScreen> {
   bool _hasFetchedConfig = false;
   String? _loadError;
   late String _peerID;
@@ -33,7 +32,7 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
 
   void _refreshPeerConfig() async {
     try {
-      var peerConfig = await fetchKnownPeerConfig(http.Client(), _peerID);
+      var peerConfig = await ref.read(apiProvider).fetchKnownPeerConfig(_peerID);
       if (!mounted) {
         return;
       }
@@ -51,13 +50,13 @@ class _KnownPeerSettingsScreenState extends State<KnownPeerSettingsScreen> {
   }
 
   Future<String> _onSave(UpdateKnownPeerConfigRequest payload) {
-    return updateKnownPeerConfig(http.Client(), payload);
+    return ref.read(apiProvider).updateKnownPeerConfig(payload);
   }
 
   Future<String> _onRemove() async {
-    final response = await removePeer(http.Client(), _peerID);
+    final response = await ref.read(apiProvider).removePeer(_peerID);
     if (response == "") {
-      knownPeersDataService.fetchData();
+      await ref.read(knownPeersProvider.notifier).refresh();
     }
     return response;
   }

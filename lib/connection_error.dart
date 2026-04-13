@@ -1,10 +1,11 @@
+import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop.dart' show initServer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
-import 'data_service.dart' show fetchAllDataAfterStart;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Widget showDefaultServerConnectionError(BuildContext context) {
+  final container = ProviderScope.containerOf(context);
   return ServerConnectionError(
     onStartServer: kIsWeb
         ? null
@@ -17,7 +18,7 @@ Widget showDefaultServerConnectionError(BuildContext context) {
                 SnackBar(backgroundColor: Theme.of(context).colorScheme.error, content: Text(startResponse)),
               );
             } else {
-              await fetchAllDataAfterStart();
+              await refreshProvidersRepeated(container);
             }
           },
   );
