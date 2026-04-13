@@ -11,7 +11,7 @@ concurrency:
 
 env:
   # Pinned to match the Flutter version used by the release pipeline.
-  FLUTTER_VERSION: 3.38.x
+  FLUTTER_VERSION: 3.38.10
 
 jobs:
   test:

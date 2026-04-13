@@ -44,3 +44,4 @@ app.*.map.json
 
 # Added by hand
 .gradle
+android/app/src/main/libs/*.aar
