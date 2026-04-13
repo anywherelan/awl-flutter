@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import 'package:anywherelan/api.dart';
+import 'package:anywherelan/providers.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -19,14 +19,14 @@ void showAddPeerDialog(BuildContext context) {
   );
 }
 
-class AddPeerForm extends StatefulWidget {
+class AddPeerForm extends ConsumerStatefulWidget {
   const AddPeerForm({super.key});
 
   @override
-  State<AddPeerForm> createState() => _AddPeerFormState();
+  ConsumerState<AddPeerForm> createState() => _AddPeerFormState();
 }
 
-class _AddPeerFormState extends State<AddPeerForm> {
+class _AddPeerFormState extends ConsumerState<AddPeerForm> {
   final _peerIdTextController = TextEditingController();
   final _aliasTextController = TextEditingController();
   final _ipAddrTextController = TextEditingController();
@@ -40,12 +40,9 @@ class _AddPeerFormState extends State<AddPeerForm> {
       return;
     }
 
-    var response = await sendFriendRequest(
-      http.Client(),
-      _peerIdTextController.text,
-      _aliasTextController.text,
-      _ipAddrTextController.text,
-    );
+    var response = await ref
+        .read(apiProvider)
+        .sendFriendRequest(_peerIdTextController.text, _aliasTextController.text, _ipAddrTextController.text);
     if (!mounted) return;
     if (response == "") {
       // "Invitation was sent"

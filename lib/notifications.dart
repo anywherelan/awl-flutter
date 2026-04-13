@@ -5,11 +5,12 @@ import 'dart:typed_data';
 
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/providers.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 class NotificationsService {
@@ -22,7 +23,9 @@ class NotificationsService {
 
   List<AuthRequest> _lastRequests = [];
 
-  NotificationsService();
+  final ApiClient _api;
+
+  NotificationsService(this._api);
 
   void init() async {
     if (kIsWeb) {
@@ -71,7 +74,7 @@ class NotificationsService {
   }
 
   void _checkForNotifications() async {
-    var newRequests = await (fetchAuthRequests(http.Client()));
+    var newRequests = await _api.fetchAuthRequests();
     if (newRequests.isEmpty) {
       _lastRequests = newRequests;
       return;
@@ -170,16 +173,16 @@ Future _showAuthRequestDialog(AuthRequest req) async {
   );
 }
 
-class IncomingAuthRequestForm extends StatefulWidget {
+class IncomingAuthRequestForm extends ConsumerStatefulWidget {
   final AuthRequest request;
 
   const IncomingAuthRequestForm({super.key, required this.request});
 
   @override
-  State<IncomingAuthRequestForm> createState() => _IncomingAuthRequestFormState();
+  ConsumerState<IncomingAuthRequestForm> createState() => _IncomingAuthRequestFormState();
 }
 
-class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
+class _IncomingAuthRequestFormState extends ConsumerState<IncomingAuthRequestForm> {
   late TextEditingController _peerIdTextController;
   late TextEditingController _aliasTextController;
   late TextEditingController _ipAddrTextController;
@@ -188,13 +191,14 @@ class _IncomingAuthRequestFormState extends State<IncomingAuthRequestForm> {
   String? _serverError = "";
 
   void _sendRequest(bool decline) async {
-    var response = await replyFriendRequest(
-      http.Client(),
-      _peerIdTextController.text,
-      _aliasTextController.text,
-      decline,
-      _ipAddrTextController.text,
-    );
+    var response = await ref
+        .read(apiProvider)
+        .replyFriendRequest(
+          _peerIdTextController.text,
+          _aliasTextController.text,
+          decline,
+          _ipAddrTextController.text,
+        );
     if (!mounted) return;
     if (response == "") {
       Navigator.pop(context);

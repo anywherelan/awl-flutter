@@ -1,89 +1,49 @@
 import 'dart:async';
 
-import 'package:anywherelan/api.dart';
 import 'package:anywherelan/common.dart';
 import 'package:anywherelan/connection_error.dart';
-import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/providers.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Adapter for [StatusPageView] that wires the widget to the global
-/// [myPeerInfoDataService] / [availableProxiesDataService] singletons. The
-/// pure presentation logic lives in [StatusPageView] so it can be tested
-/// without those globals. This adapter will go away when ServerDataService
-/// is replaced.
-class StatusPage extends StatefulWidget {
+/// Adapter for [StatusPageView] that reads [myPeerInfoProvider] and
+/// [availableProxiesProvider] via Riverpod. The pure presentation logic
+/// lives in [StatusPageView].
+class StatusPage extends ConsumerStatefulWidget {
   const StatusPage({super.key});
 
   @override
-  State<StatusPage> createState() => _StatusPageState();
+  ConsumerState<StatusPage> createState() => _StatusPageState();
 }
 
-class _StatusPageState extends State<StatusPage> {
-  MyPeerInfo? _peerInfo;
-  ListAvailableProxiesResponse? _proxiesData;
+class _StatusPageState extends ConsumerState<StatusPage> {
   bool _openedSetupDialog = false;
 
-  void _onNewPeerInfo(MyPeerInfo newPeerInfo) async {
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _peerInfo = newPeerInfo;
-    });
-  }
-
-  void _onNewProxies(ListAvailableProxiesResponse? newProxies) async {
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _proxiesData = newProxies;
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    _peerInfo = myPeerInfoDataService.getData();
-    _proxiesData = availableProxiesDataService.getData();
-    myPeerInfoDataService.subscribe(_onNewPeerInfo);
-    availableProxiesDataService.subscribe(_onNewProxies);
-  }
-
-  @override
-  void dispose() {
-    myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-    availableProxiesDataService.unsubscribe(_onNewProxies);
-    super.dispose();
-  }
-
   Future<String> _onUpdateProxy(String usingPeerID) async {
-    var response = await updateProxySettings(http.Client(), usingPeerID);
+    final response = await ref.read(apiProvider).updateProxySettings(usingPeerID);
     if (response == "") {
-      var futures = <Future>[myPeerInfoDataService.fetchData(), availableProxiesDataService.fetchData()];
-      await Future.wait(futures);
+      await Future.wait([
+        ref.read(myPeerInfoProvider.notifier).refresh(),
+        ref.read(availableProxiesProvider.notifier).refresh(),
+      ]);
     }
     return response;
   }
 
-  Future<void> _onShowQR() async {
-    myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-    await showQRDialog(context, _peerInfo!.peerID, _peerInfo!.name);
-    myPeerInfoDataService.subscribe(_onNewPeerInfo);
+  Future<void> _onShowQR(MyPeerInfo peerInfo) async {
+    await showQRDialog(context, peerInfo.peerID, peerInfo.name);
   }
 
-  Future<void> _onShowSettings({bool firstSetup = false}) async {
-    myPeerInfoDataService.unsubscribe(_onNewPeerInfo);
-    await showSettingsDialog(context, _peerInfo, firstSetup);
-    myPeerInfoDataService.subscribe(_onNewPeerInfo);
+  Future<void> _onShowSettings(MyPeerInfo? peerInfo, {bool firstSetup = false}) async {
+    await showSettingsDialog(context, peerInfo, firstSetup);
   }
 
   @override
   Widget build(BuildContext context) {
+    final peerInfo = ref.watch(myPeerInfoProvider).valueOrNull;
+    final proxiesData = ref.watch(availableProxiesProvider).valueOrNull;
+
     return ValueListenableBuilder<bool>(
       valueListenable: isServerAvailable,
       builder: (context, isAvailable, child) {
@@ -92,23 +52,21 @@ class _StatusPageState extends State<StatusPage> {
         }
 
         // First-run auto-popup: open settings dialog when the server is up
-        // but the user hasn't picked a name yet. Lives in the adapter because
-        // it touches the global subscribe/unsubscribe dance.
-        final info = _peerInfo;
-        if (info != null) {
-          final serverIsUp = info.uptime.inMicroseconds > 0;
-          if (!_openedSetupDialog && serverIsUp && info.name.isEmpty) {
+        // but the user hasn't picked a name yet.
+        if (peerInfo != null) {
+          final serverIsUp = peerInfo.uptime.inMicroseconds > 0;
+          if (!_openedSetupDialog && serverIsUp && peerInfo.name.isEmpty) {
             _openedSetupDialog = true;
-            Future.delayed(Duration(seconds: 2), () => _onShowSettings(firstSetup: true));
+            Future.delayed(Duration(seconds: 2), () => _onShowSettings(peerInfo, firstSetup: true));
           }
         }
 
         return StatusPageView(
-          peerInfo: _peerInfo,
-          proxiesData: _proxiesData,
+          peerInfo: peerInfo,
+          proxiesData: proxiesData,
           onUpdateProxy: _onUpdateProxy,
-          onShowQR: _onShowQR,
-          onShowSettings: _onShowSettings,
+          onShowQR: peerInfo != null ? () => _onShowQR(peerInfo) : null,
+          onShowSettings: () => _onShowSettings(peerInfo),
         );
       },
     );
@@ -468,16 +426,16 @@ Future<void> showSettingsDialog(BuildContext context, MyPeerInfo? peerInfo, bool
   );
 }
 
-class SettingsForm extends StatefulWidget {
+class SettingsForm extends ConsumerStatefulWidget {
   final MyPeerInfo? peerInfo;
 
   const SettingsForm({super.key, this.peerInfo});
 
   @override
-  State<SettingsForm> createState() => _SettingsFormState();
+  ConsumerState<SettingsForm> createState() => _SettingsFormState();
 }
 
-class _SettingsFormState extends State<SettingsForm> {
+class _SettingsFormState extends ConsumerState<SettingsForm> {
   TextEditingController? _peerNameTextController;
   final _formKey = GlobalKey<FormState>();
 
@@ -488,7 +446,7 @@ class _SettingsFormState extends State<SettingsForm> {
       return;
     }
 
-    var response = await updateMySettings(http.Client(), _peerNameTextController!.text);
+    var response = await ref.read(apiProvider).updateMySettings(_peerNameTextController!.text);
     if (!mounted) return;
     if (response == "") {
       Navigator.pop(context);

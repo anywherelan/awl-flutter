@@ -1,25 +1,26 @@
-import 'package:anywherelan/api.dart';
+import 'dart:async';
+
 import 'package:anywherelan/blocked_peers_screen.dart';
-import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/json_widget/json_widget.dart';
+import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:anywherelan/settings_screen.dart' show AppSettingsScreen;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-class MyDrawer extends StatefulWidget {
+class MyDrawer extends ConsumerStatefulWidget {
   final bool isRetractable;
 
   const MyDrawer({super.key, this.isRetractable = true});
 
   @override
-  State<MyDrawer> createState() => _MyDrawerState();
+  ConsumerState<MyDrawer> createState() => _MyDrawerState();
 }
 
-class _MyDrawerState extends State<MyDrawer> {
+class _MyDrawerState extends ConsumerState<MyDrawer> {
   @override
   Widget build(BuildContext context) {
     var listView = Column(
@@ -31,17 +32,18 @@ class _MyDrawerState extends State<MyDrawer> {
             enabled: true,
             leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
             onTap: () async {
+              final container = ProviderScope.containerOf(context);
               var message = "";
               var isError = false;
               if (isServerRunning()) {
                 await stopServer();
                 message = "Server stopped";
-                fetchAllData();
+                unawaited(refreshProviders(container).catchError((_) {}));
               } else {
                 var startResponse = await initServer();
                 if (startResponse == "") {
                   message = "Server started";
-                  fetchAllDataAfterStart();
+                  unawaited(refreshProvidersRepeated(container));
                 } else {
                   message = "Failed to start server: $startResponse";
                   isError = true;
@@ -65,6 +67,7 @@ class _MyDrawerState extends State<MyDrawer> {
             enabled: true,
             leading: const Icon(Icons.refresh),
             onTap: () async {
+              final container = ProviderScope.containerOf(context);
               if (isServerRunning()) {
                 await stopServer();
               }
@@ -72,7 +75,7 @@ class _MyDrawerState extends State<MyDrawer> {
               if (!context.mounted) return;
               Navigator.of(context).pop();
               if (startResponse == "") {
-                fetchAllDataAfterStart();
+                unawaited(refreshProvidersRepeated(container));
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     backgroundColor: Theme.of(context).colorScheme.primary,
@@ -171,20 +174,20 @@ class _MyDrawerState extends State<MyDrawer> {
   }
 }
 
-class DebugScreen extends StatefulWidget {
+class DebugScreen extends ConsumerStatefulWidget {
   static String routeName = "/debug";
 
   const DebugScreen({super.key});
 
   @override
-  State<DebugScreen> createState() => _DebugScreenState();
+  ConsumerState<DebugScreen> createState() => _DebugScreenState();
 }
 
-class _DebugScreenState extends State<DebugScreen> {
+class _DebugScreenState extends ConsumerState<DebugScreen> {
   late Map<String, dynamic> _debugInfo = {};
 
   void _refreshDebugInfo() async {
-    var debugInfo = await fetchDebugInfo(http.Client());
+    var debugInfo = await ref.read(apiProvider).fetchDebugInfo();
     if (!mounted) {
       return;
     }
@@ -225,16 +228,16 @@ class _DebugScreenState extends State<DebugScreen> {
   }
 }
 
-class LogsScreen extends StatefulWidget {
+class LogsScreen extends ConsumerStatefulWidget {
   static String routeName = "/logs";
 
   const LogsScreen({super.key});
 
   @override
-  State<LogsScreen> createState() => _LogsScreenState();
+  ConsumerState<LogsScreen> createState() => _LogsScreenState();
 }
 
-class _LogsScreenState extends State<LogsScreen> {
+class _LogsScreenState extends ConsumerState<LogsScreen> {
   String _logsText = "";
   final ScrollController _scrollController = ScrollController();
   bool _needScroll = true;
@@ -247,7 +250,7 @@ class _LogsScreenState extends State<LogsScreen> {
   }
 
   void _refreshLogsText() async {
-    var logs = await fetchLogs(http.Client());
+    var logs = await ref.read(apiProvider).fetchLogs();
     if (!mounted) {
       return;
     }

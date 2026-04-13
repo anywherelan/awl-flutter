@@ -1,62 +1,29 @@
 import 'package:anywherelan/common.dart';
-import 'package:anywherelan/data_service.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/peer_settings_screen.dart' show KnownPeerSettingsScreen;
+import 'package:anywherelan/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'connection_error.dart';
 
-/// Adapter for [PeersListView] that wires the widget to the global
-/// [knownPeersDataService] singleton. The pure presentation logic lives in
-/// [PeersListView] so it can be tested without that global. This adapter will
-/// go away when ServerDataService is replaced.
-class PeersListPage extends StatefulWidget {
+/// Adapter for [PeersListView] that reads [knownPeersProvider] via Riverpod.
+/// The pure presentation logic lives in [PeersListView].
+class PeersListPage extends ConsumerWidget {
   const PeersListPage({super.key});
 
-  @override
-  State<PeersListPage> createState() => _PeersListPageState();
-}
-
-class _PeersListPageState extends State<PeersListPage> {
-  List<KnownPeer>? _knownPeers;
-
-  void _onNewKnownPeers(List<KnownPeer>? newPeers) async {
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _knownPeers = newPeers;
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    _knownPeers = knownPeersDataService.getData();
-    knownPeersDataService.subscribe(_onNewKnownPeers);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    knownPeersDataService.unsubscribe(_onNewKnownPeers);
-  }
-
-  Future<void> _onPeerSettings(KnownPeer peer) async {
-    knownPeersDataService.unsubscribe(_onNewKnownPeers);
+  Future<void> _onPeerSettings(BuildContext context, KnownPeer peer) async {
     await Navigator.of(context).pushNamed(KnownPeerSettingsScreen.routeFor(peer.peerID));
-    knownPeersDataService.subscribe(_onNewKnownPeers);
   }
 
-  Future<void> _onShowQR(KnownPeer peer) async {
-    knownPeersDataService.unsubscribe(_onNewKnownPeers);
+  Future<void> _onShowQR(BuildContext context, KnownPeer peer) async {
     await showQRDialog(context, peer.peerID, peer.displayName);
-    knownPeersDataService.subscribe(_onNewKnownPeers);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final knownPeers = ref.watch(knownPeersProvider).valueOrNull;
+
     return ValueListenableBuilder<bool>(
       valueListenable: isServerAvailable,
       builder: (context, isAvailable, child) {
@@ -64,7 +31,11 @@ class _PeersListPageState extends State<PeersListPage> {
           return Center(child: showDefaultServerConnectionError(context));
         }
 
-        return PeersListView(peers: _knownPeers, onPeerSettings: _onPeerSettings, onShowQR: _onShowQR);
+        return PeersListView(
+          peers: knownPeers,
+          onPeerSettings: (peer) => _onPeerSettings(context, peer),
+          onShowQR: (peer) => _onShowQR(context, peer),
+        );
       },
     );
   }
