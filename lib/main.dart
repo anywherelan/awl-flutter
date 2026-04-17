@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:anywherelan/add_peer.dart';
+import 'package:anywherelan/app_shell.dart';
 import 'package:anywherelan/blocked_peers_screen.dart';
+import 'package:anywherelan/diagnostics_screen.dart';
 import 'package:anywherelan/drawer.dart';
 import 'package:anywherelan/notifications.dart' as notif;
 import 'package:anywherelan/peer_settings_screen.dart';
@@ -89,6 +91,7 @@ class MyApp extends StatelessWidget {
       initialRoute: HomeScreen.routeName,
       routes: {
         HomeScreen.routeName: (context) => HomeScreen(title: 'Anywherelan'),
+        DiagnosticsScreen.routeName: (context) => DiagnosticsScreen(),
         DebugScreen.routeName: (context) => DebugScreen(),
         LogsScreen.routeName: (context) => LogsScreen(),
         AppSettingsScreen.routeName: (context) => AppSettingsScreen(),
@@ -200,7 +203,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ],
             ),
           ),
-          drawer: MyDrawer(),
+          drawer: MyDrawer(selected: AppSection.overview),
           body: SafeArea(
             bottom: false,
             child: TabBarView(
@@ -248,14 +251,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
     return Scaffold(
       appBar: AppBar(title: _buildAppBarTitle()),
-      drawer: hasScaffoldDrawer ? MyDrawer() : null,
+      drawer: hasScaffoldDrawer ? MyDrawer(selected: AppSection.overview) : null,
       body: SafeArea(
         bottom: false,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!hasScaffoldDrawer) MyDrawer(isRetractable: false),
+            if (!hasScaffoldDrawer) MyDrawer(selected: AppSection.overview, isRetractable: false),
             SizedBox(width: spaceBetweenItems),
             Flexible(
               flex: 4,

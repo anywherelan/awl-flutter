@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:anywherelan/app_shell.dart';
 import 'package:anywherelan/blocked_peers_screen.dart';
-import 'package:anywherelan/json_widget/json_widget.dart';
+import 'package:anywherelan/diagnostics_screen.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:anywherelan/settings_screen.dart' show AppSettingsScreen;
@@ -12,142 +13,199 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class MyDrawer extends ConsumerStatefulWidget {
+  final AppSection? selected;
   final bool isRetractable;
 
-  const MyDrawer({super.key, this.isRetractable = true});
+  const MyDrawer({super.key, this.selected, this.isRetractable = true});
 
   @override
   ConsumerState<MyDrawer> createState() => _MyDrawerState();
 }
 
 class _MyDrawerState extends ConsumerState<MyDrawer> {
+  static const _sectionOrder = [
+    AppSection.overview,
+    AppSection.settings,
+    AppSection.blockedPeers,
+    AppSection.diagnostics,
+  ];
+
   @override
   Widget build(BuildContext context) {
-    var listView = Column(
-      children: [
-        if (widget.isRetractable) const SizedBox(height: 16),
-        if (!kIsWeb)
-          ListTile(
-            title: Text(isServerRunning() ? "Stop" : "Start"),
-            enabled: true,
-            leading: Icon(isServerRunning() ? Icons.stop : Icons.play_arrow),
-            onTap: () async {
-              final container = ProviderScope.containerOf(context);
-              var message = "";
-              var isError = false;
-              if (isServerRunning()) {
-                await stopServer();
-                message = "Server stopped";
-                unawaited(refreshProviders(container).catchError((_) {}));
-              } else {
-                var startResponse = await initServer();
-                if (startResponse == "") {
-                  message = "Server started";
-                  unawaited(refreshProvidersRepeated(container));
-                } else {
-                  message = "Failed to start server: $startResponse";
-                  isError = true;
-                }
-              }
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  backgroundColor: isError
-                      ? Theme.of(context).colorScheme.error
-                      : Theme.of(context).colorScheme.primary,
-                  content: Text(message),
-                ),
-              );
-            },
-          ),
-        if (!kIsWeb && isServerRunning())
-          ListTile(
-            title: Text("Restart"),
-            enabled: true,
-            leading: const Icon(Icons.refresh),
-            onTap: () async {
-              final container = ProviderScope.containerOf(context);
-              if (isServerRunning()) {
-                await stopServer();
-              }
-              var startResponse = await initServer();
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-              if (startResponse == "") {
-                unawaited(refreshProvidersRepeated(container));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    content: Text("Server restarted"),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                    content: Text("Failed to start server: $startResponse"),
-                  ),
-                );
-              }
-            },
-          ),
-        ListTile(
-          title: Text("Blocked peers"),
-          enabled: kIsWeb || isServerRunning(),
-          leading: const Icon(Icons.app_blocking),
+    final serverGatedEnabled = kIsWeb || isServerRunning();
+    final selectedIndex = widget.selected != null ? _sectionOrder.indexOf(widget.selected!) : null;
+
+    final destinations = <NavigationDrawerDestination>[
+      const NavigationDrawerDestination(
+        icon: Icon(Icons.hub_outlined),
+        selectedIcon: Icon(Icons.hub),
+        label: Text('Overview'),
+      ),
+      const NavigationDrawerDestination(
+        icon: Icon(Icons.settings_outlined),
+        selectedIcon: Icon(Icons.settings),
+        label: Text('Settings'),
+      ),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.block_outlined),
+        selectedIcon: const Icon(Icons.block),
+        enabled: serverGatedEnabled,
+        label: const Text('Blocked peers'),
+      ),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.bug_report_outlined),
+        selectedIcon: const Icon(Icons.bug_report),
+        enabled: serverGatedEnabled,
+        label: const Text('Diagnostics'),
+      ),
+    ];
+
+    final children = <Widget>[
+      if (widget.isRetractable) const SizedBox(height: 12),
+      if (!kIsWeb)
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: _serverAction(context)),
+      if (!kIsWeb && isServerRunning())
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: _restartAction(context)),
+      if (!kIsWeb)
+        const Padding(padding: EdgeInsets.symmetric(horizontal: 28, vertical: 8), child: Divider(height: 1)),
+      ...destinations,
+      const Padding(padding: EdgeInsets.symmetric(horizontal: 28, vertical: 8), child: Divider(height: 1)),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: ListTile(
+          leading: const Icon(Icons.info_outline),
+          title: Text('About Anywherelan', style: Theme.of(context).textTheme.labelLarge),
           onTap: () {
-            Navigator.of(context).pushNamed(BlockedPeersScreen.routeName);
+            showAboutDialog(
+              context: context,
+              applicationIcon: Image.asset(
+                'assets/icons/awl.png',
+                width: 48,
+                height: 48,
+                filterQuality: FilterQuality.high,
+              ),
+              applicationName: 'Anywherelan',
+              applicationVersion: 'April 2026',
+              applicationLegalese: '© 2026 The Anywherelan Authors',
+              children: _buildAboutBox(),
+            );
           },
         ),
-        ListTile(
-          title: Text("Settings"),
-          enabled: true,
-          leading: const Icon(Icons.settings),
-          onTap: () {
-            Navigator.of(context).pushNamed(AppSettingsScreen.routeName);
-          },
-        ),
-        ListTile(
-          title: Text("Debug info"),
-          enabled: kIsWeb || isServerRunning(),
-          leading: const Icon(Icons.developer_mode),
-          onTap: () {
-            Navigator.of(context).pushNamed(DebugScreen.routeName);
-          },
-        ),
-        ListTile(
-          title: Text("Server logs"),
-          enabled: kIsWeb || isServerRunning(),
-          selected: false,
-          leading: const Icon(Icons.insert_drive_file),
-          onTap: () {
-            Navigator.of(context).pushNamed(LogsScreen.routeName);
-          },
-        ),
-        AboutListTile(
-          icon: Icon(Icons.info),
-          applicationIcon: Image.asset(
-            'assets/icons/awl.png',
-            width: 48,
-            height: 48,
-            filterQuality: FilterQuality.high,
-          ),
-          applicationName: 'Anywherelan',
-          applicationVersion: 'April 2026',
-          applicationLegalese: '© 2026 The Anywherelan Authors',
-          aboutBoxChildren: _buildAboutBox(),
-        ),
-      ],
+      ),
+    ];
+
+    final drawer = NavigationDrawer(
+      selectedIndex: (selectedIndex != null && selectedIndex >= 0) ? selectedIndex : null,
+      onDestinationSelected: (index) => _navigateToSection(context, _sectionOrder[index]),
+      children: children,
     );
 
     if (widget.isRetractable) {
-      return Drawer(child: SafeArea(child: listView));
+      return drawer;
+    }
+    return SizedBox(width: 280, child: drawer);
+  }
+
+  Widget _serverAction(BuildContext context) {
+    final running = isServerRunning();
+    return ListTile(
+      leading: Icon(running ? Icons.stop_circle_outlined : Icons.play_circle_outline),
+      title: Text(running ? 'Stop' : 'Start', style: Theme.of(context).textTheme.labelLarge),
+      onTap: () async {
+        final container = ProviderScope.containerOf(context);
+        _closeDrawerIfModal(context);
+        var message = '';
+        var isError = false;
+        if (isServerRunning()) {
+          await stopServer();
+          message = 'Server stopped';
+          unawaited(refreshProviders(container).catchError((_) {}));
+        } else {
+          final startResponse = await initServer();
+          if (startResponse == '') {
+            message = 'Server started';
+            unawaited(refreshProvidersRepeated(container));
+          } else {
+            message = 'Failed to start server: $startResponse';
+            isError = true;
+          }
+        }
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: isError
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.primary,
+            content: Text(message),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _restartAction(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.refresh),
+      title: Text('Restart', style: Theme.of(context).textTheme.labelLarge),
+      onTap: () async {
+        final container = ProviderScope.containerOf(context);
+        _closeDrawerIfModal(context);
+        if (isServerRunning()) await stopServer();
+        final startResponse = await initServer();
+        if (!context.mounted) return;
+        if (startResponse == '') {
+          unawaited(refreshProvidersRepeated(container));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              content: const Text('Server restarted'),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              content: Text('Failed to start server: $startResponse'),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  void _navigateToSection(BuildContext context, AppSection section) {
+    _closeDrawerIfModal(context);
+    if (section == widget.selected) return;
+    final navigator = Navigator.of(context);
+    if (section == AppSection.overview) {
+      navigator.popUntil((route) => route.isFirst);
+      return;
+    }
+    final routeName = _routeFor(section);
+    if (widget.selected == null || widget.selected == AppSection.overview) {
+      navigator.pushNamed(routeName);
     } else {
-      return ConstrainedBox(
-        constraints: const BoxConstraints.expand(width: 250),
-        child: Drawer(child: listView),
-      );
+      navigator.pushReplacementNamed(routeName);
+    }
+  }
+
+  static String _routeFor(AppSection section) {
+    switch (section) {
+      case AppSection.overview:
+        return '/';
+      case AppSection.settings:
+        return AppSettingsScreen.routeName;
+      case AppSection.blockedPeers:
+        return BlockedPeersScreen.routeName;
+      case AppSection.diagnostics:
+        return DiagnosticsScreen.routeName;
+    }
+  }
+
+  void _closeDrawerIfModal(BuildContext context) {
+    final scaffold = Scaffold.maybeOf(context);
+    if (scaffold != null && scaffold.isDrawerOpen) {
+      Navigator.of(context).pop();
     }
   }
 
@@ -171,144 +229,5 @@ class _MyDrawerState extends ConsumerState<MyDrawer> {
         ),
       ),
     ];
-  }
-}
-
-class DebugScreen extends ConsumerStatefulWidget {
-  static String routeName = "/debug";
-
-  const DebugScreen({super.key});
-
-  @override
-  ConsumerState<DebugScreen> createState() => _DebugScreenState();
-}
-
-class _DebugScreenState extends ConsumerState<DebugScreen> {
-  late Map<String, dynamic> _debugInfo = {};
-
-  void _refreshDebugInfo() async {
-    var debugInfo = await ref.read(apiProvider).fetchDebugInfo();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _debugInfo = debugInfo!;
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    _refreshDebugInfo();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Debug info'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: "Refresh debug info",
-            onPressed: () {
-              _refreshDebugInfo();
-            },
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(child: JsonViewerWidget(_debugInfo, openOnStart: true)),
-        ),
-      ),
-    );
-  }
-}
-
-class LogsScreen extends ConsumerStatefulWidget {
-  static String routeName = "/logs";
-
-  const LogsScreen({super.key});
-
-  @override
-  ConsumerState<LogsScreen> createState() => _LogsScreenState();
-}
-
-class _LogsScreenState extends ConsumerState<LogsScreen> {
-  String _logsText = "";
-  final ScrollController _scrollController = ScrollController();
-  bool _needScroll = true;
-
-  Future<void> _scrollToEnd() async {
-    if (_needScroll && _logsText.isNotEmpty) {
-      _needScroll = false;
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-    }
-  }
-
-  void _refreshLogsText() async {
-    var logs = await ref.read(apiProvider).fetchLogs();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _logsText = logs;
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    _refreshLogsText();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      _scrollToEnd();
-    });
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Server logs'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.arrow_downward),
-            tooltip: "Scroll to bottom",
-            onPressed: () {
-              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.arrow_upward),
-            tooltip: "Scroll to top",
-            onPressed: () {
-              _scrollController.jumpTo(_scrollController.position.minScrollExtent);
-            },
-          ),
-          SizedBox(width: 20),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: "Refresh log",
-            onPressed: () {
-              _refreshLogsText();
-            },
-          ),
-          SizedBox(width: 10),
-        ],
-      ),
-      body: SafeArea(
-        bottom: false,
-        right: false,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(controller: _scrollController, child: SelectableText(_logsText)),
-        ),
-      ),
-    );
   }
 }

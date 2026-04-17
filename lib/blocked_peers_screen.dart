@@ -1,3 +1,4 @@
+import 'package:anywherelan/app_shell.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:flutter/material.dart';
@@ -17,42 +18,41 @@ class _BlockedPeersScreenState extends ConsumerState<BlockedPeersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppShell(
+      selected: AppSection.blockedPeers,
       appBar: AppBar(title: const Text('Blocked peers')),
-      body: SafeArea(
-        child: FutureBuilder<List<BlockedPeer>>(
-          future: _blockedPeers,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              final declinedPeers = snapshot.data!;
-              List<Widget> peersWidgets = [];
-              for (var peer in declinedPeers) {
-                peersWidgets.add(_buildPeerCard(context, peer));
-              }
-
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: SelectableText(
-                      "All incoming requests from these peers are blocked. "
-                      "Send friend invitation to a peer to remove it from the list.",
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Expanded(
-                    child: ListView(padding: EdgeInsets.fromLTRB(16, 0, 16, 16), children: peersWidgets),
-                  ),
-                ],
-              );
-            } else if (snapshot.hasError) {
-              return Padding(padding: const EdgeInsets.all(15.0), child: Text('Error: ${snapshot.error}'));
+      body: FutureBuilder<List<BlockedPeer>>(
+        future: _blockedPeers,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            final declinedPeers = snapshot.data!;
+            List<Widget> peersWidgets = [];
+            for (var peer in declinedPeers) {
+              peersWidgets.add(_buildPeerCard(context, peer));
             }
 
-            return Padding(padding: const EdgeInsets.all(15), child: const CircularProgressIndicator());
-          },
-        ),
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: SelectableText(
+                    "All incoming requests from these peers are blocked. "
+                    "Send friend invitation to a peer to remove it from the list.",
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Expanded(
+                  child: ListView(padding: EdgeInsets.fromLTRB(16, 0, 16, 16), children: peersWidgets),
+                ),
+              ],
+            );
+          } else if (snapshot.hasError) {
+            return Padding(padding: const EdgeInsets.all(15.0), child: Text('Error: ${snapshot.error}'));
+          }
+
+          return Padding(padding: const EdgeInsets.all(15), child: const CircularProgressIndicator());
+        },
       ),
     );
   }
