@@ -63,7 +63,7 @@ class ConnectionInfo {
       return "through public relay";
     } else if (address.isNotEmpty) {
       final host = Uri.parse('my://$address').host;
-      return "$host┃$protocol";
+      return "$host · $protocol";
     }
 
     return multiaddr;

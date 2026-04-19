@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:anywherelan/app_shell.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:file_picker/file_picker.dart';
@@ -106,18 +107,43 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppShell(
+      selected: AppSection.settings,
       appBar: AppBar(title: const Text('Settings')),
-      body: SafeArea(
-        child: ListView(
-          children: [
+      body: ListView(
+        children: [
+          ListTile(
+            title: Text("Export settings"),
+            enabled: true,
+            selected: false,
+            leading: const Icon(Icons.import_export),
+            onTap: () async {
+              var result = await _exportSettings();
+              if (!context.mounted) return;
+              if (result.message != "") {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: result.success
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.error,
+                    content: Text(result.message),
+                  ),
+                );
+              }
+            },
+          ),
+          if (!kIsWeb)
             ListTile(
-              title: Text("Export settings"),
+              title: Text("Import settings"),
+              subtitle: Text(
+                "This action will overwrite current settings, therefore it is recommended to export them first."
+                " Server will be restarted automatically with new configuration.",
+              ),
               enabled: true,
               selected: false,
               leading: const Icon(Icons.import_export),
               onTap: () async {
-                var result = await _exportSettings();
+                var result = await _importSettings();
                 if (!context.mounted) return;
                 if (result.message != "") {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -131,59 +157,33 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                 }
               },
             ),
-            if (!kIsWeb)
-              ListTile(
-                title: Text("Import settings"),
-                subtitle: Text(
-                  "This action will overwrite current settings, therefore it is recommended to export them first."
-                  " Server will be restarted automatically with new configuration.",
-                ),
-                enabled: true,
-                selected: false,
-                leading: const Icon(Icons.import_export),
-                onTap: () async {
-                  var result = await _importSettings();
-                  if (!context.mounted) return;
-                  if (result.message != "") {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: result.success
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.error,
-                        content: Text(result.message),
-                      ),
-                    );
-                  }
-                },
-              ),
-            if (!kIsWeb)
-              ListTile(
-                title: Text("Request ignore battery optimizations"),
-                enabled: true,
-                selected: false,
-                leading: const Icon(Icons.adb),
-                onTap: () async {
-                  var status = await Permission.ignoreBatteryOptimizations.request();
-                  if (!context.mounted) return;
-                  if (status == PermissionStatus.granted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        content: Text("Permission granted"),
-                      ),
-                    );
-                  } else if (status == PermissionStatus.denied) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                        content: Text("Permission denied"),
-                      ),
-                    );
-                  }
-                },
-              ),
-          ],
-        ),
+          if (!kIsWeb)
+            ListTile(
+              title: Text("Request ignore battery optimizations"),
+              enabled: true,
+              selected: false,
+              leading: const Icon(Icons.adb),
+              onTap: () async {
+                var status = await Permission.ignoreBatteryOptimizations.request();
+                if (!context.mounted) return;
+                if (status == PermissionStatus.granted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      content: Text("Permission granted"),
+                    ),
+                  );
+                } else if (status == PermissionStatus.denied) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                      content: Text("Permission denied"),
+                    ),
+                  );
+                }
+              },
+            ),
+        ],
       ),
     );
   }

@@ -5,6 +5,6 @@ ThemeData buildAppTheme() => ThemeData(
   // See bug https://github.com/flutter/flutter/issues/60069
   fontFamilyFallback: const ['Noto Color Emoji 2', 'Noto Sans SC 71'],
   useMaterial3: true,
-  colorSchemeSeed: const Color(0xFF1565C0),
+  colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0169ED)),
   brightness: Brightness.light,
 );

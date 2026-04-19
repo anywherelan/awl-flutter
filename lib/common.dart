@@ -10,6 +10,45 @@ const warningColor = Color(0xFFB8860B);
 
 Color unknownStatusColor(BuildContext context) => Theme.of(context).colorScheme.secondary;
 
+/// Compact, non-interactive status indicator. Used for labels like "Active",
+/// "Connected", "Private NAT". Not a [Chip] because [Chip] is sized for
+/// interactive filtering and has avatar/delete affordances we don't need.
+class StatusPill extends StatelessWidget {
+  final String text;
+  final Color color;
+  final bool withDot;
+
+  const StatusPill({super.key, required this.text, required this.color, this.withDot = true});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (withDot) ...[
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            text,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Future<void> showQRDialog(BuildContext context, String peerID, String peerName) async {
   await showDialog(
     context: context,
@@ -57,8 +96,8 @@ Future<void> showQRDialog(BuildContext context, String peerID, String peerName) 
             children: [
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-                child: TextButton(
-                  child: Text("Close", style: Theme.of(context).textTheme.titleLarge),
+                child: FilledButton(
+                  child: Text("Close"),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
@@ -116,7 +155,7 @@ String formatNetworkStats(int total, double rate) {
   var totalStr = byteCountIEC(total);
   var rateStr = byteCountIEC(rate.round());
 
-  return "$rateStr/s ($totalStr)";
+  return "$rateStr/s · $totalStr total";
 }
 
 String byteCountIEC(int b) {
@@ -139,16 +178,4 @@ String byteCountIEC(int b) {
   double val = b / div;
 
   return "${format(val)} ${"KMGTPE"[exp]}iB";
-}
-
-String formatExitNodeStatus(bool weAllow, bool peerAllows) {
-  if (weAllow && peerAllows) return "Mutual";
-  if (weAllow) return "We allow";
-  if (peerAllows) return "Peer allows me";
-  return "None";
-}
-
-Color exitNodeStatusColor(BuildContext context, bool weAllow, bool peerAllows) {
-  if (weAllow && peerAllows) return successColor;
-  return Theme.of(context).colorScheme.onSurfaceVariant;
 }
