@@ -1,0 +1,5 @@
+Redesigned UI with Material 3.
+
+Backend: halved SOCKS5 connection latency for the first packet, updated to Go 1.26, added Prometheus metrics, HTTP Basic Auth for web interface.
+
+Now available on F-Droid (proprietary libraries removed).

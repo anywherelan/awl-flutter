@@ -316,9 +316,6 @@ int generateNotificationId(String id) {
   var md5 = crypto.md5;
   var digest = md5.convert(content);
 
-  // TODO: try
-  //  return getCrc32(digest.bytes);
-
   var bdata = ByteData(4);
   bdata.setUint8(0, digest.bytes[0]);
   bdata.setUint8(1, digest.bytes[1]);
