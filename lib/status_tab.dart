@@ -5,13 +5,16 @@ import 'package:anywherelan/connection_error.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Adapter for [StatusPageView] that reads [myPeerInfoProvider] and
 /// [availableProxiesProvider] via Riverpod. The pure presentation logic
 /// lives in [StatusPageView].
 class StatusPage extends ConsumerStatefulWidget {
-  const StatusPage({super.key});
+  final bool showDeviceHeader;
+
+  const StatusPage({super.key, this.showDeviceHeader = true});
 
   @override
   ConsumerState<StatusPage> createState() => _StatusPageState();
@@ -64,6 +67,7 @@ class _StatusPageState extends ConsumerState<StatusPage> {
         return StatusPageView(
           peerInfo: peerInfo,
           proxiesData: proxiesData,
+          showDeviceHeader: widget.showDeviceHeader,
           onUpdateProxy: _onUpdateProxy,
           onShowQR: peerInfo != null ? () => _onShowQR(peerInfo) : null,
           onShowSettings: () => _onShowSettings(peerInfo),
@@ -79,6 +83,7 @@ class _StatusPageState extends ConsumerState<StatusPage> {
 class StatusPageView extends StatefulWidget {
   final MyPeerInfo? peerInfo;
   final ListAvailableProxiesResponse? proxiesData;
+  final bool showDeviceHeader;
   final Future<String> Function(String usingPeerID)? onUpdateProxy;
   final Future<void> Function()? onShowQR;
   final Future<void> Function()? onShowSettings;
@@ -87,6 +92,7 @@ class StatusPageView extends StatefulWidget {
     super.key,
     required this.peerInfo,
     this.proxiesData,
+    this.showDeviceHeader = true,
     this.onUpdateProxy,
     this.onShowQR,
     this.onShowSettings,
@@ -107,52 +113,158 @@ class _StatusPageViewState extends State<StatusPageView> {
 
     return SingleChildScrollView(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Device header
-          SizedBox(height: 4),
-          _buildDeviceHeader(context),
+          if (widget.showDeviceHeader) ...[
+            SizedBox(height: 4),
+            buildDeviceHeader(
+              context,
+              _peerInfo,
+              onShowQR: widget.onShowQR,
+              onShowSettings: widget.onShowSettings,
+            ),
+            SizedBox(height: 12),
+          ],
+          _NetworkCard(peerInfo: _peerInfo),
           SizedBox(height: 12),
-          ..._buildSections(context),
-          SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FilledButton.tonalIcon(
-                icon: Icon(Icons.qr_code, size: 18),
-                label: Text("My ID"),
-                onPressed: () => widget.onShowQR?.call(),
-              ),
-              SizedBox(width: 12),
-              OutlinedButton.icon(
-                icon: Icon(Icons.settings, size: 18),
-                label: Text("Settings"),
-                onPressed: () => widget.onShowSettings?.call(),
-              ),
-            ],
+          _ProxyCard(
+            peerInfo: _peerInfo,
+            proxiesData: widget.proxiesData,
+            onUpdateProxy: widget.onUpdateProxy,
           ),
+          // TODO(redesign): re-enable Services card when more services land here
+          // Scaffolding kept in [_ServicesCard] below.
+          // SizedBox(height: 12),
+          // _ServicesCard(peerInfo: _peerInfo),
         ],
       ),
     );
   }
+}
 
-  Widget _buildDeviceHeader(BuildContext context) {
+class _NetworkCard extends StatelessWidget {
+  final MyPeerInfo peerInfo;
+
+  const _NetworkCard({required this.peerInfo});
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Row(
+    final stats = peerInfo.networkStats;
+    final discoveryLow = peerInfo.connectedBootstrapPeers <= 1;
+
+    return _SectionCard(
+      header: const _CardHeader(title: 'Network'),
+      // TODO: add 30s sparkline next to Download/Upload speeds when a ring
+      // buffer of polled values lives in providers.dart (see plan file).
       children: [
-        Icon(Icons.computer, size: 24, color: colorScheme.primary),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        _StatTile(
+          icon: Icons.cloud_download_outlined,
+          label: 'Download',
+          totalBytes: stats.totalIn,
+          rateBytesPerSec: stats.rateIn,
+        ),
+        _StatTile(
+          icon: Icons.cloud_upload_outlined,
+          label: 'Upload',
+          totalBytes: stats.totalOut,
+          rateBytesPerSec: stats.rateOut,
+        ),
+        _LabeledTile(
+          icon: Icons.public_outlined,
+          label: 'Reachability',
+          subtitle: _reachabilitySubtitle(peerInfo.reachability),
+          trailing: _ReachabilityChip(reachability: peerInfo.reachability),
+        ),
+        _LabeledTile(
+          icon: Icons.hub_outlined,
+          label: 'Discovery nodes',
+          subtitle: discoveryLow ? 'At least 2 nodes recommended for reliable peer discovery.' : null,
+          trailing: _BootstrapValue(
+            connected: peerInfo.connectedBootstrapPeers,
+            total: peerInfo.totalBootstrapPeers,
+            errorColor: colorScheme.error,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProxyCard extends StatelessWidget {
+  final MyPeerInfo peerInfo;
+  final ListAvailableProxiesResponse? proxiesData;
+  final Future<String> Function(String usingPeerID)? onUpdateProxy;
+
+  const _ProxyCard({required this.peerInfo, this.proxiesData, this.onUpdateProxy});
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = peerInfo.socks5.listenerEnabled && peerInfo.socks5.listenAddress.isNotEmpty;
+
+    return _SectionCard(
+      header: _CardHeader(
+        title: 'SOCKS5 proxy',
+        trailing: StatusPill(
+          text: isActive ? 'Active' : 'Stopped',
+          color: isActive ? successColor : errorColor,
+        ),
+      ),
+      children: [
+        if (isActive)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: _AddressField(address: peerInfo.socks5.listenAddress),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+          child: _ExitThroughRow(
+            currentName: peerInfo.socks5.usingPeerName,
+            proxiesData: proxiesData,
+            onUpdateProxy: onUpdateProxy,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// TODO(redesign): re-enable when there are more services to show. Kept as
+// scaffolding so the third card slot is ready when needed.
+// ignore: unused_element
+class _ServicesCard extends StatelessWidget {
+  final MyPeerInfo peerInfo;
+
+  const _ServicesCard({required this.peerInfo});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final dnsActive = peerInfo.isAwlDNSSetAsSystem && peerInfo.awlDNSAddress.isNotEmpty;
+
+    return _SectionCard(
+      header: const _CardHeader(title: 'Services'),
+      children: [
+        _LabeledTile(
+          icon: Icons.dns_rounded,
+          label: 'DNS',
+          help: 'AWL DNS resolver for .awl domain names',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                _peerInfo.name.isNotEmpty ? _peerInfo.name : 'This Device',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              Icon(
+                dnsActive ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                size: 18,
+                color: dnsActive ? colorScheme.primary : colorScheme.error,
               ),
+              const SizedBox(width: 6),
               Text(
-                '${_peerInfo.serverVersion} · up ${formatDuration(_peerInfo.uptime)}',
-                style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+                dnsActive ? 'Active' : 'Stopped',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: dnsActive ? colorScheme.primary : colorScheme.error,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
@@ -160,253 +272,472 @@ class _StatusPageViewState extends State<StatusPageView> {
       ],
     );
   }
+}
 
-  Widget _buildSectionHeader(String title) {
+class _SectionCard extends StatelessWidget {
+  final Widget header;
+  final List<Widget> children;
+
+  const _SectionCard({required this.header, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 16),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: colorScheme.onSurfaceVariant,
-            letterSpacing: 0.5,
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [header, const SizedBox(height: 4), ...children, const SizedBox(height: 8)],
+      ),
+    );
+  }
+}
+
+class _CardHeader extends StatelessWidget {
+  final String title;
+  final Widget? trailing;
+
+  const _CardHeader({required this.title, this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, height: 1.1),
+            ),
           ),
-        ),
-        Divider(height: 20, color: colorScheme.outlineVariant),
-      ],
-    );
-  }
-
-  Widget _buildStatusChip(String text, Color textColor, Color bgColor) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textColor),
+          ?trailing,
+        ],
       ),
     );
   }
+}
 
-  List<Widget> _buildSections(BuildContext context) {
-    var reachabilityText = "Unknown";
-    var reachabilityColor = unknownStatusColor(context);
-    switch (_peerInfo.reachability) {
-      case "Public":
-        reachabilityText = "Public";
-        reachabilityColor = successColor;
-        break;
-      case "Private":
-        reachabilityText = "Private";
-        reachabilityColor = warningColor;
-        break;
-      default:
-        reachabilityText = "Unknown";
-    }
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int totalBytes;
+  final double rateBytesPerSec;
 
-    String dnsText;
-    Color dnsColor;
-    if (_peerInfo.isAwlDNSSetAsSystem && _peerInfo.awlDNSAddress != "") {
-      dnsText = "Working";
-      dnsColor = successColor;
-    } else {
-      dnsText = "Not working";
-      dnsColor = errorColor;
-    }
+  const _StatTile({
+    required this.icon,
+    required this.label,
+    required this.totalBytes,
+    required this.rateBytesPerSec,
+  });
 
-    String socks5Text;
-    Color socks5Color;
-    if (_peerInfo.socks5.listenerEnabled && _peerInfo.socks5.listenAddress != "") {
-      socks5Text = "Working";
-      socks5Color = successColor;
-    } else {
-      socks5Text = "Not working";
-      socks5Color = errorColor;
-    }
-
-    String bootstrapText = "${_peerInfo.connectedBootstrapPeers}/${_peerInfo.totalBootstrapPeers}";
-    Color bootstrapColor;
-    if (_peerInfo.connectedBootstrapPeers == 0) {
-      bootstrapColor = errorColor;
-    } else if (_peerInfo.connectedBootstrapPeers <= _peerInfo.totalBootstrapPeers * 0.6) {
-      bootstrapColor = warningColor;
-    } else {
-      bootstrapColor = successColor;
-    }
-
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-
-    // Map semantic colors to vivid chip color pairs (text, background)
-    (Color, Color) chipColors(Color semanticColor) {
-      if (semanticColor == successColor) {
-        return (const Color(0xFF0A5420), const Color(0xFFD4EDDA));
-      } else if (semanticColor == warningColor) {
-        return (const Color(0xFF7A5A00), const Color(0xFFFFF3CD));
-      } else if (semanticColor == errorColor) {
-        return (colorScheme.onErrorContainer, colorScheme.errorContainer);
-      }
-      return (colorScheme.onSecondaryContainer, colorScheme.secondaryContainer);
-    }
-
-    return [
-      // Network section
-      _buildSectionHeader('NETWORK'),
-      _buildBodyItemText(Icons.cloud_download_outlined, "Download", _peerInfo.networkStats.inAsString()),
-      _buildBodyItemText(Icons.cloud_upload_outlined, "Upload", _peerInfo.networkStats.outAsString()),
-      _buildBodyItemWidget(
-        Icons.wifi_tethering,
-        "Reachability",
-        _buildStatusChip(
-          reachabilityText,
-          chipColors(reachabilityColor).$1,
-          chipColors(reachabilityColor).$2,
-        ),
-        tooltip:
-            "Whether this device can be reached directly. Public = direct connections, Private = connections go through relays",
+    final textTheme = Theme.of(context).textTheme;
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      leading: Icon(icon, color: colorScheme.onSurfaceVariant),
+      title: Text(label, style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
+      subtitle: Text(
+        '${byteCountIEC(totalBytes)} total',
+        style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.72)),
       ),
-      _buildBodyItemWidget(
-        Icons.hub_outlined,
-        "Bootstrap peers",
-        _buildStatusChip(bootstrapText, chipColors(bootstrapColor).$1, chipColors(bootstrapColor).$2),
-        tooltip: "Connected bootstrap nodes used for peer discovery, should be at least 1",
+      trailing: Text(
+        '${byteCountIEC(rateBytesPerSec.round())}/s',
+        style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
       ),
-
-      // Services section
-      _buildSectionHeader('SERVICES'),
-      _buildBodyItemWidget(
-        Icons.dns_outlined,
-        "DNS",
-        _buildStatusChip(dnsText, chipColors(dnsColor).$1, chipColors(dnsColor).$2),
-        tooltip: "AWL DNS resolver for .awl domain names",
-      ),
-      _buildBodyItemWidget(
-        Icons.router_outlined,
-        "SOCKS5 Proxy",
-        _buildStatusChip(socks5Text, chipColors(socks5Color).$1, chipColors(socks5Color).$2),
-        tooltip: "SOCKS5 proxy for routing traffic through a peer's network",
-      ),
-      if (_peerInfo.socks5.listenerEnabled)
-        _buildBodyItemText(Icons.link, "Proxy address", _peerInfo.socks5.listenAddress),
-      _buildProxySelectorWidget("Proxy exit peer"),
-    ];
-  }
-
-  Widget _buildBodyItemText(IconData icon, String label, String text, {Color? textColor, String? tooltip}) {
-    return _buildBodyItemWidget(
-      icon,
-      label,
-      SelectableText(text, style: TextStyle(color: textColor)),
-      tooltip: tooltip,
     );
   }
+}
 
-  Widget _buildBodyItemWidget(IconData icon, String label, Widget child, {String? tooltip}) {
-    const double wideScreenBreakpoint = 800.0;
-    final bool isWideScreen = MediaQuery.of(context).size.width > wideScreenBreakpoint;
-    final verticalPadding = isWideScreen ? 4.0 : 6.0;
+class _LabeledTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final String? help;
+  final Widget trailing;
 
-    Widget labelWidget = Text(label);
-    if (tooltip != null) {
-      labelWidget = Row(
+  const _LabeledTile({
+    required this.icon,
+    required this.label,
+    required this.trailing,
+    this.subtitle,
+    this.help,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final labelStyle = textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500);
+    Widget titleWidget = Text(label, style: labelStyle);
+    if (help != null) {
+      titleWidget = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label),
-          SizedBox(width: 4),
+          Flexible(child: Text(label, style: labelStyle)),
+          const SizedBox(width: 4),
           Tooltip(
-            message: tooltip,
-            child: Icon(Icons.help_outline, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            message: help!,
+            child: Icon(Icons.help_outline_rounded, size: 16, color: colorScheme.onSurfaceVariant),
           ),
         ],
       );
     }
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      leading: Icon(icon, color: colorScheme.onSurfaceVariant),
+      title: titleWidget,
+      subtitle: subtitle != null
+          ? Text(
+              subtitle!,
+              style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.72)),
+            )
+          : null,
+      trailing: trailing,
+    );
+  }
+}
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 0, vertical: verticalPadding),
+String? _reachabilitySubtitle(String reachability) {
+  switch (reachability) {
+    case 'Public':
+      return 'Other peers can connect to you directly.';
+    case 'Private':
+      return 'Other peers reach you via a relay.';
+    default:
+      return null;
+  }
+}
+
+class _ReachabilityChip extends StatelessWidget {
+  final String reachability;
+
+  const _ReachabilityChip({required this.reachability});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    switch (reachability) {
+      case 'Public':
+        return const StatusPill(text: 'Public', color: successColor, withDot: false);
+      case 'Private':
+        return StatusPill(text: 'Private NAT', color: colorScheme.onSurfaceVariant, withDot: false);
+      default:
+        return StatusPill(text: 'Unknown', color: colorScheme.onSurfaceVariant, withDot: false);
+    }
+  }
+}
+
+class _BootstrapValue extends StatelessWidget {
+  final int connected;
+  final int total;
+  final Color errorColor;
+
+  const _BootstrapValue({required this.connected, required this.total, required this.errorColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final lowSignal = connected <= 1;
+    final color = lowSignal ? errorColor : null;
+    final textTheme = Theme.of(context).textTheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (lowSignal) ...[
+          Icon(Icons.warning_amber_rounded, size: 18, color: errorColor),
+          const SizedBox(width: 4),
+        ],
+        Text(
+          '$connected / $total',
+          style: textTheme.bodyLarge?.copyWith(
+            color: color,
+            fontWeight: lowSignal ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddressField extends StatelessWidget {
+  final String address;
+
+  const _AddressField({required this.address});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: colorScheme.outlineVariant),
+    );
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: 'Address',
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        border: border,
+        enabledBorder: border,
+        contentPadding: const EdgeInsets.fromLTRB(14, 14, 4, 14),
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.copy_rounded),
+          tooltip: 'Copy address',
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: address));
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Address copied to clipboard')));
+          },
+        ),
+      ),
+      child: SelectableText(
+        address,
+        style: TextStyle(
+          fontFamily: 'monospace',
+          fontFamilyFallback: const ['Courier', 'monospace'],
+          fontSize: 14,
+          color: colorScheme.onSurface,
+        ),
+      ),
+    );
+  }
+}
+
+class _ExitThroughRow extends StatelessWidget {
+  final String currentName;
+  final ListAvailableProxiesResponse? proxiesData;
+  final Future<String> Function(String usingPeerID)? onUpdateProxy;
+
+  const _ExitThroughRow({required this.currentName, required this.proxiesData, required this.onUpdateProxy});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final displayName = currentName.isEmpty ? 'None' : currentName;
+    final names = <String>['None'];
+    if (proxiesData != null) {
+      for (final p in proxiesData!.proxies) {
+        names.add(p.peerName);
+      }
+    }
+    if (displayName != 'None' && !names.contains(displayName)) {
+      names.add(displayName);
+    }
+
+    final labelColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Exit through', style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
+        const SizedBox(height: 2),
+        Text(
+          'Proxied traffic leaves the internet from this peer.',
+          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.72)),
+        ),
+      ],
+    );
+
+    final dropdown = _ExitPeerDropdown(
+      names: names,
+      selected: displayName,
+      onPick: (picked) => _apply(context, picked),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 320) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [labelColumn, const SizedBox(height: 10), dropdown],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: labelColumn),
+            const SizedBox(width: 12),
+            SizedBox(width: 180, child: dropdown),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _apply(BuildContext context, String name) async {
+    if (onUpdateProxy == null) return;
+    var usingPeerID = '';
+    if (name != 'None') {
+      final proxies = proxiesData;
+      if (proxies == null) return;
+      final found = proxies.proxies.firstWhere(
+        (e) => e.peerName == name,
+        orElse: () => AvailableProxy('', name),
+      );
+      usingPeerID = found.peerID;
+    }
+    final response = await onUpdateProxy!(usingPeerID);
+    if (!context.mounted) return;
+    if (response.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).colorScheme.error,
+          content: Text('Failed to update proxy settings: $response'),
+        ),
+      );
+    }
+  }
+}
+
+class _ExitPeerDropdown extends StatelessWidget {
+  final List<String> names;
+  final String selected;
+  final Future<void> Function(String) onPick;
+
+  const _ExitPeerDropdown({required this.names, required this.selected, required this.onPick});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: colorScheme.outlineVariant),
+    );
+
+    final trigger = InputDecorator(
+      decoration: InputDecoration(
+        labelText: 'Exit peer',
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        contentPadding: const EdgeInsets.fromLTRB(12, 14, 8, 14),
+        border: border,
+        enabledBorder: border,
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(children: [Icon(icon), SizedBox(width: 10), labelWidget, SizedBox(width: 30)]),
-          Flexible(fit: FlexFit.loose, child: child),
+          Expanded(
+            child: Text(
+              selected,
+              style: Theme.of(context).textTheme.bodyLarge,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Icon(Icons.arrow_drop_down_rounded, color: colorScheme.onSurfaceVariant),
         ],
       ),
     );
-  }
 
-  Widget _buildProxySelectorWidget(String label) {
-    var socks5UsingPeer = _peerInfo.socks5.usingPeerName;
-    if (socks5UsingPeer == "") {
-      socks5UsingPeer = "None";
-    }
-
-    List<String> socks5PeersList = <String>['None'];
-    final proxiesData = widget.proxiesData;
-    if (proxiesData != null) {
-      for (var proxy in proxiesData.proxies) {
-        socks5PeersList.add(proxy.peerName);
-      }
-    }
-
-    if (socks5UsingPeer != "" && socks5UsingPeer != "None" && !socks5PeersList.contains(socks5UsingPeer)) {
-      // in case when peer info data and available proxies data are not in sync
-      socks5PeersList.add(socks5UsingPeer);
-    }
-
-    return _buildBodyItemWidget(
-      Icons.exit_to_app,
-      label,
-      PopupMenuButton<String>(
-        tooltip: '',
-        initialValue: socks5UsingPeer,
-        onSelected: (String value) async {
-          if (widget.onUpdateProxy == null) return;
-          var usingPeerName = value;
-          var usingPeerID = "";
-          if (usingPeerName != "None") {
-            final proxies = widget.proxiesData;
-            if (proxies == null) return;
-            var found = proxies.proxies.firstWhere((element) => element.peerName == usingPeerName);
-            usingPeerID = found.peerID;
-          }
-
-          var response = await widget.onUpdateProxy!(usingPeerID);
-          if (!mounted) return;
-          if (response != "") {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                backgroundColor: Theme.of(context).colorScheme.error,
-                content: Text("Failed to update proxy settings: $response"),
-              ),
-            );
-            return;
-          }
+    if (isMobile) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          final picked = await _showExitPeerSheet(context, names, selected);
+          if (picked == null || picked == selected) return;
+          if (!context.mounted) return;
+          await onPick(picked);
         },
-        itemBuilder: (context) => socks5PeersList.map((String value) {
-          return PopupMenuItem<String>(value: value, child: Text(value));
-        }).toList(),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(width: 2),
-              Text(socks5UsingPeer, style: TextStyle(fontSize: 14)),
-              SizedBox(width: 6),
-              Icon(Icons.arrow_drop_down, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
-      tooltip: "Peer used as the exit point for SOCKS5 proxy traffic",
+        child: trigger,
+      );
+    }
+
+    return PopupMenuButton<String>(
+      tooltip: '',
+      initialValue: selected,
+      onSelected: onPick,
+      itemBuilder: (_) => names.map((n) => PopupMenuItem<String>(value: n, child: Text(n))).toList(),
+      child: trigger,
     );
   }
+
+  Future<String?> _showExitPeerSheet(BuildContext context, List<String> names, String selected) {
+    return showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                child: Text('Exit through', style: Theme.of(context).textTheme.titleMedium),
+              ),
+              RadioGroup<String>(
+                groupValue: selected,
+                onChanged: (value) => Navigator.of(context).pop(value),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: names.map((n) => RadioListTile<String>(title: Text(n), value: n)).toList(),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+Widget buildDeviceHeader(
+  BuildContext context,
+  MyPeerInfo peerInfo, {
+  VoidCallback? onShowQR,
+  VoidCallback? onShowSettings,
+}) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return Row(
+    children: [
+      Icon(Icons.laptop_mac_rounded, size: 34, color: colorScheme.primary),
+      SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              peerInfo.name.isNotEmpty ? peerInfo.name : 'This Device',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 2),
+            Text(
+              '${peerInfo.serverVersion} · uptime ${formatDuration(peerInfo.uptime)}',
+              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+      if (onShowQR != null) ...[
+        IconButton.filledTonal(
+          icon: const Icon(Icons.qr_code_rounded),
+          tooltip: 'My ID',
+          onPressed: onShowQR,
+        ),
+        const SizedBox(width: 8),
+      ],
+      if (onShowSettings != null)
+        IconButton.filledTonal(
+          icon: const Icon(Icons.settings_rounded),
+          tooltip: 'Settings',
+          onPressed: onShowSettings,
+        ),
+    ],
+  );
 }
 
 Future<void> showSettingsDialog(BuildContext context, MyPeerInfo? peerInfo, bool firstSetup) {

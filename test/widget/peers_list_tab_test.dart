@@ -37,9 +37,9 @@ void main() {
         expect(find.text(p.displayName), findsOneWidget);
       }
 
-      // Header summary "<n> peers · <k> online" — fixture peer is connected+confirmed.
+      // Online indicator "<k>/<n> online" — fixture peer is connected+confirmed.
       final onlineCount = peers.where((p) => p.connected && p.confirmed).length;
-      expect(find.text('${peers.length} peers · $onlineCount online'), findsOneWidget);
+      expect(find.text('$onlineCount/${peers.length} online'), findsOneWidget);
     });
 
     testWidgets('expanding a peer reveals action buttons that fire callbacks', (tester) async {

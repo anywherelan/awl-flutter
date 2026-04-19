@@ -13,7 +13,14 @@ void showAddPeerDialog(BuildContext context) {
     builder: (context) {
       return SimpleDialog(
         title: Text("Add new peer"),
-        children: [Center(child: SizedBox(width: 450, child: AddPeerForm()))],
+        children: [
+          Center(
+            child: SizedBox(
+              width: 450,
+              child: Padding(padding: const EdgeInsets.all(16), child: AddPeerForm()),
+            ),
+          ),
+        ],
       );
     },
   );

@@ -103,7 +103,7 @@ class _MyDrawerState extends ConsumerState<MyDrawer> {
     if (widget.isRetractable) {
       return drawer;
     }
-    return SizedBox(width: 280, child: drawer);
+    return SizedBox(width: 240, child: drawer);
   }
 
   Widget _serverAction(BuildContext context) {

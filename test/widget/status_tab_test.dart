@@ -16,6 +16,22 @@ ListAvailableProxiesResponse _loadProxies() {
   return ListAvailableProxiesResponse.fromJson(json);
 }
 
+MyPeerInfo _withBootstrap(MyPeerInfo base, int connected) {
+  return MyPeerInfo(
+    base.peerID,
+    base.name,
+    base.uptime,
+    base.serverVersion,
+    base.networkStats,
+    base.totalBootstrapPeers,
+    connected,
+    base.reachability,
+    base.awlDNSAddress,
+    base.isAwlDNSSetAsSystem,
+    base.socks5,
+  );
+}
+
 void main() {
   // Use a wide test view so the layout doesn't overflow narrow defaults.
   const desktopSize = Size(1200, 900);
@@ -25,45 +41,55 @@ void main() {
       await pumpAppWidget(tester, const StatusPageView(peerInfo: null), size: desktopSize);
 
       // None of the populated-state strings should appear.
-      expect(find.text('NETWORK'), findsNothing);
-      expect(find.text('SERVICES'), findsNothing);
+      expect(find.text('Network'), findsNothing);
+      expect(find.text('SOCKS5 proxy'), findsNothing);
     });
 
-    testWidgets('renders device header, sections, and key fields from fixture', (tester) async {
+    testWidgets('renders device header, cards, and key fields from fixture', (tester) async {
       await pumpAppWidget(
         tester,
-        StatusPageView(peerInfo: _loadInfo(), proxiesData: _loadProxies()),
+        StatusPageView(
+          peerInfo: _loadInfo(),
+          proxiesData: _loadProxies(),
+          onShowQR: () async {},
+          onShowSettings: () async {},
+        ),
         size: desktopSize,
       );
 
       // Device header: name from fixture.
       expect(find.text('myawesomelaptop'), findsOneWidget);
 
-      // Section headers.
-      expect(find.text('NETWORK'), findsOneWidget);
-      expect(find.text('SERVICES'), findsOneWidget);
+      // Card titles.
+      expect(find.text('Network'), findsOneWidget);
+      expect(find.text('SOCKS5 proxy'), findsOneWidget);
 
       // Body labels.
       expect(find.text('Download'), findsOneWidget);
       expect(find.text('Upload'), findsOneWidget);
       expect(find.text('Reachability'), findsOneWidget);
-      expect(find.text('Bootstrap peers'), findsOneWidget);
-      expect(find.text('DNS'), findsOneWidget);
-      expect(find.text('SOCKS5 Proxy'), findsOneWidget);
+      expect(find.text('Discovery nodes'), findsOneWidget);
 
-      // Bootstrap chip uses "connected/total" — fixture has 4/5.
-      expect(find.text('4/5'), findsOneWidget);
+      // Bootstrap value uses "connected / total" — fixture has 4/5 (healthy, no warning).
+      expect(find.text('4 / 5'), findsOneWidget);
 
-      // SOCKS5 listener is enabled in the fixture, so the proxy address row appears.
-      expect(find.text('Proxy address'), findsOneWidget);
+      // SOCKS5 listener is enabled in the fixture, so the address row appears.
+      expect(find.text('Address'), findsOneWidget);
       expect(find.textContaining('127.0.0.66:8080'), findsOneWidget);
+
+      // SOCKS5 active state.
+      expect(find.text('Active'), findsOneWidget);
+
+      // Exit peer label and current selection.
+      expect(find.text('Exit through'), findsOneWidget);
+      expect(find.text('awl-tester'), findsOneWidget);
 
       // Reachability is "Unknown" in the fixture.
       expect(find.text('Unknown'), findsOneWidget);
 
-      // The action buttons render.
-      expect(find.text('My ID'), findsOneWidget);
-      expect(find.text('Settings'), findsOneWidget);
+      // Header actions are IconButtons surfaced by tooltip.
+      expect(find.byTooltip('My ID'), findsOneWidget);
+      expect(find.byTooltip('Settings'), findsOneWidget);
     });
 
     testWidgets('My ID button invokes onShowQR', (tester) async {
@@ -74,8 +100,7 @@ void main() {
         size: desktopSize,
       );
 
-      await tester.ensureVisible(find.text('My ID'));
-      await tester.tap(find.text('My ID'));
+      await tester.tap(find.byTooltip('My ID'));
       await tester.pump();
 
       expect(qrCalls, 1);
@@ -93,11 +118,35 @@ void main() {
         size: desktopSize,
       );
 
-      await tester.ensureVisible(find.text('Settings'));
-      await tester.tap(find.text('Settings'));
+      await tester.tap(find.byTooltip('Settings'));
       await tester.pump();
 
       expect(settingsCalls, 1);
+    });
+
+    testWidgets('Discovery nodes value is highlighted with a warning when low', (tester) async {
+      final base = _loadInfo();
+      await pumpAppWidget(
+        tester,
+        StatusPageView(peerInfo: _withBootstrap(base, 0), proxiesData: _loadProxies()),
+        size: desktopSize,
+      );
+
+      // 0 connected → warning icon + "0 / 5" text.
+      expect(find.text('0 / 5'), findsOneWidget);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+    });
+
+    testWidgets('Discovery nodes value with 1 connected still renders warning', (tester) async {
+      final base = _loadInfo();
+      await pumpAppWidget(
+        tester,
+        StatusPageView(peerInfo: _withBootstrap(base, 1), proxiesData: _loadProxies()),
+        size: desktopSize,
+      );
+
+      expect(find.text('1 / 5'), findsOneWidget);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
     });
   });
 }

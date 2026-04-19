@@ -10,7 +10,9 @@ import 'connection_error.dart';
 /// Adapter for [PeersListView] that reads [knownPeersProvider] via Riverpod.
 /// The pure presentation logic lives in [PeersListView].
 class PeersListPage extends ConsumerWidget {
-  const PeersListPage({super.key});
+  final bool showCounter;
+
+  const PeersListPage({super.key, this.showCounter = true});
 
   Future<void> _onPeerSettings(BuildContext context, KnownPeer peer) async {
     await Navigator.of(context).pushNamed(KnownPeerSettingsScreen.routeFor(peer.peerID));
@@ -23,6 +25,8 @@ class PeersListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final knownPeers = ref.watch(knownPeersProvider).valueOrNull;
+    final myPeerInfo = ref.watch(myPeerInfoProvider).valueOrNull;
+    final proxyExitPeerID = myPeerInfo?.socks5.usingPeerID;
 
     return ValueListenableBuilder<bool>(
       valueListenable: isServerAvailable,
@@ -33,6 +37,8 @@ class PeersListPage extends ConsumerWidget {
 
         return PeersListView(
           peers: knownPeers,
+          showCounter: showCounter,
+          proxyExitPeerID: proxyExitPeerID,
           onPeerSettings: (peer) => _onPeerSettings(context, peer),
           onShowQR: (peer) => _onShowQR(context, peer),
         );
@@ -46,10 +52,19 @@ class PeersListPage extends ConsumerWidget {
 /// directly with fixture data.
 class PeersListView extends StatefulWidget {
   final List<KnownPeer>? peers;
+  final bool showCounter;
+  final String? proxyExitPeerID;
   final Future<void> Function(KnownPeer)? onPeerSettings;
   final Future<void> Function(KnownPeer)? onShowQR;
 
-  const PeersListView({super.key, required this.peers, this.onPeerSettings, this.onShowQR});
+  const PeersListView({
+    super.key,
+    required this.peers,
+    this.showCounter = true,
+    this.proxyExitPeerID,
+    this.onPeerSettings,
+    this.onShowQR,
+  });
 
   @override
   State<PeersListView> createState() => _PeersListViewState();
@@ -80,7 +95,6 @@ class _PeersListViewState extends State<PeersListView> {
       );
     }
 
-    // Peer count summary
     final onlineCount = knownPeers.where((p) => p.connected && p.confirmed).length;
     final totalCount = knownPeers.length;
 
@@ -88,18 +102,11 @@ class _PeersListViewState extends State<PeersListView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  '$totalCount peers · $onlineCount online',
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                ),
-              ],
+          if (widget.showCounter)
+            Padding(
+              padding: EdgeInsets.only(top: 4, bottom: 12),
+              child: buildPeersOnlineIndicator(context, onlineCount, totalCount),
             ),
-          ),
           ...knownPeers.map((item) {
             var isExpanded = _expandedState[item.peerID] ?? false;
             return _buildPeerCard(item, isExpanded);
@@ -134,15 +141,16 @@ class _PeersListViewState extends State<PeersListView> {
     if (!peer.connected && peer.confirmed && peer.lastSeen.isAfter(zeroGoTime)) {
       lastSeenText = "last seen ${formatDurationRough(peer.lastSeen.difference(DateTime.now()))} ago";
     }
+    final isProxyExit =
+        widget.proxyExitPeerID != null &&
+        widget.proxyExitPeerID!.isNotEmpty &&
+        widget.proxyExitPeerID == peer.peerID;
 
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: EdgeInsets.only(bottom: 12),
       elevation: 0,
-      color: colorScheme.surfaceContainerLowest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
-      ),
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: Container(
         decoration: BoxDecoration(
@@ -157,14 +165,25 @@ class _PeersListViewState extends State<PeersListView> {
                 });
               },
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 child: Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(peer.displayName, style: Theme.of(context).textTheme.titleMedium),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  peer.displayName,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isProxyExit) ...[SizedBox(width: 12), _ExitBadge()],
+                            ],
+                          ),
                           SizedBox(height: 2),
                           Text(subtitle, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
                           if (lastSeenText != null) ...[
@@ -181,9 +200,10 @@ class _PeersListViewState extends State<PeersListView> {
                       ),
                     ),
                     SizedBox(width: 8),
-                    Text(
-                      _peerStatusText(peer),
-                      style: TextStyle(fontSize: 13, color: _peerStatusColor(context, peer)),
+                    StatusPill(
+                      text: _peerStatusText(peer),
+                      color: _peerStatusColor(context, peer),
+                      withDot: peer.connected && peer.confirmed,
                     ),
                     SizedBox(width: 4),
                     Icon(
@@ -219,19 +239,18 @@ class _PeersListViewState extends State<PeersListView> {
     if (!item.connected && item.confirmed) {
       details.add(MapEntry("LAST SEEN", "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"));
     }
-    details.add(MapEntry("VPN ADDRESS", "${item.domainName}.awl┃${item.ipAddr}"));
+    details.add(MapEntry("VPN ADDRESS", "${item.domainName}.awl · ${item.ipAddr}"));
     // Connections handled separately for widget
-    details.add(
-      MapEntry("EXIT NODE", formatExitNodeStatus(item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)),
-    );
-    if (item.ping.inMicroseconds != 0) {
-      details.add(MapEntry("PING", formatLatencyDuration(item.ping)));
-    }
+    details.add(MapEntry("USE AS EXIT", item.allowedUsingAsExitNode ? "Allowed" : "Denied"));
+    details.add(MapEntry("OFFER AS EXIT", item.weAllowUsingAsExitNode ? "Allowed" : "Denied"));
     if (item.networkStats.totalIn != 0) {
       details.add(MapEntry("DOWNLOAD", item.networkStats.inAsString()));
     }
     if (item.networkStats.totalOut != 0) {
       details.add(MapEntry("UPLOAD", item.networkStats.outAsString()));
+    }
+    if (item.ping.inMicroseconds != 0) {
+      details.add(MapEntry("PING", formatLatencyDuration(item.ping)));
     }
     if (item.version.isNotEmpty) {
       details.add(MapEntry("VERSION", item.version));
@@ -250,13 +269,17 @@ class _PeersListViewState extends State<PeersListView> {
       // 2-column grid on desktop
       final cells = <Widget>[];
       for (var entry in details) {
-        final color = entry.key == "EXIT NODE"
-            ? exitNodeStatusColor(context, item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)
+        final isExitRow = entry.key == "USE AS EXIT" || entry.key == "OFFER AS EXIT";
+        final color = isExitRow
+            ? (entry.value == "Allowed" ? successColor : colorScheme.onSurfaceVariant)
             : null;
         cells.add(
           _buildGridCell(
             entry.key,
-            SelectableText(entry.value, style: TextStyle(fontSize: 14, color: color)),
+            SelectableText(
+              entry.value,
+              style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w500),
+            ),
             colorScheme,
           ),
         );
@@ -286,13 +309,17 @@ class _PeersListViewState extends State<PeersListView> {
       // Single column rows on mobile: label left, value right
       final rows = <Widget>[];
       for (var entry in details) {
-        final color = entry.key == "EXIT NODE"
-            ? exitNodeStatusColor(context, item.weAllowUsingAsExitNode, item.allowedUsingAsExitNode)
+        final isExitRow = entry.key == "USE AS EXIT" || entry.key == "OFFER AS EXIT";
+        final color = isExitRow
+            ? (entry.value == "Allowed" ? successColor : colorScheme.onSurfaceVariant)
             : null;
         rows.add(
           _buildMobileRow(
             entry.key,
-            SelectableText(entry.value, style: TextStyle(fontSize: 14, color: color)),
+            SelectableText(
+              entry.value,
+              style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w500),
+            ),
           ),
         );
       }
@@ -313,16 +340,16 @@ class _PeersListViewState extends State<PeersListView> {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            TextButton.icon(
+              icon: Icon(Icons.qr_code),
+              label: Text("Show ID"),
+              onPressed: () => widget.onShowQR?.call(item),
+            ),
+            SizedBox(width: 8),
             FilledButton.tonalIcon(
               icon: Icon(Icons.settings),
               label: Text("Settings"),
               onPressed: () => widget.onPeerSettings?.call(item),
-            ),
-            SizedBox(width: 12),
-            OutlinedButton.icon(
-              icon: Icon(Icons.qr_code),
-              label: Text("Show ID"),
-              onPressed: () => widget.onShowQR?.call(item),
             ),
           ],
         ),
@@ -334,7 +361,8 @@ class _PeersListViewState extends State<PeersListView> {
     'LAST SEEN': Icons.schedule,
     'VPN ADDRESS': Icons.language,
     'CONNECTION': Icons.sync_alt,
-    'EXIT NODE': Icons.vpn_key_outlined,
+    'USE AS EXIT': Icons.logout_rounded,
+    'OFFER AS EXIT': Icons.login_rounded,
     'PING': Icons.timer_outlined,
     'DOWNLOAD': Icons.cloud_download_outlined,
     'UPLOAD': Icons.cloud_upload_outlined,
@@ -345,7 +373,8 @@ class _PeersListViewState extends State<PeersListView> {
     'LAST SEEN': 'Last seen',
     'VPN ADDRESS': 'VPN address',
     'CONNECTION': 'Connection',
-    'EXIT NODE': 'Exit node',
+    'USE AS EXIT': 'Use as exit',
+    'OFFER AS EXIT': 'Offer as exit',
     'PING': 'Ping',
     'DOWNLOAD': 'Download',
     'UPLOAD': 'Upload',
@@ -354,6 +383,11 @@ class _PeersListViewState extends State<PeersListView> {
 
   Widget _buildGridCell(String label, Widget value, ColorScheme colorScheme) {
     final icon = _detailIcons[label];
+    final displayLabel = _detailLabels[label] ?? label;
+    final labelStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
+      color: colorScheme.onSurface.withValues(alpha: 0.72),
+      fontWeight: FontWeight.w500,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -364,15 +398,7 @@ class _PeersListViewState extends State<PeersListView> {
               Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
               SizedBox(width: 4),
             ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSurfaceVariant,
-                letterSpacing: 0.5,
-              ),
-            ),
+            Text(displayLabel, style: labelStyle),
           ],
         ),
         SizedBox(height: 4),
@@ -397,7 +423,10 @@ class _PeersListViewState extends State<PeersListView> {
                 Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
                 SizedBox(width: 6),
               ],
-              Text(displayLabel, style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant)),
+              Text(
+                displayLabel,
+                style: TextStyle(fontSize: 14, color: colorScheme.onSurface.withValues(alpha: 0.72)),
+              ),
             ],
           ),
           SizedBox(width: 16),
@@ -416,7 +445,10 @@ class _PeersListViewState extends State<PeersListView> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SelectableText(connection.toString()),
+              SelectableText(
+                connection.toString(),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
               const SizedBox(width: 5),
               Tooltip(
                 // TODO: display info about relay if throughRelay (name, ping?, country/location?)
@@ -427,6 +459,58 @@ class _PeersListViewState extends State<PeersListView> {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+Widget buildPeersOnlineIndicator(BuildContext context, int online, int total) {
+  if (total == 0) return const SizedBox.shrink();
+  final colorScheme = Theme.of(context).colorScheme;
+  final dotColor = online > 0 ? successColor : colorScheme.onSurfaceVariant.withValues(alpha: 0.5);
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+      ),
+      SizedBox(width: 8),
+      Text('$online/$total online', style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+    ],
+  );
+}
+
+class _ExitBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: 'SOCKS5 proxy traffic exits through this peer',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 3, 10, 3),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.exit_to_app_rounded, size: 14, color: colorScheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Text(
+              'Exit node',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurfaceVariant,
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:anywherelan/add_peer.dart';
 import 'package:anywherelan/app_shell.dart';
 import 'package:anywherelan/blocked_peers_screen.dart';
+import 'package:anywherelan/common.dart';
 import 'package:anywherelan/diagnostics_screen.dart';
 import 'package:anywherelan/drawer.dart';
 import 'package:anywherelan/notifications.dart' as notif;
@@ -209,8 +210,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                Padding(padding: EdgeInsets.all(16), child: StatusPage()),
-                PeersListPage(),
+                Padding(padding: const EdgeInsets.all(16), child: StatusPage()),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: PeersListPage()),
               ],
             ),
           ),
@@ -235,15 +236,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     } else if (constraints.maxWidth > 1700) {
       spaceBetweenItems = 140.0;
     } else if (constraints.maxWidth > 1600) {
-      spaceBetweenItems = 120.0;
-    } else if (constraints.maxWidth > 1500) {
       spaceBetweenItems = 100.0;
-    } else if (constraints.maxWidth > 1400) {
-      spaceBetweenItems = 80.0;
-    } else if (constraints.maxWidth > 1300) {
+    } else if (constraints.maxWidth > 1500) {
       spaceBetweenItems = 70.0;
+    } else if (constraints.maxWidth > 1350) {
+      spaceBetweenItems = 45.0;
+    } else if (constraints.maxWidth > 1300) {
+      spaceBetweenItems = 40.0;
     } else if (constraints.maxWidth > 1200) {
-      spaceBetweenItems = 50.0;
+      spaceBetweenItems = 30.0;
     } else if (constraints.maxWidth > 1100) {
       spaceBetweenItems = 30.0;
     } else if (constraints.maxWidth > 850) {
@@ -264,15 +265,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               flex: 4,
               child: Column(
                 children: [
-                  _buildSectionTitle(
-                    "Peers",
-                    trailing: FilledButton.tonalIcon(
-                      icon: Icon(Icons.add, size: 18),
-                      label: Text("Add peer"),
-                      onPressed: () => showAddPeerDialog(context),
-                    ),
-                  ),
-                  Flexible(child: _buildCard(PeersListPage())),
+                  _buildPeersHeader(),
+                  Expanded(child: PeersListPage(showCounter: false)),
                   SizedBox(height: 20),
                 ],
               ),
@@ -282,8 +276,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               flex: 3,
               child: Column(
                 children: [
-                  _buildSectionTitle("This Device"),
-                  Expanded(child: SingleChildScrollView(child: _buildCard(StatusPage()))),
+                  _buildDeviceHeaderSection(),
+                  Expanded(child: StatusPage(showDeviceHeader: false)),
                   SizedBox(height: 20),
                 ],
               ),
@@ -295,21 +289,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildSectionTitle(String title, {Widget? trailing}) {
+  Widget _buildPeersHeader() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final knownPeers = ref.watch(knownPeersProvider).valueOrNull;
+    final onlineCount = knownPeers?.where((p) => p.connected && p.confirmed).length ?? 0;
+    final totalCount = knownPeers?.length ?? 0;
     return Padding(
       padding: EdgeInsets.only(left: 4, top: 20, bottom: 14, right: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurface),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Peers",
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
+                ),
+                SizedBox(height: 2),
+                totalCount > 0
+                    ? buildPeersOnlineIndicator(context, onlineCount, totalCount)
+                    : SizedBox(height: 13),
+              ],
+            ),
           ),
-          Spacer(),
-          ?trailing,
+          FilledButton.tonalIcon(
+            icon: Icon(Icons.add_rounded, size: 22),
+            label: Text("Add peer"),
+            onPressed: () => showAddPeerDialog(context),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDeviceHeaderSection() {
+    final peerInfo = ref.watch(myPeerInfoProvider).valueOrNull;
+    return Padding(
+      padding: EdgeInsets.only(left: 4, top: 20, bottom: 14, right: 4),
+      child: peerInfo != null
+          ? buildDeviceHeader(
+              context,
+              peerInfo,
+              onShowQR: () => showQRDialog(context, peerInfo.peerID, peerInfo.name),
+              onShowSettings: () => showSettingsDialog(context, peerInfo, false),
+            )
+          : SizedBox(height: Theme.of(context).textTheme.titleLarge!.fontSize! + 2 + 13),
     );
   }
 
@@ -321,17 +347,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         SizedBox(width: 8),
         Text(widget.title),
       ],
-    );
-  }
-
-  Widget _buildCard(Widget child) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.all(Radius.circular(16)),
-      ),
-      child: child,
     );
   }
 }

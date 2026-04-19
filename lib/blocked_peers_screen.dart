@@ -38,7 +38,7 @@ class _BlockedPeersScreenState extends ConsumerState<BlockedPeersScreen> {
                   child: SelectableText(
                     "All incoming requests from these peers are blocked. "
                     "Send friend invitation to a peer to remove it from the list.",
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 SizedBox(height: 10),
@@ -65,7 +65,7 @@ class _BlockedPeersScreenState extends ConsumerState<BlockedPeersScreen> {
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            SelectableText(peer.displayName, style: Theme.of(context).textTheme.titleLarge),
+            SelectableText(peer.displayName, style: Theme.of(context).textTheme.titleSmall),
             SizedBox(height: 10.0),
             SelectableText(
               "Peer ID ${peer.peerId}",
