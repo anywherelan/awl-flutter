@@ -346,15 +346,12 @@ class _StatTile extends StatelessWidget {
       dense: true,
       visualDensity: VisualDensity.compact,
       leading: Icon(icon, color: colorScheme.onSurfaceVariant),
-      title: Text(label, style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
+      title: Text(label, style: textTheme.bodyLarge),
       subtitle: Text(
         '${byteCountIEC(totalBytes)} total',
         style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.72)),
       ),
-      trailing: Text(
-        '${byteCountIEC(rateBytesPerSec.round())}/s',
-        style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-      ),
+      trailing: Text('${byteCountIEC(rateBytesPerSec.round())}/s', style: textTheme.bodyLarge),
     );
   }
 }
@@ -378,7 +375,7 @@ class _LabeledTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final labelStyle = textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500);
+    final labelStyle = textTheme.bodyLarge;
     Widget titleWidget = Text(label, style: labelStyle);
     if (help != null) {
       titleWidget = Row(
@@ -460,10 +457,7 @@ class _BootstrapValue extends StatelessWidget {
         ],
         Text(
           '$connected / $total',
-          style: textTheme.bodyLarge?.copyWith(
-            color: color,
-            fontWeight: lowSignal ? FontWeight.w700 : FontWeight.w500,
-          ),
+          style: textTheme.bodyLarge?.copyWith(color: color, fontWeight: lowSignal ? FontWeight.w500 : null),
         ),
       ],
     );
@@ -501,15 +495,7 @@ class _AddressField extends StatelessWidget {
           },
         ),
       ),
-      child: SelectableText(
-        address,
-        style: TextStyle(
-          fontFamily: 'monospace',
-          fontFamilyFallback: const ['Courier', 'monospace'],
-          fontSize: 14,
-          color: colorScheme.onSurface,
-        ),
-      ),
+      child: SelectableText(address, style: TextStyle(fontSize: 14, color: colorScheme.onSurface)),
     );
   }
 }
