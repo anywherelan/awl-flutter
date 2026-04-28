@@ -71,6 +71,14 @@ android {
             useLegacyPackaging true
         }
     }
+
+    // Strip Google Play "Dependency metadata" block from the APK signing block.
+    // F-Droid's reproducible-build check rejects it as an extra signing block.
+    // See: https://gitlab.com/fdroid/fdroiddata/-/work_items/3330
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
 }
 
 flutter {
