@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:anywherelan/common.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:flutter/material.dart';
@@ -91,7 +92,16 @@ class _KnownPeerSettingsScreenState extends ConsumerState<KnownPeerSettingsScree
       return Container();
     }
 
-    return PeerSettingsView(peerConfig: _peerConfig!, onSave: _onSave, onRemove: _onRemove);
+    final knownPeers = ref.watch(knownPeersProvider).valueOrNull;
+    final knownPeer = knownPeers?.where((p) => p.peerID == _peerID).firstOrNull;
+
+    return PeerSettingsView(
+      peerConfig: _peerConfig!,
+      remoteAllowsUsAsExitNode: knownPeer?.allowedUsingAsExitNode,
+      remoteServesAsVPNGateway: knownPeer?.remoteVPNGatewayServerEnabled,
+      onSave: _onSave,
+      onRemove: _onRemove,
+    );
   }
 }
 
@@ -100,10 +110,19 @@ class _KnownPeerSettingsScreenState extends ConsumerState<KnownPeerSettingsScree
 /// Tests target this widget directly with fixture data.
 class PeerSettingsView extends StatefulWidget {
   final KnownPeerConfig peerConfig;
+  final bool? remoteAllowsUsAsExitNode;
+  final bool? remoteServesAsVPNGateway;
   final Future<String> Function(UpdateKnownPeerConfigRequest)? onSave;
   final Future<String> Function()? onRemove;
 
-  const PeerSettingsView({super.key, required this.peerConfig, this.onSave, this.onRemove});
+  const PeerSettingsView({
+    super.key,
+    required this.peerConfig,
+    this.remoteAllowsUsAsExitNode,
+    this.remoteServesAsVPNGateway,
+    this.onSave,
+    this.onRemove,
+  });
 
   @override
   State<PeerSettingsView> createState() => _PeerSettingsViewState();
@@ -369,7 +388,7 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
           _buildSectionTitle('PERMISSIONS'),
           Row(
             children: [
-              Icon(Icons.vpn_key, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              Icon(Icons.alt_route_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
               SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -377,7 +396,7 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
                   children: [
                     Text('Allow as exit node', style: TextStyle(fontSize: 16)),
                     Text(
-                      'Allow this peer to route traffic through your network',
+                      'Allow this device to route traffic through your network',
                       style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
@@ -386,11 +405,16 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
               Tooltip(
                 triggerMode: TooltipTriggerMode.tap,
                 message:
-                    'This allows peer to pass their traffic through your network via SOCKS5 proxy, for instance peer will have access to your local WiFi network',
-                child: IconButton(
-                  icon: Icon(Icons.info_outline, size: 20),
-                  onPressed: null,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    'Allows this device to route their traffic through your device. '
+                    'Applies to both SOCKS5 proxy and VPN gateway — for instance, the device will '
+                    'have access to your local Wi-Fi network.',
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               Switch(
@@ -403,7 +427,51 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
               ),
             ],
           ),
+          if (widget.remoteAllowsUsAsExitNode != null && widget.remoteServesAsVPNGateway != null) ...[
+            SizedBox(height: 16),
+            _buildSectionTitle('THEIR PERMISSIONS'),
+            _buildRemoteFlagTile(
+              context,
+              icon: Icons.logout_rounded,
+              label: 'Allows us as their exit node',
+              value: widget.remoteAllowsUsAsExitNode!,
+            ),
+            _buildRemoteFlagTile(
+              context,
+              icon: Icons.vpn_lock_outlined,
+              label: 'Serves as a VPN gateway',
+              value: widget.remoteServesAsVPNGateway!,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 16, right: 8),
+              child: Text(
+                'Only this device can change these from their device. Both must be allowed '
+                'for them to appear in your VPN gateway picker.',
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildRemoteFlagTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required bool value,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
+      leading: Icon(icon, color: colorScheme.onSurfaceVariant),
+      title: Text(label, style: const TextStyle(fontSize: 16)),
+      trailing: StatusPill(
+        text: value ? 'Allowed' : 'Not allowed',
+        color: value ? successColor : colorScheme.onSurfaceVariant,
+        withDot: false,
       ),
     );
   }

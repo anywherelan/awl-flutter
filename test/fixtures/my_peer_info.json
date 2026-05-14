@@ -29,7 +29,21 @@
         "ListenAddress": "127.0.0.66:8080",
         "ProxyingEnabled": true,
         "ListenerEnabled": true,
+        "Connected": true,
         "UsingPeerID": "12D3KooWJMUjt9b5T1umzgzjLv5yG2ViuuF4qjmN65tsRXZGS1p8",
-        "UsingPeerName": "awl-tester"
+        "UsingPeerName": "awl-tester",
+        "UsingPeerPublicIP": "203.0.113.45",
+        "UsingPeerPing": 21000000,
+        "UsingPeerThroughRelay": false
+    },
+    "VPNGateway": {
+        "ClientEnabled": false,
+        "GatewayPeerID": "",
+        "GatewayPeerName": "",
+        "Connected": false,
+        "ServerEnabled": false,
+        "GatewayPublicIP": "",
+        "GatewayPing": 0,
+        "GatewayThroughRelay": false
     }
 }

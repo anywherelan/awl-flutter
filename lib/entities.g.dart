@@ -24,6 +24,7 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) => KnownPeer(
   json['Declined'] as bool,
   json['WeAllowUsingAsExitNode'] as bool,
   json['AllowedUsingAsExitNode'] as bool,
+  json['RemoteVPNGatewayServerEnabled'] as bool,
   _durationFromNanoseconds((json['Ping'] as num).toInt()),
 );
 
@@ -38,6 +39,7 @@ Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
   'Declined': instance.declined,
   'WeAllowUsingAsExitNode': instance.weAllowUsingAsExitNode,
   'AllowedUsingAsExitNode': instance.allowedUsingAsExitNode,
+  'RemoteVPNGatewayServerEnabled': instance.remoteVPNGatewayServerEnabled,
   'LastSeen': instance.lastSeen.toIso8601String(),
   'Connections': instance.connections,
   'NetworkStats': instance.networkStats,
@@ -74,6 +76,7 @@ MyPeerInfo _$MyPeerInfoFromJson(Map<String, dynamic> json) => MyPeerInfo(
   json['AwlDNSAddress'] as String,
   json['IsAwlDNSSetAsSystem'] as bool,
   SOCKS5Info.fromJson(json['SOCKS5'] as Map<String, dynamic>),
+  VPNGatewayInfo.fromJson(json['VPNGateway'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$MyPeerInfoToJson(MyPeerInfo instance) =>
@@ -89,14 +92,19 @@ Map<String, dynamic> _$MyPeerInfoToJson(MyPeerInfo instance) =>
       'AwlDNSAddress': instance.awlDNSAddress,
       'IsAwlDNSSetAsSystem': instance.isAwlDNSSetAsSystem,
       'SOCKS5': instance.socks5,
+      'VPNGateway': instance.vpnGateway,
     };
 
 SOCKS5Info _$SOCKS5InfoFromJson(Map<String, dynamic> json) => SOCKS5Info(
   json['ListenAddress'] as String,
   json['ProxyingEnabled'] as bool,
   json['ListenerEnabled'] as bool,
+  json['Connected'] as bool,
   json['UsingPeerID'] as String,
   json['UsingPeerName'] as String,
+  json['UsingPeerPublicIP'] as String,
+  _durationFromNanoseconds((json['UsingPeerPing'] as num).toInt()),
+  json['UsingPeerThroughRelay'] as bool,
 );
 
 Map<String, dynamic> _$SOCKS5InfoToJson(SOCKS5Info instance) =>
@@ -104,9 +112,65 @@ Map<String, dynamic> _$SOCKS5InfoToJson(SOCKS5Info instance) =>
       'ListenAddress': instance.listenAddress,
       'ProxyingEnabled': instance.proxyingEnabled,
       'ListenerEnabled': instance.listenerEnabled,
+      'Connected': instance.connected,
       'UsingPeerID': instance.usingPeerID,
       'UsingPeerName': instance.usingPeerName,
+      'UsingPeerPublicIP': instance.usingPeerPublicIP,
+      'UsingPeerPing': _durationToNanoseconds(instance.usingPeerPing),
+      'UsingPeerThroughRelay': instance.usingPeerThroughRelay,
     };
+
+VPNGatewayInfo _$VPNGatewayInfoFromJson(Map<String, dynamic> json) =>
+    VPNGatewayInfo(
+      json['ClientEnabled'] as bool,
+      json['GatewayPeerID'] as String,
+      json['GatewayPeerName'] as String,
+      json['Connected'] as bool,
+      json['ServerEnabled'] as bool,
+      json['GatewayPublicIP'] as String,
+      _durationFromNanoseconds((json['GatewayPing'] as num).toInt()),
+      json['GatewayThroughRelay'] as bool,
+    );
+
+Map<String, dynamic> _$VPNGatewayInfoToJson(VPNGatewayInfo instance) =>
+    <String, dynamic>{
+      'ClientEnabled': instance.clientEnabled,
+      'ServerEnabled': instance.serverEnabled,
+      'GatewayPeerID': instance.gatewayPeerID,
+      'GatewayPeerName': instance.gatewayPeerName,
+      'Connected': instance.connected,
+      'GatewayPublicIP': instance.gatewayPublicIP,
+      'GatewayPing': _durationToNanoseconds(instance.gatewayPing),
+      'GatewayThroughRelay': instance.gatewayThroughRelay,
+    };
+
+AvailableVPNGateway _$AvailableVPNGatewayFromJson(Map<String, dynamic> json) =>
+    AvailableVPNGateway(
+      json['PeerID'] as String,
+      json['PeerName'] as String,
+      json['Connected'] as bool,
+    );
+
+Map<String, dynamic> _$AvailableVPNGatewayToJson(
+  AvailableVPNGateway instance,
+) => <String, dynamic>{
+  'PeerID': instance.peerID,
+  'PeerName': instance.peerName,
+  'Connected': instance.connected,
+};
+
+ListAvailableVPNGatewaysResponse _$ListAvailableVPNGatewaysResponseFromJson(
+  Map<String, dynamic> json,
+) => ListAvailableVPNGatewaysResponse(
+  (json['VPNGateways'] as List<dynamic>?)
+          ?.map((e) => AvailableVPNGateway.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      [],
+);
+
+Map<String, dynamic> _$ListAvailableVPNGatewaysResponseToJson(
+  ListAvailableVPNGatewaysResponse instance,
+) => <String, dynamic>{'VPNGateways': instance.vpnGateways};
 
 NetworkStats _$NetworkStatsFromJson(Map<String, dynamic> json) => NetworkStats(
   (json['TotalIn'] as num).toInt(),
@@ -150,10 +214,18 @@ Map<String, dynamic> _$ListAvailableProxiesResponseToJson(
 ) => <String, dynamic>{'Proxies': instance.proxies};
 
 AvailableProxy _$AvailableProxyFromJson(Map<String, dynamic> json) =>
-    AvailableProxy(json['PeerID'] as String, json['PeerName'] as String);
+    AvailableProxy(
+      json['PeerID'] as String,
+      json['PeerName'] as String,
+      json['Connected'] as bool,
+    );
 
 Map<String, dynamic> _$AvailableProxyToJson(AvailableProxy instance) =>
-    <String, dynamic>{'PeerID': instance.peerID, 'PeerName': instance.peerName};
+    <String, dynamic>{
+      'PeerID': instance.peerID,
+      'PeerName': instance.peerName,
+      'Connected': instance.connected,
+    };
 
 FriendRequestReply _$FriendRequestReplyFromJson(Map<String, dynamic> json) =>
     FriendRequestReply(

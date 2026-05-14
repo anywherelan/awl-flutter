@@ -115,6 +115,22 @@ class MyApp extends StatelessWidget {
   }
 }
 
+/// Max width for the Status content (device header + Network/Gateway/Proxy
+/// cards). Capping the whole column — rather than the individual Address /
+/// Exit-peer fields — lets those fields stretch to the card width while the
+/// column stays a readable form width instead of sprawling across a wide
+/// screen. Applied at both layout call sites below.
+const double _kStatusContentMaxWidth = 480;
+
+/// Max width for the Peers content (header + list). Like the Status cap, it
+/// keeps the list from sprawling on wide screens. Kept wider than
+/// [_kStatusContentMaxWidth] because the expanded peer-details panel needs
+/// room for its 2-column grid: its column width minus the card chrome (~36px:
+/// 4px left border + 16+16 body padding) must stay ≥
+/// `_kPeerDetailsTwoColumnMinWidth` (430) or the details collapse to a single
+/// column even on large monitors.
+const double _kPeersContentMaxWidth = 600;
+
 class HomeScreen extends ConsumerStatefulWidget {
   static String routeName = "/";
 
@@ -139,7 +155,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _notificationsService.init();
     WidgetsBinding.instance.addObserver(this);
 
-    _tabController = TabController(vsync: this, length: 2, initialIndex: 1);
+    _tabController = TabController(vsync: this, length: 2, initialIndex: 0);
     _tabController.addListener(() {
       // to trigger build and refresh FloatingActionButton
       setState(() {});
@@ -210,8 +226,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                Padding(padding: const EdgeInsets.all(16), child: StatusPage()),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: PeersListPage()),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: _kStatusContentMaxWidth),
+                      child: StatusPage(),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: _kPeersContentMaxWidth),
+                      child: PeersListPage(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -263,23 +297,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             SizedBox(width: spaceBetweenItems),
             Flexible(
               flex: 4,
-              child: Column(
-                children: [
-                  _buildPeersHeader(),
-                  Expanded(child: PeersListPage(showCounter: false)),
-                  SizedBox(height: 20),
-                ],
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _kPeersContentMaxWidth),
+                  child: Column(
+                    children: [
+                      _buildPeersHeader(),
+                      Expanded(child: PeersListPage(showCounter: false)),
+                      SizedBox(height: 20),
+                    ],
+                  ),
+                ),
               ),
             ),
             SizedBox(width: spaceBetweenItems),
             Flexible(
               flex: 3,
-              child: Column(
-                children: [
-                  _buildDeviceHeaderSection(),
-                  Expanded(child: StatusPage(showDeviceHeader: false)),
-                  SizedBox(height: 20),
-                ],
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _kStatusContentMaxWidth),
+                  child: Column(
+                    children: [
+                      _buildDeviceHeaderSection(),
+                      Expanded(child: StatusPage(showDeviceHeader: false)),
+                      SizedBox(height: 20),
+                    ],
+                  ),
+                ),
               ),
             ),
             SizedBox(width: spaceBetweenItems),

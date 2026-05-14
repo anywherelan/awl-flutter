@@ -58,3 +58,16 @@ Future<String> importConfigImpl(String config) async {
 
   return "";
 }
+
+Future<String> reconfigureVpnImpl() async {
+  if (!io.Platform.isAndroid) return "";
+
+  try {
+    await platform.invokeMethod('reconfigure_vpn');
+  } catch (e, s) {
+    developer.log('Failed to reconfigure vpn', error: e, stackTrace: s, name: 'server_interop');
+    return e.toString();
+  }
+
+  return "";
+}

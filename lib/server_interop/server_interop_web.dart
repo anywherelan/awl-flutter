@@ -30,3 +30,9 @@ bool isServerRunningImpl() {
 Future<String> importConfigImpl(String config) async {
   throw UnsupportedError('Unsupported for web');
 }
+
+Future<String> reconfigureVpnImpl() async {
+  // Web has no VPN interface; nothing to reconfigure. Returning "" (rather than
+  // throwing) lets callers invoke this unconditionally without a platform guard.
+  return "";
+}

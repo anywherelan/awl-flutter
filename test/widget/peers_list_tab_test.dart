@@ -75,5 +75,32 @@ void main() {
       expect(qrPeer, isNotNull);
       expect(qrPeer!.peerID, peers.first.peerID);
     });
+
+    // The expanded details switch between a 2-column grid and single-column
+    // rows based on the panel's actual width (LayoutBuilder), not the screen.
+    // The grid is the only place that uses a [Wrap], so its presence/absence
+    // distinguishes the two layouts.
+
+    testWidgets('expanded peer details use a 2-column grid on a wide panel', (tester) async {
+      final peers = _loadPeers();
+      await pumpAppWidget(tester, PeersListView(peers: peers), size: const Size(1200, 900));
+
+      await tester.tap(find.text(peers.first.displayName));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Use as exit'), findsOneWidget); // details rendered
+      expect(find.byType(Wrap), findsWidgets); // grid layout
+    });
+
+    testWidgets('expanded peer details fall back to single-column rows on a narrow panel', (tester) async {
+      final peers = _loadPeers();
+      await pumpAppWidget(tester, PeersListView(peers: peers), size: const Size(420, 900));
+
+      await tester.tap(find.text(peers.first.displayName));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Use as exit'), findsOneWidget); // details rendered
+      expect(find.byType(Wrap), findsNothing); // single-column rows, no grid
+    });
   });
 }

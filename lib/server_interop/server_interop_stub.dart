@@ -17,3 +17,7 @@ bool isServerRunningImpl() {
 Future<String> importConfigImpl(String config) async {
   throw UnsupportedError('Unsupported platform');
 }
+
+Future<String> reconfigureVpnImpl() async {
+  throw UnsupportedError('Unsupported platform');
+}
