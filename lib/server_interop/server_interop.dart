@@ -23,3 +23,12 @@ bool isServerRunning() {
 Future<String> importConfig(String config) async {
   return importConfigImpl(config);
 }
+
+/// Re-applies the VPN routing to match the current backend config (e.g. after
+/// toggling gateway client mode). On Android this re-establishes the VPN
+/// interface and hot-swaps the new tun fd into the backend without dropping P2P
+/// connections; on other platforms it is a no-op. Returns "" on success or an
+/// error string.
+Future<String> reconfigureVpn() async {
+  return reconfigureVpnImpl();
+}

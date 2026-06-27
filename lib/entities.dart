@@ -15,6 +15,7 @@ class KnownPeer {
   final bool declined;
   final bool weAllowUsingAsExitNode;
   final bool allowedUsingAsExitNode;
+  final bool remoteVPNGatewayServerEnabled;
   final DateTime lastSeen;
   final List<ConnectionInfo> connections;
   final NetworkStats networkStats;
@@ -35,6 +36,7 @@ class KnownPeer {
     this.declined,
     this.weAllowUsingAsExitNode,
     this.allowedUsingAsExitNode,
+    this.remoteVPNGatewayServerEnabled,
     this.ping,
   );
 
@@ -85,6 +87,8 @@ class MyPeerInfo {
   final bool isAwlDNSSetAsSystem;
   @JsonKey(name: "SOCKS5")
   final SOCKS5Info socks5;
+  @JsonKey(name: "VPNGateway")
+  final VPNGatewayInfo vpnGateway;
 
   MyPeerInfo(
     this.peerID,
@@ -98,6 +102,7 @@ class MyPeerInfo {
     this.awlDNSAddress,
     this.isAwlDNSSetAsSystem,
     this.socks5,
+    this.vpnGateway,
   );
 
   factory MyPeerInfo.fromJson(Map<String, dynamic> json) => _$MyPeerInfoFromJson(json);
@@ -110,20 +115,83 @@ class SOCKS5Info {
   final String listenAddress;
   final bool proxyingEnabled;
   final bool listenerEnabled;
+  final bool connected;
   final String usingPeerID;
   final String usingPeerName;
+  final String usingPeerPublicIP;
+  @JsonKey(fromJson: _durationFromNanoseconds, toJson: _durationToNanoseconds)
+  final Duration usingPeerPing;
+  final bool usingPeerThroughRelay;
 
   SOCKS5Info(
     this.listenAddress,
     this.proxyingEnabled,
     this.listenerEnabled,
+    this.connected,
     this.usingPeerID,
     this.usingPeerName,
+    this.usingPeerPublicIP,
+    this.usingPeerPing,
+    this.usingPeerThroughRelay,
   );
 
   factory SOCKS5Info.fromJson(Map<String, dynamic> json) => _$SOCKS5InfoFromJson(json);
 
   Map<String, dynamic> toJson() => _$SOCKS5InfoToJson(this);
+}
+
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class VPNGatewayInfo {
+  final bool clientEnabled;
+  final bool serverEnabled;
+  final String gatewayPeerID;
+  final String gatewayPeerName;
+  final bool connected;
+  final String gatewayPublicIP;
+  @JsonKey(fromJson: _durationFromNanoseconds, toJson: _durationToNanoseconds)
+  final Duration gatewayPing;
+  final bool gatewayThroughRelay;
+
+  VPNGatewayInfo(
+    this.clientEnabled,
+    this.gatewayPeerID,
+    this.gatewayPeerName,
+    this.connected,
+    this.serverEnabled,
+    this.gatewayPublicIP,
+    this.gatewayPing,
+    this.gatewayThroughRelay,
+  );
+
+  factory VPNGatewayInfo.fromJson(Map<String, dynamic> json) => _$VPNGatewayInfoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$VPNGatewayInfoToJson(this);
+}
+
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class AvailableVPNGateway {
+  final String peerID;
+  final String peerName;
+  final bool connected;
+
+  AvailableVPNGateway(this.peerID, this.peerName, this.connected);
+
+  factory AvailableVPNGateway.fromJson(Map<String, dynamic> json) => _$AvailableVPNGatewayFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AvailableVPNGatewayToJson(this);
+}
+
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class ListAvailableVPNGatewaysResponse {
+  @JsonKey(name: "VPNGateways", defaultValue: <AvailableVPNGateway>[])
+  final List<AvailableVPNGateway> vpnGateways;
+
+  ListAvailableVPNGatewaysResponse(this.vpnGateways);
+
+  factory ListAvailableVPNGatewaysResponse.fromJson(Map<String, dynamic> json) =>
+      _$ListAvailableVPNGatewaysResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ListAvailableVPNGatewaysResponseToJson(this);
 }
 
 @JsonSerializable(fieldRename: FieldRename.pascal)
@@ -177,8 +245,9 @@ class ListAvailableProxiesResponse {
 class AvailableProxy {
   final String peerID;
   final String peerName;
+  final bool connected;
 
-  AvailableProxy(this.peerID, this.peerName);
+  AvailableProxy(this.peerID, this.peerName, this.connected);
 
   factory AvailableProxy.fromJson(Map<String, dynamic> json) => _$AvailableProxyFromJson(json);
 

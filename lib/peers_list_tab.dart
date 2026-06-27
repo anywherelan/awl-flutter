@@ -7,6 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'connection_error.dart';
 
+/// Min width of the expanded peer-details panel at which it switches from
+/// single-column rows (label left, value right) to a 2-column grid. Measured
+/// against the panel's *actual* width via [LayoutBuilder] — not the global
+/// screen width — so it stays correct inside the side-by-side peers column.
+const double _kPeerDetailsTwoColumnMinWidth = 430;
+
 /// Adapter for [PeersListView] that reads [knownPeersProvider] via Riverpod.
 /// The pure presentation logic lives in [PeersListView].
 class PeersListPage extends ConsumerWidget {
@@ -27,6 +33,9 @@ class PeersListPage extends ConsumerWidget {
     final knownPeers = ref.watch(knownPeersProvider).valueOrNull;
     final myPeerInfo = ref.watch(myPeerInfoProvider).valueOrNull;
     final proxyExitPeerID = myPeerInfo?.socks5.usingPeerID;
+    final gatewayExitPeerID = (myPeerInfo?.vpnGateway.clientEnabled ?? false)
+        ? myPeerInfo?.vpnGateway.gatewayPeerID
+        : null;
 
     return ValueListenableBuilder<bool>(
       valueListenable: isServerAvailable,
@@ -39,6 +48,7 @@ class PeersListPage extends ConsumerWidget {
           peers: knownPeers,
           showCounter: showCounter,
           proxyExitPeerID: proxyExitPeerID,
+          gatewayExitPeerID: gatewayExitPeerID,
           onPeerSettings: (peer) => _onPeerSettings(context, peer),
           onShowQR: (peer) => _onShowQR(context, peer),
         );
@@ -54,6 +64,7 @@ class PeersListView extends StatefulWidget {
   final List<KnownPeer>? peers;
   final bool showCounter;
   final String? proxyExitPeerID;
+  final String? gatewayExitPeerID;
   final Future<void> Function(KnownPeer)? onPeerSettings;
   final Future<void> Function(KnownPeer)? onShowQR;
 
@@ -62,6 +73,7 @@ class PeersListView extends StatefulWidget {
     required this.peers,
     this.showCounter = true,
     this.proxyExitPeerID,
+    this.gatewayExitPeerID,
     this.onPeerSettings,
     this.onShowQR,
   });
@@ -145,6 +157,10 @@ class _PeersListViewState extends State<PeersListView> {
         widget.proxyExitPeerID != null &&
         widget.proxyExitPeerID!.isNotEmpty &&
         widget.proxyExitPeerID == peer.peerID;
+    final isGatewayExit =
+        widget.gatewayExitPeerID != null &&
+        widget.gatewayExitPeerID!.isNotEmpty &&
+        widget.gatewayExitPeerID == peer.peerID;
 
     return Card(
       margin: EdgeInsets.only(bottom: 12),
@@ -182,6 +198,7 @@ class _PeersListViewState extends State<PeersListView> {
                                 ),
                               ),
                               if (isProxyExit) ...[SizedBox(width: 12), _ExitBadge()],
+                              if (isGatewayExit) ...[SizedBox(width: 8), _GatewayBadge()],
                             ],
                           ),
                           SizedBox(height: 2),
@@ -231,8 +248,6 @@ class _PeersListViewState extends State<PeersListView> {
   }
 
   Widget _buildExpansionPanelBody(KnownPeer item) {
-    final isWide = MediaQuery.of(context).size.width > 850;
-
     // Collect detail entries as (label, value) pairs
     final details = <MapEntry<String, String>>[];
 
@@ -240,7 +255,7 @@ class _PeersListViewState extends State<PeersListView> {
       details.add(MapEntry("LAST SEEN", "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"));
     }
     details.add(MapEntry("VPN ADDRESS", "${item.domainName}.awl · ${item.ipAddr}"));
-    // Connections handled separately for widget
+    // Connections handled separately (a widget, not a simple string).
     details.add(MapEntry("USE AS EXIT", item.allowedUsingAsExitNode ? "Allowed" : "Denied"));
     details.add(MapEntry("OFFER AS EXIT", item.weAllowUsingAsExitNode ? "Allowed" : "Denied"));
     if (item.networkStats.totalIn != 0) {
@@ -258,84 +273,60 @@ class _PeersListViewState extends State<PeersListView> {
 
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Connection widget (needs special handling — not a simple string)
-    Widget? connectionWidget;
-    if (item.connections.isNotEmpty) {
-      connectionWidget = _buildGridCell("CONNECTION", _buildConnectionsWidget(item.connections), colorScheme);
+    // CONNECTION slots in after VPN ADDRESS (index 1, or 2 if "last seen" leads).
+    final connectionInsertIdx = (!item.connected && item.confirmed) ? 2 : 1;
+
+    Color? valueColor(String label, String value) {
+      final isExitRow = label == "USE AS EXIT" || label == "OFFER AS EXIT";
+      if (!isExitRow) return null;
+      return value == "Allowed" ? successColor : colorScheme.onSurfaceVariant;
     }
 
-    Widget detailsWidget;
-    if (isWide) {
-      // 2-column grid on desktop
-      final cells = <Widget>[];
-      for (var entry in details) {
-        final isExitRow = entry.key == "USE AS EXIT" || entry.key == "OFFER AS EXIT";
-        final color = isExitRow
-            ? (entry.value == "Allowed" ? successColor : colorScheme.onSurfaceVariant)
-            : null;
-        cells.add(
-          _buildGridCell(
-            entry.key,
-            SelectableText(
-              entry.value,
-              style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w500),
-            ),
-            colorScheme,
-          ),
-        );
-      }
-      if (connectionWidget != null) {
-        // Insert connection after VPN ADDRESS (index 1, or 2 if last seen is present)
-        final insertIdx = (!item.connected && item.confirmed) ? 2 : 1;
-        cells.insert(insertIdx, connectionWidget);
-      }
-
-      detailsWidget = LayoutBuilder(
-        builder: (context, constraints) {
-          final availableWidth = constraints.maxWidth;
-          if (availableWidth < 300) {
-            // Fall back to single column on very narrow panels
-            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: cells);
-          }
-          final cellWidth = (availableWidth - 16) / 2; // 2 columns with 16px gap
-          return Wrap(
-            spacing: 16,
-            runSpacing: 12,
-            children: cells.map((c) => SizedBox(width: cellWidth, child: c)).toList(),
-          );
-        },
-      );
-    } else {
-      // Single column rows on mobile: label left, value right
-      final rows = <Widget>[];
-      for (var entry in details) {
-        final isExitRow = entry.key == "USE AS EXIT" || entry.key == "OFFER AS EXIT";
-        final color = isExitRow
-            ? (entry.value == "Allowed" ? successColor : colorScheme.onSurfaceVariant)
-            : null;
-        rows.add(
-          _buildMobileRow(
-            entry.key,
-            SelectableText(
-              entry.value,
-              style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w500),
-            ),
-          ),
-        );
-      }
-      if (item.connections.isNotEmpty) {
-        final insertIdx = (!item.connected && item.confirmed) ? 2 : 1;
-        rows.insert(insertIdx, _buildMobileRow("CONNECTION", _buildConnectionsWidget(item.connections)));
-      }
-      detailsWidget = Column(children: rows);
-    }
+    Widget valueText(MapEntry<String, String> entry) => SelectableText(
+      entry.value,
+      style: TextStyle(fontSize: 14, color: valueColor(entry.key, entry.value), fontWeight: FontWeight.w500),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Divider(height: 1, color: colorScheme.outlineVariant),
         SizedBox(height: 12),
-        detailsWidget,
+        // Decide 1- vs 2-column details by the panel's actual width, not the
+        // global screen width, so it stays correct inside the side-by-side
+        // peers column (and any future width cap).
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final twoColumns = constraints.maxWidth >= _kPeerDetailsTwoColumnMinWidth;
+            if (twoColumns) {
+              final cells = <Widget>[
+                for (final entry in details) _buildGridCell(entry.key, valueText(entry), colorScheme),
+              ];
+              if (item.connections.isNotEmpty) {
+                cells.insert(
+                  connectionInsertIdx,
+                  _buildGridCell("CONNECTION", _buildConnectionsWidget(item.connections), colorScheme),
+                );
+              }
+              final cellWidth = (constraints.maxWidth - 16) / 2; // 2 columns with 16px gap
+              return Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                children: cells.map((c) => SizedBox(width: cellWidth, child: c)).toList(),
+              );
+            }
+
+            // Single column: label left, value right.
+            final rows = <Widget>[for (final entry in details) _buildMobileRow(entry.key, valueText(entry))];
+            if (item.connections.isNotEmpty) {
+              rows.insert(
+                connectionInsertIdx,
+                _buildMobileRow("CONNECTION", _buildConnectionsWidget(item.connections)),
+              );
+            }
+            return Column(children: rows);
+          },
+        ),
         SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -445,9 +436,11 @@ class _PeersListViewState extends State<PeersListView> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SelectableText(
-                connection.toString(),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              Flexible(
+                child: SelectableText(
+                  connection.toString(),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
               ),
               const SizedBox(width: 5),
               Tooltip(
@@ -486,7 +479,7 @@ class _ExitBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Tooltip(
-      message: 'SOCKS5 proxy traffic exits through this peer',
+      message: 'SOCKS5 proxy traffic exits through this device',
       child: Container(
         padding: const EdgeInsets.fromLTRB(8, 3, 10, 3),
         decoration: BoxDecoration(
@@ -500,7 +493,41 @@ class _ExitBadge extends StatelessWidget {
             Icon(Icons.exit_to_app_rounded, size: 14, color: colorScheme.onSurfaceVariant),
             const SizedBox(width: 6),
             Text(
-              'Exit node',
+              'SOCKS5 exit',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurfaceVariant,
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GatewayBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: 'All internet traffic exits through this device (VPN gateway)',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 3, 10, 3),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.vpn_lock_outlined, size: 14, color: colorScheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Text(
+              'VPN gateway',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,

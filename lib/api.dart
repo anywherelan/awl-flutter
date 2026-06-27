@@ -27,6 +27,12 @@ const exportServerConfigPath = "${v0Prefix}settings/export_server_config";
 const listAvailableProxiesPath = "${v0Prefix}settings/list_proxies";
 const updateProxySettingsPath = "${v0Prefix}settings/set_proxy";
 
+// VPN Gateway
+const enableVPNGatewayClientPath = "${v0Prefix}vpn_gateway/client/enable";
+const disableVPNGatewayClientPath = "${v0Prefix}vpn_gateway/client/disable";
+const listAvailableVPNGatewaysPath = "${v0Prefix}vpn_gateway/client/list_available";
+const setVPNGatewayServerEnabledPath = "${v0Prefix}vpn_gateway/server/set_enabled";
+
 // Debug
 const getP2pDebugInfoPath = "${v0Prefix}debug/p2p_info";
 const getDebugLogPath = "${v0Prefix}debug/log";
@@ -77,6 +83,16 @@ class ApiClient {
       return ListAvailableProxiesResponse.fromJson(parsed);
     } catch (e, s) {
       Error.throwWithStackTrace(Exception('Failed to fetchAvailableProxies: $e'), s);
+    }
+  }
+
+  Future<ListAvailableVPNGatewaysResponse> fetchAvailableVPNGateways() async {
+    try {
+      final response = await _client.get(_uri(listAvailableVPNGatewaysPath));
+      final Map<String, dynamic> parsed = jsonDecode(response.body);
+      return ListAvailableVPNGatewaysResponse.fromJson(parsed);
+    } catch (e, s) {
+      Error.throwWithStackTrace(Exception('Failed to fetchAvailableVPNGateways: $e'), s);
     }
   }
 
@@ -146,6 +162,18 @@ class ApiClient {
 
   Future<String> removePeer(String peerID) {
     return _postJsonOrError(removePeerSettingsPath, PeerIDRequest(peerID).toJson());
+  }
+
+  Future<String> enableVPNGatewayClient(String gatewayPeerID) {
+    return _postJsonOrError(enableVPNGatewayClientPath, {"GatewayPeerID": gatewayPeerID});
+  }
+
+  Future<String> disableVPNGatewayClient() {
+    return _postJsonOrError(disableVPNGatewayClientPath, const {});
+  }
+
+  Future<String> setVPNGatewayServerEnabled(bool enabled) {
+    return _postJsonOrError(setVPNGatewayServerEnabledPath, {"Enabled": enabled});
   }
 
   // ---- private helpers ----

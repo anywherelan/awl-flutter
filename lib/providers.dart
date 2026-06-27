@@ -110,11 +110,22 @@ final availableProxiesProvider =
       AvailableProxiesNotifier.new,
     );
 
-/// Force-refresh all three providers. Throws if any fetch fails.
+class AvailableVPNGatewaysNotifier extends _PollingAsyncNotifier<ListAvailableVPNGatewaysResponse?> {
+  @override
+  Future<ListAvailableVPNGatewaysResponse?> fetch() => ref.read(apiProvider).fetchAvailableVPNGateways();
+}
+
+final availableVPNGatewaysProvider =
+    AsyncNotifierProvider<AvailableVPNGatewaysNotifier, ListAvailableVPNGatewaysResponse?>(
+      AvailableVPNGatewaysNotifier.new,
+    );
+
+/// Force-refresh all polling providers. Throws if any fetch fails.
 Future<void> refreshProviders(ProviderContainer container) => Future.wait([
   container.read(myPeerInfoProvider.notifier).refresh(),
   container.read(knownPeersProvider.notifier).refresh(),
   container.read(availableProxiesProvider.notifier).refresh(),
+  container.read(availableVPNGatewaysProvider.notifier).refresh(),
 ]);
 
 /// Retry refreshing all three providers every 200ms until all succeed

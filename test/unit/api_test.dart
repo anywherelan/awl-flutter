@@ -293,5 +293,79 @@ void main() {
       final result = await api.removePeer('pid');
       expect(result, 'cannot remove');
     });
+
+    test('enableVPNGatewayClient sends GatewayPeerID and returns empty on success', () async {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed('{"message":"ok"}', 200));
+
+      final result = await api.enableVPNGatewayClient('gw-pid');
+      expect(result, '');
+
+      final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
+      expect(captured.url.toString(), '$_baseUrl$enableVPNGatewayClientPath');
+      final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(decoded['GatewayPeerID'], 'gw-pid');
+    });
+
+    test('enableVPNGatewayClient returns error on non-200', () async {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed('{"error":"peer not allowed"}', 400));
+
+      final result = await api.enableVPNGatewayClient('gw-pid');
+      expect(result, 'peer not allowed');
+    });
+
+    test('disableVPNGatewayClient POSTs an empty body to disable path', () async {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed('{"message":"ok"}', 200));
+
+      final result = await api.disableVPNGatewayClient();
+      expect(result, '');
+
+      final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
+      expect(captured.url.toString(), '$_baseUrl$disableVPNGatewayClientPath');
+      expect(captured.body, '{}');
+    });
+
+    test('setVPNGatewayServerEnabled sends Enabled flag', () async {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed('{"message":"ok"}', 200));
+
+      final result = await api.setVPNGatewayServerEnabled(true);
+      expect(result, '');
+
+      final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
+      expect(captured.url.toString(), '$_baseUrl$setVPNGatewayServerEnabledPath');
+      final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(decoded['Enabled'], true);
+    });
+  });
+
+  group('VPN Gateway GET endpoints', () {
+    late MockHttpClient client;
+    late ApiClient api;
+
+    setUp(() {
+      client = MockHttpClient();
+      api = ApiClient(client);
+      serverAddress = _baseUrl;
+    });
+
+    test('fetchAvailableVPNGateways parses response', () async {
+      when(() => client.get(any<Uri>())).thenAnswer(
+        (_) async => http.Response('{"VPNGateways":[{"PeerID":"p1","PeerName":"n1","Connected":true}]}', 200),
+      );
+
+      final res = await api.fetchAvailableVPNGateways();
+      expect(res.vpnGateways, hasLength(1));
+      expect(res.vpnGateways.first.peerID, 'p1');
+      expect(res.vpnGateways.first.peerName, 'n1');
+      expect(res.vpnGateways.first.connected, true);
+
+      verify(() => client.get(Uri.parse('$_baseUrl$listAvailableVPNGatewaysPath'))).called(1);
+    });
+
+    test('fetchAvailableVPNGateways accepts null/missing VPNGateways', () async {
+      when(() => client.get(any<Uri>())).thenAnswer((_) async => http.Response('{"VPNGateways":null}', 200));
+
+      final res = await api.fetchAvailableVPNGateways();
+      expect(res.vpnGateways, isEmpty);
+    });
   });
 }
