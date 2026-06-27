@@ -1,12 +1,13 @@
 Anywherelan (awl) is a mesh VPN that lets you connect to any of your devices at the IP level, wherever they are. It works similarly to tinc, direct WireGuard or Tailscale, but fully peer-to-peer — there are no central coordination servers to trust or set up. Your traffic goes directly between your devices.
 
-You can also route traffic through a remote device as a SOCKS5 proxy.
+You can also route traffic through a remote device — either per-app as a SOCKS5 proxy, or all of your device's traffic at once as a full-tunnel VPN gateway (exit node).
 
 <b>Some use cases</b>
 <ul>
 <li>Connect to your home or work laptop over RDP/VNC/SSH even when it sits behind NAT, without configuring port forwarding.</li>
 <li>Reach self-hosted services like Nextcloud, Home Assistant or Bitwarden without exposing them to the internet.</li>
 <li>Access websites from another country by using a remote device as a SOCKS5 proxy.</li>
+<li>Route all of your traffic through a remote device as a full-tunnel VPN gateway (exit node), like a classic VPN.</li>
 <li>Gaming: local multiplayer as if everyone were on the same LAN.</li>
 <li>Share a development server with a colleague on another device, as an alternative to ngrok.</li>
 <li>Use an old Android phone remotely with scrcpy to run Android-only apps without an emulator.</li>
@@ -16,6 +17,7 @@ You can also route traffic through a remote device as a SOCKS5 proxy.
 <ul>
 <li>Fully peer-to-peer. No third-party coordination servers — your traffic stays between your devices.</li>
 <li>Route traffic through a remote device like a SOCKS5 proxy.</li>
+<li>Full-tunnel VPN gateway: route all of your device's traffic through a remote exit node.</li>
 <li>Easy to use: install the app, scan the QR code of another device, and you are connected.</li>
 <li>Built-in NAT traversal.</li>
 <li>If both devices are behind NAT and direct P2P is not possible, encrypted traffic is relayed through community relays.</li>

@@ -1,0 +1,5 @@
+New: VPN gateway (full-tunnel exit node).
+
+Route all of your device's traffic through one of your remote devices at the IP layer, like a classic VPN — not just per-app like the SOCKS5 proxy. Pick an exit node and turn it on or off without restarting the app.
+
+Note: the exit node must be a Linux device (Android can use a gateway, but not serve as one). Only IPv4 traffic is routed.
