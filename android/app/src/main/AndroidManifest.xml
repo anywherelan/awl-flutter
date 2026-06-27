@@ -1,8 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.anywherelan.awl">
     <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Pulled in transitively by camera_android_camerax (via flutter_zxing's QR scanner),
+         but we never record audio (CameraController uses enableAudio: false). Strip it. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
 
 <!--    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>-->
 <!--    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>-->
