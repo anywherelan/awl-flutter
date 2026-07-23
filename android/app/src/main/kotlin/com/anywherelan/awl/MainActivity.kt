@@ -145,11 +145,25 @@ class MainActivity : FlutterActivity() {
         if (config.vpnGateway.clientEnabled) {
             builder.addRoute("0.0.0.0", 0)
             builder.addRoute("::", 0)
+        }
 
-            // Full-tunnel mode: pin DNS to the configured upstream so queries go
-            // through the TUN (and the exit node) instead of leaking to the
-            // device's own resolver. The Go DNSService cannot take over DNS on
-            // Android (no awl :53 listener without root), so the host owns this.
+        // The Go core owns an in-tunnel DNS IP (netstack interceptor in the
+        // TUN read path): .awl names are answered locally, everything else is
+        // forwarded to the configured upstream — in gateway client mode
+        // through the tunnel, so DNS does not leak. The IP is inside the awl
+        // subnet that addAddress already routes on-link, so no extra addRoute
+        // is needed. An empty string means DNS is off or the Go side could
+        // not set the interceptor up (e.g. no free IP in the subnet).
+        val dnsServerIP = if (!config.dns.disableDNS) Anywherelan.dnsServerIP() else ""
+        if (dnsServerIP.isNotEmpty()) {
+            builder.addDnsServer(dnsServerIP)
+            // TODO: builder.addSearchDomain("awl") — would resolve bare
+            //  short names (e.g. "mypeer") without the .awl suffix.
+        } else if (config.vpnGateway.clientEnabled) {
+            // No interceptor (DNS disabled — the kill switch — or the Go side
+            // failed to set it up) while full-tunnel mode is on: pin DNS to
+            // the configured upstream so queries go through the TUN (and the
+            // exit node) instead of leaking to the device's own resolver.
             val dnsHost = hostFromAddress(config.dns.upstreamDNSAddress)
             if (dnsHost.isNotEmpty()) {
                 builder.addDnsServer(dnsHost)
