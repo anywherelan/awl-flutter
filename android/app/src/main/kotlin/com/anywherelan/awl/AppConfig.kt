@@ -20,6 +20,7 @@ data class AppConfig(
 
             val dnsJson = root.optJSONObject("dns")
             val dnsConfig = DnsConfig(
+                disableDNS = dnsJson?.optBoolean("disableDNS", false) ?: false,
                 upstreamDNSAddress = dnsJson?.optString("upstreamDNSAddress", "") ?: ""
             )
 
@@ -68,12 +69,18 @@ data class VPNGatewayConfig(
 
 // DnsConfig mirrors DNSConfig in github.com/anywherelan/awl/config.
 //
+// `disableDNS` — DNS is off entirely (also the field kill switch for the
+//   interceptor): establishTun then does not call addDnsServer with the awl
+//   DNS IP and the Go side does not install the interceptor.
+//
 // `upstreamDNSAddress` — the public resolver (host:port) the Go side forwards
-//   non-.awl queries to. On Android there is no in-process awl resolver
-//   (binding :53 needs root; see the TODO in the Go DNSService), so we instead
-//   point VpnService at this resolver directly via addDnsServer when full-tunnel
-//   (gateway client) mode is on, so DNS does not leak around the tunnel. The
-//   port is stripped — VpnService.addDnsServer takes a bare IP.
+//   non-.awl queries to. Normally the device talks to the in-tunnel awl DNS
+//   IP (Anywherelan.dnsServerIP) and the Go resolver does the forwarding;
+//   this address is used by the host directly only when DNS is disabled but
+//   full-tunnel (gateway client) mode is on — then VpnService pins it via
+//   addDnsServer so queries do not leak around the tunnel. The port is
+//   stripped — VpnService.addDnsServer takes a bare IP.
 data class DnsConfig(
+    val disableDNS: Boolean,
     val upstreamDNSAddress: String,
 )
