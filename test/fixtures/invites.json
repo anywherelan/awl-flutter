@@ -1,0 +1,41 @@
+[
+    {
+        "ID": "9f3a",
+        "Label": "my laptop",
+        "Link": "awl://invite?p=12D3KooWPxx4CkH2AL45tzKUR2g6Ht55g82eFuSMevAximtCQfwR&t=Xk9vQ2t7bF1sZ0pQd3JmYQ&n=myawesomelaptop",
+        "Alias": "laptop",
+        "AllowUsingAsExitNode": true,
+        "MaxUses": 1,
+        "UsedCount": 0,
+        "ExpiresAt": "2026-04-11T08:24:50.522115354+03:00",
+        "CreatedAt": "2026-04-10T08:24:50.522115354+03:00",
+        "Revoked": false,
+        "Status": "active"
+    },
+    {
+        "ID": "1b7d",
+        "Label": "friends",
+        "Link": "awl://invite?p=12D3KooWPxx4CkH2AL45tzKUR2g6Ht55g82eFuSMevAximtCQfwR&t=c2Vjb25kdG9rZW52YWx1ZQ&n=myawesomelaptop",
+        "Alias": "",
+        "AllowUsingAsExitNode": false,
+        "MaxUses": 2,
+        "UsedCount": 2,
+        "ExpiresAt": "2026-04-17T08:20:11.100000000+03:00",
+        "CreatedAt": "2026-04-10T08:20:11.100000000+03:00",
+        "Revoked": false,
+        "Status": "used_up"
+    },
+    {
+        "ID": "c04e",
+        "Label": "",
+        "Link": "awl://invite?p=12D3KooWPxx4CkH2AL45tzKUR2g6Ht55g82eFuSMevAximtCQfwR&t=dGhpcmR0b2tlbnZhbHVlMQ&n=myawesomelaptop",
+        "Alias": "",
+        "AllowUsingAsExitNode": false,
+        "MaxUses": 5,
+        "UsedCount": 1,
+        "ExpiresAt": "0001-01-01T00:00:00Z",
+        "CreatedAt": "2026-04-09T19:02:40.000000000+03:00",
+        "Revoked": true,
+        "Status": "revoked"
+    }
+]

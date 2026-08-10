@@ -1,0 +1,8 @@
+# Declares the tags the suite uses, so that `--tags` / `--exclude-tags` are
+# self-documenting and a typo in a tag name is an error rather than a silently
+# empty run.
+tags:
+  golden:
+    # Screenshot tests: pixel comparisons against test/golden/goldens/. They run
+    # in CI, which is why FLUTTER_VERSION there is pinned exactly. Re-shoot with
+    # `flutter test --tags golden --update-goldens` from that same version.

@@ -1,7 +1,7 @@
 import 'package:anywherelan/drawer.dart';
 import 'package:flutter/material.dart';
 
-enum AppSection { overview, settings, blockedPeers, diagnostics }
+enum AppSection { overview, invites, settings, blockedPeers, diagnostics }
 
 class AppShell extends StatelessWidget {
   final AppSection? selected;

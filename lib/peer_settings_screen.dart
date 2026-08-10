@@ -95,8 +95,17 @@ class _KnownPeerSettingsScreenState extends ConsumerState<KnownPeerSettingsScree
     final knownPeers = ref.watch(knownPeersProvider).valueOrNull;
     final knownPeer = knownPeers?.where((p) => p.peerID == _peerID).firstOrNull;
 
+    // Only peers we let in through one of our links carry an invite id, so the
+    // invites list is fetched only when there is something to name.
+    String? inviteLabel;
+    if (_peerConfig!.inviteID.isNotEmpty) {
+      final invites = ref.watch(invitesProvider).valueOrNull;
+      inviteLabel = invites?.where((i) => i.id == _peerConfig!.inviteID).firstOrNull?.label;
+    }
+
     return PeerSettingsView(
       peerConfig: _peerConfig!,
+      inviteLabel: inviteLabel,
       remoteAllowsUsAsExitNode: knownPeer?.allowedUsingAsExitNode,
       remoteServesAsVPNGateway: knownPeer?.remoteVPNGatewayServerEnabled,
       onSave: _onSave,
@@ -110,6 +119,12 @@ class _KnownPeerSettingsScreenState extends ConsumerState<KnownPeerSettingsScree
 /// Tests target this widget directly with fixture data.
 class PeerSettingsView extends StatefulWidget {
   final KnownPeerConfig peerConfig;
+
+  /// Label of the invite link this peer came in through, when it is known.
+  /// Only used when [KnownPeerConfig.inviteID] is set — a null label with a
+  /// set id just means the invites list hasn't loaded (or the link predates
+  /// labels), and the id is shown alone.
+  final String? inviteLabel;
   final bool? remoteAllowsUsAsExitNode;
   final bool? remoteServesAsVPNGateway;
   final Future<String> Function(UpdateKnownPeerConfigRequest)? onSave;
@@ -118,6 +133,7 @@ class PeerSettingsView extends StatefulWidget {
   const PeerSettingsView({
     super.key,
     required this.peerConfig,
+    this.inviteLabel,
     this.remoteAllowsUsAsExitNode,
     this.remoteServesAsVPNGateway,
     this.onSave,
@@ -203,7 +219,7 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
                 var result = await _sendNewPeerConfig();
                 if (!context.mounted) return;
                 if (result == "") {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Successfully saved")));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Saved")));
                 } else {
                   ScaffoldMessenger.of(
                     context,
@@ -326,6 +342,7 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
               ),
             ),
           ),
+          if (widget.peerConfig.inviteID.isNotEmpty) _buildInviteMarker(context),
           Padding(
             padding: EdgeInsets.only(bottom: 16),
             child: TextFormField(
@@ -394,9 +411,10 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Allow as exit node', style: TextStyle(fontSize: 16)),
+                    Text('Allow them to use this device as an exit node', style: TextStyle(fontSize: 16)),
                     Text(
-                      'Allow this device to route traffic through your network',
+                      'They can route their internet traffic through this device '
+                      '(SOCKS5 proxy and VPN gateway).',
                       style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
@@ -405,9 +423,9 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
               Tooltip(
                 triggerMode: TooltipTriggerMode.tap,
                 message:
-                    'Allows this device to route their traffic through your device. '
-                    'Applies to both SOCKS5 proxy and VPN gateway — for instance, the device will '
-                    'have access to your local Wi-Fi network.',
+                    'Their internet traffic will appear to come from your IP address. '
+                    'Allowing this does not route anything by itself. They still have to '
+                    'select this device as their exit node.',
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(
@@ -456,6 +474,32 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
     );
   }
 
+  /// "This peer walked in through one of my links" — the trace that makes an
+  /// unexpected peer explainable. Revoking that link does not affect them.
+  Widget _buildInviteMarker(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final label = widget.inviteLabel;
+    final via = (label != null && label.isNotEmpty)
+        ? "'$label' (${widget.peerConfig.inviteID})"
+        : widget.peerConfig.inviteID;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Icon(Icons.link, size: 18, color: colorScheme.onSurfaceVariant),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Added via invite link $via',
+              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRemoteFlagTile(
     BuildContext context, {
     required IconData icon,
@@ -481,17 +525,17 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('Remove Peer'),
-        content: Text('Are you sure you want to remove peer "$_peerDisplayName"?'),
+        title: const Text('Remove peer'),
+        content: Text(
+          '"$_peerDisplayName" will be removed from your peers list and will no longer '
+          'be able to connect to this device. You can add them again later.',
+        ),
         actions: <Widget>[
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(
+          TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            child: const Text('Remove'),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+            child: const Text('Remove peer'),
           ),
         ],
       ),

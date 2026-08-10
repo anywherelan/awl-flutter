@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../fixtures/fixture_reader.dart';
 import '../helpers/pump_app.dart';
+import '../helpers/samples.dart';
 
 MyPeerInfo _loadInfo() {
   final json = loadFixtureJson('my_peer_info.json') as Map<String, dynamic>;
@@ -69,7 +70,7 @@ MyPeerInfo _withSocks5(MyPeerInfo base, SOCKS5Info socks5) {
 
 void main() {
   // Use a wide test view so the layout doesn't overflow narrow defaults.
-  const desktopSize = Size(1200, 900);
+  const desktopSize = wideSize;
 
   group('StatusPageView', () {
     testWidgets('renders an empty container when peerInfo is null', (tester) async {
@@ -372,6 +373,138 @@ void main() {
       );
 
       expect(find.textContaining('every connection will fail'), findsOneWidget);
+    });
+
+    testWidgets('SOCKS5 pill is Off and shows no meta line when no exit peer is selected', (tester) async {
+      final base = _loadInfo();
+      // Exit peers are never auto-selected, so "nothing picked" is the normal
+      // state of a fresh install — not a momentary one.
+      final socks5 = SOCKS5Info(
+        base.socks5.listenAddress,
+        base.socks5.proxyingEnabled,
+        base.socks5.listenerEnabled,
+        false,
+        '',
+        '',
+        '',
+        Duration.zero,
+        false,
+      );
+      await pumpAppWidget(
+        tester,
+        StatusPageView(peerInfo: _withSocks5(base, socks5), proxiesData: _loadProxies()),
+        size: desktopSize,
+      );
+
+      // Two: the gateway client is disabled in the fixture and reads 'Off'
+      // too — which is exactly the wording this card now shares with it.
+      expect(find.text('Off'), findsNWidgets(2));
+      expect(find.text('Active'), findsNothing);
+      // Regression: the meta line used to claim a direct connection (with a
+      // zero ping) while the picker read "None".
+      expect(find.text('Direct'), findsNothing);
+      expect(find.textContaining('Direct · '), findsNothing);
+      expect(find.text('Public IP: '), findsNothing);
+    });
+
+    testWidgets('SOCKS5 keeps the picker when candidates exist but none is picked', (tester) async {
+      final base = _loadInfo();
+      final socks5 = SOCKS5Info(
+        base.socks5.listenAddress,
+        base.socks5.proxyingEnabled,
+        base.socks5.listenerEnabled,
+        false,
+        '',
+        '',
+        '',
+        Duration.zero,
+        false,
+      );
+      await pumpAppWidget(
+        tester,
+        StatusPageView(peerInfo: _withSocks5(base, socks5), proxiesData: _loadProxies()),
+        size: desktopSize,
+      );
+
+      // The picker stays — there is something to pick, so this is not the
+      // empty state, and the 'Off' pill carries the "nothing selected" news.
+      expect(find.text('Exit peer'), findsAtLeastNWidgets(1));
+      expect(find.textContaining('every connection will fail'), findsNothing);
+    });
+
+    testWidgets('SOCKS5 dropdown picks an exit peer and invokes onUpdateProxy', (tester) async {
+      final base = _loadInfo();
+      // Nothing selected yet, so the fixture's one candidate is a real choice.
+      final socks5 = SOCKS5Info(
+        base.socks5.listenAddress,
+        base.socks5.proxyingEnabled,
+        base.socks5.listenerEnabled,
+        false,
+        '',
+        '',
+        '',
+        Duration.zero,
+        false,
+      );
+      final picked = <String>[];
+      await pumpAppWidget(
+        tester,
+        StatusPageView(
+          peerInfo: _withSocks5(base, socks5),
+          proxiesData: _loadProxies(),
+          onUpdateProxy: (id) async {
+            picked.add(id);
+            return '';
+          },
+        ),
+        size: desktopSize,
+      );
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('awl-tester').last);
+      await tester.pumpAndSettle();
+
+      expect(picked, [base.socks5.usingPeerID]);
+    });
+
+    testWidgets('re-picking an exit peer that dropped off the list changes nothing', (tester) async {
+      // The selection is carried into the picker as a disconnected option when
+      // the peer is no longer a candidate (offline, or no longer allowing us),
+      // and that option has no peer id behind it. Regression: passing it on
+      // sent an empty UsingPeerID, which the backend reads as "no exit peer" —
+      // so picking what was already selected switched the proxy off.
+      final base = _loadInfo();
+      final picked = <String>[];
+      await pumpAppWidget(
+        tester,
+        StatusPageView(
+          peerInfo: base,
+          proxiesData: ListAvailableProxiesResponse(const []),
+          onUpdateProxy: (id) async {
+            picked.add(id);
+            return '';
+          },
+        ),
+        size: desktopSize,
+      );
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(base.socks5.usingPeerName).last);
+      await tester.pumpAndSettle();
+
+      expect(picked, isEmpty);
+    });
+
+    testWidgets('SOCKS5 pill reads Active once an exit peer is selected', (tester) async {
+      await pumpAppWidget(
+        tester,
+        StatusPageView(peerInfo: _loadInfo(), proxiesData: _loadProxies()),
+        size: desktopSize,
+      );
+
+      expect(find.text('Active'), findsOneWidget);
     });
 
     testWidgets('Gateway active state renders Direct/ping status line and Public IP row', (tester) async {

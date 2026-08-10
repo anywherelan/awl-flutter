@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:anywherelan/app_shell.dart';
 import 'package:anywherelan/blocked_peers_screen.dart';
 import 'package:anywherelan/diagnostics_screen.dart';
+import 'package:anywherelan/invites_screen.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:anywherelan/settings_screen.dart' show AppSettingsScreen;
@@ -25,6 +26,7 @@ class MyDrawer extends ConsumerStatefulWidget {
 class _MyDrawerState extends ConsumerState<MyDrawer> {
   static const _sectionOrder = [
     AppSection.overview,
+    AppSection.invites,
     AppSection.settings,
     AppSection.blockedPeers,
     AppSection.diagnostics,
@@ -40,6 +42,12 @@ class _MyDrawerState extends ConsumerState<MyDrawer> {
         icon: Icon(Icons.hub_outlined),
         selectedIcon: Icon(Icons.hub),
         label: Text('Overview'),
+      ),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.link_outlined),
+        selectedIcon: const Icon(Icons.link),
+        enabled: serverGatedEnabled,
+        label: const Text('Invite links'),
       ),
       const NavigationDrawerDestination(
         icon: Icon(Icons.settings_outlined),
@@ -193,6 +201,8 @@ class _MyDrawerState extends ConsumerState<MyDrawer> {
     switch (section) {
       case AppSection.overview:
         return '/';
+      case AppSection.invites:
+        return InvitesScreen.routeName;
       case AppSection.settings:
         return AppSettingsScreen.routeName;
       case AppSection.blockedPeers:

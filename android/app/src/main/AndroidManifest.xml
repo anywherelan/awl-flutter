@@ -64,6 +64,18 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Invite links (awl://invite?...) tapped in a messenger or opened from a QR scanner.
+                 DEFAULT + BROWSABLE is what makes other apps resolve it to us.
+                 Combined with launchMode="singleTop" above, a link tapped
+                 while the app is already running arrives as onNewIntent, which
+                 app_links forwards to uriLinkStream instead of restarting the
+                 activity. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="awl"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

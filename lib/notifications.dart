@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:anywherelan/api.dart';
+import 'package:anywherelan/common.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -158,52 +159,82 @@ Future _showAuthRequestDialog(AuthRequest req) async {
   if (navigatorKey.currentContext == null) return;
   showDialog(
     context: navigatorKey.currentContext!,
-    builder: (context) {
-      return SimpleDialog(
-        title: req.name != ""
-            ? Text("Incoming friend request from '${req.name}'")
-            : Text("Incoming friend request"),
-        children: [
-          Center(
-            child: SizedBox(width: 450, child: IncomingAuthRequestForm(request: req)),
-          ),
-        ],
-      );
-    },
+    builder: (context) => AuthRequestDialog(request: req),
   );
 }
 
-class IncomingAuthRequestForm extends ConsumerStatefulWidget {
+/// Adapter for [AuthRequestDialogView]: owns the API call. The pure
+/// presentation logic lives in [AuthRequestDialogView].
+class AuthRequestDialog extends ConsumerStatefulWidget {
   final AuthRequest request;
 
-  const IncomingAuthRequestForm({super.key, required this.request});
+  const AuthRequestDialog({super.key, required this.request});
 
   @override
-  ConsumerState<IncomingAuthRequestForm> createState() => _IncomingAuthRequestFormState();
+  ConsumerState<AuthRequestDialog> createState() => _AuthRequestDialogState();
 }
 
-class _IncomingAuthRequestFormState extends ConsumerState<IncomingAuthRequestForm> {
+class _AuthRequestDialogState extends ConsumerState<AuthRequestDialog> {
+  Future<String> _onSubmit(FriendRequestReply reply) {
+    return ref.read(apiProvider).replyFriendRequest(reply);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AuthRequestDialogView(
+      request: widget.request,
+      onSubmit: _onSubmit,
+      onDone: () => Navigator.pop(context),
+    );
+  }
+}
+
+/// Pure presentation widget for an incoming friend request. Receives its data
+/// and callbacks via constructor; never reads global services. Tests target
+/// this widget directly.
+class AuthRequestDialogView extends StatefulWidget {
+  final AuthRequest request;
+
+  /// Performs the reply; returns "" on success or the server error message.
+  final Future<String> Function(FriendRequestReply) onSubmit;
+
+  /// Called after a successful reply (the dialog closes itself this way).
+  final VoidCallback? onDone;
+
+  const AuthRequestDialogView({super.key, required this.request, required this.onSubmit, this.onDone});
+
+  @override
+  State<AuthRequestDialogView> createState() => _AuthRequestDialogViewState();
+}
+
+class _AuthRequestDialogViewState extends State<AuthRequestDialogView> {
   late TextEditingController _peerIdTextController;
   late TextEditingController _aliasTextController;
   late TextEditingController _ipAddrTextController;
 
   final _formKey = GlobalKey<FormState>();
   String? _serverError = "";
+  bool _allowUsingAsExitNode = false;
 
   void _sendRequest(bool decline) async {
-    var response = await ref
-        .read(apiProvider)
-        .replyFriendRequest(
-          _peerIdTextController.text,
-          _aliasTextController.text,
-          decline,
-          _ipAddrTextController.text,
-        );
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    var response = await widget.onSubmit(
+      FriendRequestReply(
+        _peerIdTextController.text,
+        _aliasTextController.text,
+        decline,
+        _ipAddrTextController.text,
+        allowUsingAsExitNode: _allowUsingAsExitNode,
+      ),
+    );
     if (!mounted) return;
     if (response == "") {
-      Navigator.pop(context);
       _serverError = "";
       _formKey.currentState!.validate();
+      widget.onDone?.call();
     } else {
       _serverError = "server error: $response";
       _formKey.currentState!.validate();
@@ -221,89 +252,83 @@ class _IncomingAuthRequestFormState extends ConsumerState<IncomingAuthRequestFor
   }
 
   @override
+  void dispose() {
+    _peerIdTextController.dispose();
+    _aliasTextController.dispose();
+    _ipAddrTextController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return AlertDialog(
+      scrollable: true,
+      title: widget.request.name != ""
+          ? Text("Incoming friend request from '${widget.request.name}'")
+          : const Text("Incoming friend request"),
+      content: SizedBox(width: 450, child: _buildForm(context)),
+      actions: [
+        TextButton(onPressed: () => _sendRequest(true), child: const Text('Decline')),
+        FilledButton(onPressed: () => _sendRequest(false), child: const Text('Accept')),
+      ],
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
     return Form(
       key: _formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: TextFormField(
-              controller: _peerIdTextController,
-              decoration: InputDecoration(labelText: 'Peer ID'),
-              readOnly: true,
-              minLines: 1,
-              maxLines: 2,
-              validator: (value) {
-                if (_serverError != "") {
-                  return _serverError;
-                }
+          TextFormField(
+            controller: _peerIdTextController,
+            decoration: InputDecoration(labelText: 'Peer ID'),
+            readOnly: true,
+            minLines: 1,
+            maxLines: 2,
+            validator: (value) {
+              if (_serverError != "") {
+                return _serverError;
+              }
+              return null;
+            },
+          ),
+          SizedBox(height: 16),
+          TextFormField(
+            controller: _aliasTextController,
+            decoration: InputDecoration(labelText: 'Name'),
+          ),
+          SizedBox(height: 16),
+          TextFormField(
+            controller: _ipAddrTextController,
+            decoration: InputDecoration(
+              labelText: 'Local IP address',
+              helperText: 'optional, example: 10.66.0.2',
+            ),
+            autovalidateMode: AutovalidateMode.onUnfocus,
+            validator: (String? value) {
+              if (value == null || value.isEmpty) {
                 return null;
-              },
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: TextFormField(
-              controller: _aliasTextController,
-              decoration: InputDecoration(labelText: 'Name'),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: TextFormField(
-              controller: _ipAddrTextController,
-              decoration: InputDecoration(
-                labelText: 'Local IP address',
-                helperText: 'optional, example: 10.66.0.2',
-              ),
-              autovalidateMode: AutovalidateMode.onUnfocus,
-              validator: (String? value) {
-                if (value == null || value.isEmpty) {
-                  return null;
-                }
+              }
 
-                try {
-                  // TODO: support ipv6
-                  Uri.parseIPv4Address(value);
-                  return null;
-                } catch (e) {
-                  return 'Invalid IPv4 address format';
-                }
-              },
-            ),
+              try {
+                // TODO: support ipv6
+                Uri.parseIPv4Address(value);
+                return null;
+              } catch (e) {
+                return 'Invalid IPv4 address format';
+              }
+            },
           ),
-          SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              "If you decline the invitation, it will no longer be shown. You can still add the peer yourself later if you want.",
-            ),
+          SizedBox(height: 4),
+          ExitNodePermissionField(
+            value: _allowUsingAsExitNode,
+            onChanged: (value) => setState(() => _allowUsingAsExitNode = value),
           ),
-          SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              TextButton(
-                child: Text('Decline'),
-                onPressed: () async {
-                  if (!_formKey.currentState!.validate()) {
-                    return;
-                  }
-                  _sendRequest(true);
-                },
-              ),
-              FilledButton(
-                child: Text('Accept'),
-                onPressed: () async {
-                  if (!_formKey.currentState!.validate()) {
-                    return;
-                  }
-                  _sendRequest(false);
-                },
-              ),
-            ],
+          SizedBox(height: 16),
+          Text(
+            "If you decline the invitation, it will no longer be shown. "
+            "You can still add the peer yourself later if you want.",
           ),
         ],
       ),

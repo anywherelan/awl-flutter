@@ -16,6 +16,10 @@ class KnownPeer {
   final bool weAllowUsingAsExitNode;
   final bool allowedUsingAsExitNode;
   final bool remoteVPNGatewayServerEnabled;
+
+  /// Set when we let this peer in through one of our invite links; empty otherwise.
+  /// Non-secret marker, kept forever by the backend.
+  final String inviteID;
   final DateTime lastSeen;
   final List<ConnectionInfo> connections;
   final NetworkStats networkStats;
@@ -38,6 +42,7 @@ class KnownPeer {
     this.allowedUsingAsExitNode,
     this.remoteVPNGatewayServerEnabled,
     this.ping,
+    this.inviteID,
   );
 
   factory KnownPeer.fromJson(Map<String, dynamic> json) => _$KnownPeerFromJson(json);
@@ -222,7 +227,15 @@ class FriendRequest {
   final String alias;
   final String ipAddr;
 
-  FriendRequest(this.peerID, this.alias, this.ipAddr);
+  /// Let the peer use us as an exit node right away, instead of a second trip through peer settings.
+  final bool allowUsingAsExitNode;
+
+  /// Bearer token from an invite link. The backend stores it with the peer and
+  /// presents it in every auth request until the peer confirms us — which it
+  /// then does without anyone pressing accept.
+  final String token;
+
+  FriendRequest(this.peerID, this.alias, this.ipAddr, {this.allowUsingAsExitNode = false, this.token = ''});
 
   factory FriendRequest.fromJson(Map<String, dynamic> json) => _$FriendRequestFromJson(json);
 
@@ -261,7 +274,9 @@ class FriendRequestReply {
   final bool decline;
   final String ipAddr;
 
-  FriendRequestReply(this.peerID, this.alias, this.decline, this.ipAddr);
+  final bool allowUsingAsExitNode;
+
+  FriendRequestReply(this.peerID, this.alias, this.decline, this.ipAddr, {this.allowUsingAsExitNode = false});
 
   factory FriendRequestReply.fromJson(Map<String, dynamic> json) => _$FriendRequestReplyFromJson(json);
 
@@ -312,6 +327,10 @@ class KnownPeerConfig {
   final String domainName;
   final bool weAllowUsingAsExitNode;
 
+  /// See [KnownPeer.inviteID]. Omitted by the backend when empty.
+  @JsonKey(defaultValue: '')
+  final String inviteID;
+
   KnownPeerConfig(
     this.peerId,
     this.name,
@@ -319,6 +338,7 @@ class KnownPeerConfig {
     this.ipAddr,
     this.domainName,
     this.weAllowUsingAsExitNode,
+    this.inviteID,
   );
 
   factory KnownPeerConfig.fromJson(Map<String, dynamic> json) => _$KnownPeerConfigFromJson(json);
@@ -346,6 +366,103 @@ class UpdateKnownPeerConfigRequest {
       _$UpdateKnownPeerConfigRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$UpdateKnownPeerConfigRequestToJson(this);
+}
+
+/// One invite link, as returned by `peers/invites/list` and `.../create`.
+///
+/// The token is never returned on its own — only inside [link], which is what
+/// the user shares.
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class Invite {
+  @JsonKey(name: 'ID')
+  final String id;
+  final String label;
+
+  /// Rebuilt by the backend on every request from the current node name, so
+  /// renaming this device changes the link shown here while links already
+  /// handed out keep working — the name plays no part in validation.
+  final String link;
+
+  /// Alias to give the peer that redeems this link. Single-use links only.
+  final String alias;
+  final bool allowUsingAsExitNode;
+  final int maxUses;
+  final int usedCount;
+
+  /// Go's zero time ([zeroGoTime]) means the invite never expires.
+  final DateTime expiresAt;
+  final DateTime createdAt;
+  final bool revoked;
+
+  /// One of [inviteStatusActive], [inviteStatusExpired], [inviteStatusUsedUp],
+  /// [inviteStatusRevoked] — derived by the backend for display.
+  final String status;
+
+  Invite(
+    this.id,
+    this.label,
+    this.link,
+    this.alias,
+    this.allowUsingAsExitNode,
+    this.maxUses,
+    this.usedCount,
+    this.expiresAt,
+    this.createdAt,
+    this.revoked,
+    this.status,
+  );
+
+  factory Invite.fromJson(Map<String, dynamic> json) => _$InviteFromJson(json);
+
+  Map<String, dynamic> toJson() => _$InviteToJson(this);
+
+  bool get expires => expiresAt.isAfter(zeroGoTime);
+
+  bool get isActive => status == inviteStatusActive;
+}
+
+const inviteStatusActive = 'active';
+const inviteStatusExpired = 'expired';
+const inviteStatusUsedUp = 'used_up';
+const inviteStatusRevoked = 'revoked';
+
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class CreateInviteRequest {
+  /// 0 means the backend default, 1 (single-use).
+  final int maxUses;
+
+  /// 0 means the invite never expires. A number rather than a duration string,
+  /// as with the backend's other duration params.
+  final int expiresInSeconds;
+
+  /// Only accepted for single-use invites — aliases must be unique.
+  final String alias;
+  final bool allowUsingAsExitNode;
+  final String label;
+
+  CreateInviteRequest({
+    this.maxUses = 1,
+    this.expiresInSeconds = 0,
+    this.alias = '',
+    this.allowUsingAsExitNode = false,
+    this.label = '',
+  });
+
+  factory CreateInviteRequest.fromJson(Map<String, dynamic> json) => _$CreateInviteRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CreateInviteRequestToJson(this);
+}
+
+@JsonSerializable(fieldRename: FieldRename.pascal)
+class RevokeInviteRequest {
+  @JsonKey(name: 'ID')
+  final String id;
+
+  RevokeInviteRequest(this.id);
+
+  factory RevokeInviteRequest.fromJson(Map<String, dynamic> json) => _$RevokeInviteRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$RevokeInviteRequestToJson(this);
 }
 
 @JsonSerializable()

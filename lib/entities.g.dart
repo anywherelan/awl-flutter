@@ -26,6 +26,7 @@ KnownPeer _$KnownPeerFromJson(Map<String, dynamic> json) => KnownPeer(
   json['AllowedUsingAsExitNode'] as bool,
   json['RemoteVPNGatewayServerEnabled'] as bool,
   _durationFromNanoseconds((json['Ping'] as num).toInt()),
+  json['InviteID'] as String,
 );
 
 Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
@@ -40,6 +41,7 @@ Map<String, dynamic> _$KnownPeerToJson(KnownPeer instance) => <String, dynamic>{
   'WeAllowUsingAsExitNode': instance.weAllowUsingAsExitNode,
   'AllowedUsingAsExitNode': instance.allowedUsingAsExitNode,
   'RemoteVPNGatewayServerEnabled': instance.remoteVPNGatewayServerEnabled,
+  'InviteID': instance.inviteID,
   'LastSeen': instance.lastSeen.toIso8601String(),
   'Connections': instance.connections,
   'NetworkStats': instance.networkStats,
@@ -192,6 +194,8 @@ FriendRequest _$FriendRequestFromJson(Map<String, dynamic> json) =>
       json['PeerID'] as String,
       json['Alias'] as String,
       json['IpAddr'] as String,
+      allowUsingAsExitNode: json['AllowUsingAsExitNode'] as bool? ?? false,
+      token: json['Token'] as String? ?? '',
     );
 
 Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) =>
@@ -199,6 +203,8 @@ Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) =>
       'PeerID': instance.peerID,
       'Alias': instance.alias,
       'IpAddr': instance.ipAddr,
+      'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
+      'Token': instance.token,
     };
 
 ListAvailableProxiesResponse _$ListAvailableProxiesResponseFromJson(
@@ -233,6 +239,7 @@ FriendRequestReply _$FriendRequestReplyFromJson(Map<String, dynamic> json) =>
       json['Alias'] as String,
       json['Decline'] as bool,
       json['IpAddr'] as String,
+      allowUsingAsExitNode: json['AllowUsingAsExitNode'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$FriendRequestReplyToJson(FriendRequestReply instance) =>
@@ -241,6 +248,7 @@ Map<String, dynamic> _$FriendRequestReplyToJson(FriendRequestReply instance) =>
       'Alias': instance.alias,
       'Decline': instance.decline,
       'IpAddr': instance.ipAddr,
+      'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
     };
 
 ApiError _$ApiErrorFromJson(Map<String, dynamic> json) =>
@@ -277,6 +285,7 @@ KnownPeerConfig _$KnownPeerConfigFromJson(Map<String, dynamic> json) =>
       json['ipAddr'] as String,
       json['domainName'] as String,
       json['weAllowUsingAsExitNode'] as bool,
+      json['inviteID'] as String? ?? '',
     );
 
 Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) =>
@@ -287,6 +296,7 @@ Map<String, dynamic> _$KnownPeerConfigToJson(KnownPeerConfig instance) =>
       'ipAddr': instance.ipAddr,
       'domainName': instance.domainName,
       'weAllowUsingAsExitNode': instance.weAllowUsingAsExitNode,
+      'inviteID': instance.inviteID,
     };
 
 UpdateKnownPeerConfigRequest _$UpdateKnownPeerConfigRequestFromJson(
@@ -308,6 +318,60 @@ Map<String, dynamic> _$UpdateKnownPeerConfigRequestToJson(
   'IpAddr': instance.ipAddr,
   'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
 };
+
+Invite _$InviteFromJson(Map<String, dynamic> json) => Invite(
+  json['ID'] as String,
+  json['Label'] as String,
+  json['Link'] as String,
+  json['Alias'] as String,
+  json['AllowUsingAsExitNode'] as bool,
+  (json['MaxUses'] as num).toInt(),
+  (json['UsedCount'] as num).toInt(),
+  DateTime.parse(json['ExpiresAt'] as String),
+  DateTime.parse(json['CreatedAt'] as String),
+  json['Revoked'] as bool,
+  json['Status'] as String,
+);
+
+Map<String, dynamic> _$InviteToJson(Invite instance) => <String, dynamic>{
+  'ID': instance.id,
+  'Label': instance.label,
+  'Link': instance.link,
+  'Alias': instance.alias,
+  'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
+  'MaxUses': instance.maxUses,
+  'UsedCount': instance.usedCount,
+  'ExpiresAt': instance.expiresAt.toIso8601String(),
+  'CreatedAt': instance.createdAt.toIso8601String(),
+  'Revoked': instance.revoked,
+  'Status': instance.status,
+};
+
+CreateInviteRequest _$CreateInviteRequestFromJson(Map<String, dynamic> json) =>
+    CreateInviteRequest(
+      maxUses: (json['MaxUses'] as num?)?.toInt() ?? 1,
+      expiresInSeconds: (json['ExpiresInSeconds'] as num?)?.toInt() ?? 0,
+      alias: json['Alias'] as String? ?? '',
+      allowUsingAsExitNode: json['AllowUsingAsExitNode'] as bool? ?? false,
+      label: json['Label'] as String? ?? '',
+    );
+
+Map<String, dynamic> _$CreateInviteRequestToJson(
+  CreateInviteRequest instance,
+) => <String, dynamic>{
+  'MaxUses': instance.maxUses,
+  'ExpiresInSeconds': instance.expiresInSeconds,
+  'Alias': instance.alias,
+  'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
+  'Label': instance.label,
+};
+
+RevokeInviteRequest _$RevokeInviteRequestFromJson(Map<String, dynamic> json) =>
+    RevokeInviteRequest(json['ID'] as String);
+
+Map<String, dynamic> _$RevokeInviteRequestToJson(
+  RevokeInviteRequest instance,
+) => <String, dynamic>{'ID': instance.id};
 
 BlockedPeer _$BlockedPeerFromJson(Map<String, dynamic> json) => BlockedPeer(
   json['peerId'] as String,

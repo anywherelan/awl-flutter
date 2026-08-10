@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../fixtures/fixture_reader.dart';
 import '../helpers/pump_app.dart';
+import '../helpers/samples.dart';
 
 List<KnownPeer> _loadPeers() {
   final list = loadFixtureJson('known_peers.json') as List<dynamic>;
@@ -12,7 +13,7 @@ List<KnownPeer> _loadPeers() {
 }
 
 void main() {
-  const desktopSize = Size(1200, 900);
+  const desktopSize = wideSize;
 
   group('PeersListView', () {
     testWidgets('shows empty state when peers is null', (tester) async {
@@ -129,7 +130,7 @@ void main() {
           proxyExitPeerID: peers.first.peerID,
           gatewayExitPeerID: peers.first.peerID,
         ),
-        size: const Size(420, 900),
+        size: phoneSize,
       );
 
       // Own row uses full labels again, rendered below the name.
@@ -159,7 +160,7 @@ void main() {
 
     testWidgets('expanded peer details fall back to single-column rows on a narrow panel', (tester) async {
       final peers = _loadPeers();
-      await pumpAppWidget(tester, PeersListView(peers: peers), size: const Size(420, 900));
+      await pumpAppWidget(tester, PeersListView(peers: peers), size: phoneSize);
 
       await tester.tap(find.text(peers.first.displayName));
       await tester.pumpAndSettle();

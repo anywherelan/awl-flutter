@@ -3,13 +3,15 @@ import 'dart:async';
 import 'package:anywherelan/add_peer.dart';
 import 'package:anywherelan/app_shell.dart';
 import 'package:anywherelan/blocked_peers_screen.dart';
-import 'package:anywherelan/common.dart';
+import 'package:anywherelan/deep_links.dart';
 import 'package:anywherelan/diagnostics_screen.dart';
 import 'package:anywherelan/drawer.dart';
+import 'package:anywherelan/invites_screen.dart';
 import 'package:anywherelan/notifications.dart' as notif;
 import 'package:anywherelan/peer_settings_screen.dart';
 import 'package:anywherelan/peers_list_tab.dart';
 import 'package:anywherelan/providers.dart';
+import 'package:anywherelan/qr_dialog.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:anywherelan/settings_screen.dart';
 import 'package:anywherelan/status_tab.dart';
@@ -53,24 +55,10 @@ Future<void> initAndroid() async {
     await showDialog(
       context: notif.navigatorKey.currentContext!,
       builder: (context) {
-        return SimpleDialog(
+        return AlertDialog(
           title: Text(dialogTitle),
-          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          children: [
-            if (dialogBody != "") SelectableText(dialogBody),
-            if (dialogBody != "") SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                ElevatedButton(
-                  child: Text('OK'),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            ),
-          ],
+          content: dialogBody != "" ? SelectableText(dialogBody) : null,
+          actions: [TextButton(child: Text('OK'), onPressed: () => Navigator.pop(context))],
         );
       },
     );
@@ -97,6 +85,7 @@ class MyApp extends StatelessWidget {
         LogsScreen.routeName: (context) => LogsScreen(),
         AppSettingsScreen.routeName: (context) => AppSettingsScreen(),
         BlockedPeersScreen.routeName: (context) => BlockedPeersScreen(),
+        InvitesScreen.routeName: (context) => InvitesScreen(),
       },
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '');
@@ -146,6 +135,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   late final notif.NotificationsService _notificationsService;
+  late final DeepLinkService _deepLinkService;
 
   @override
   void initState() {
@@ -153,6 +143,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     _notificationsService = notif.NotificationsService(ref.read(apiProvider));
     _notificationsService.init();
+    _deepLinkService = DeepLinkService(_onDeepLink);
+    _deepLinkService.init();
     WidgetsBinding.instance.addObserver(this);
 
     _tabController = TabController(vsync: this, length: 2, initialIndex: 0);
@@ -168,7 +160,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     WidgetsBinding.instance.removeObserver(this);
     _notificationsService.close();
+    _deepLinkService.close();
     super.dispose();
+  }
+
+  /// An `awl://` link was opened elsewhere (a messenger, a QR scanner). It
+  /// lands in the add-peer form, which parses it and shows what is wrong if it
+  /// cannot be used — the link is untrusted input like any pasted text.
+  ///
+  /// The form opens on top of whatever is already there and closes nothing: a
+  /// form being filled in is the user's work, and a link tapped in another app
+  /// is no reason to throw it away. That holds for a form opened by an earlier
+  /// link too — two of them at once is a scenario nobody actually reaches, and
+  /// the second Cancel is a cheaper price than a lost input.
+  Future<void> _onDeepLink(Uri uri) async {
+    if (!mounted) return;
+
+    await showAddPeerDialog(context, initialInput: uri.toString());
   }
 
   @override
@@ -378,7 +386,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ? buildDeviceHeader(
               context,
               peerInfo,
-              onShowQR: () => showQRDialog(context, peerInfo.peerID, peerInfo.name),
+              onShowQR: () => showMyQRDialog(context, peerInfo.peerID, peerInfo.name),
               onShowSettings: () => showSettingsDialog(context, peerInfo, false),
             )
           : SizedBox(height: Theme.of(context).textTheme.titleLarge!.fontSize! + 2 + 13),
