@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:anywherelan/clipboard_interop/clipboard_interop.dart';
 import 'package:anywherelan/common.dart';
 import 'package:anywherelan/connection_error.dart';
 import 'package:anywherelan/entities.dart';
@@ -8,7 +9,6 @@ import 'package:anywherelan/qr_dialog.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Adapter for [StatusPageView] that reads [myPeerInfoProvider] and
@@ -754,7 +754,13 @@ class _AddressField extends StatelessWidget {
           icon: const Icon(Icons.copy_rounded),
           tooltip: 'Copy address',
           onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: address));
+            try {
+              await copyText(address);
+            } catch (_) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(copyFailedMessage)));
+              return;
+            }
             if (!context.mounted) return;
             ScaffoldMessenger.of(
               context,

@@ -1,6 +1,8 @@
+import 'package:anywherelan/common.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/peer_settings_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../fixtures/fixture_reader.dart';
@@ -39,6 +41,28 @@ void main() {
       final switchFinder = find.byType(Switch);
       expect(switchFinder, findsOneWidget);
       expect(tester.widget<Switch>(switchFinder).value, cfg.weAllowUsingAsExitNode);
+    });
+
+    testWidgets('does not report a Peer ID copy that failed', (tester) async {
+      // This button used to announce success before the copy was even awaited,
+      // so on a build where the clipboard is unreachable it sent the user off
+      // to paste an empty clipboard.
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          throw PlatformException(code: 'copy_fail');
+        }
+        return null;
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+
+      await pumpAppWidget(tester, PeerSettingsView(peerConfig: _loadConfig()), size: desktopSize);
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.content_copy));
+      await tester.pump();
+
+      expect(find.text('Peer ID copied to clipboard'), findsNothing);
+      expect(find.text(copyFailedMessage), findsOneWidget);
     });
 
     testWidgets('no invite marker for a peer added the usual way', (tester) async {
