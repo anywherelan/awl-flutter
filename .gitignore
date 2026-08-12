@@ -45,3 +45,6 @@ app.*.map.json
 # Added by hand
 .gradle
 android/app/src/main/libs/*.aar
+
+# Golden test failure output (actual/expected/diff images)
+test/golden/failures/

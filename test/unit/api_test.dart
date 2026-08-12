@@ -9,6 +9,7 @@ import 'package:mocktail/mocktail.dart';
 
 import '../fixtures/fixture_reader.dart';
 import '../helpers/mock_http_client.dart';
+import '../helpers/samples.dart';
 
 const _baseUrl = 'http://test.local';
 
@@ -136,6 +137,23 @@ void main() {
       expect(logs, 'line1\nline2\n');
     });
 
+    test('fetchInvites parses fixture list', () async {
+      when(() => client.get(any())).thenAnswer((_) async => http.Response(loadFixture('invites.json'), 200));
+
+      final invites = await api.fetchInvites();
+
+      expect(invites, hasLength(3));
+      expect(invites.first.id, '9f3a');
+      expect(invites.first.link, startsWith('awl://invite?p='));
+      verify(() => client.get(Uri.parse('$_baseUrl$getInvitesPath'))).called(1);
+    });
+
+    test('fetchInvites throws on malformed JSON', () async {
+      when(() => client.get(any())).thenAnswer((_) async => http.Response('garbage', 200));
+
+      await expectLater(api.fetchInvites(), throwsA(isA<Exception>()));
+    });
+
     test('fetchExportedServerConfig returns body bytes', () async {
       final bytes = [0x42, 0x00, 0xFF, 0x10];
       when(() => client.get(any())).thenAnswer((_) async => http.Response.bytes(bytes, 200));
@@ -149,7 +167,7 @@ void main() {
     test('sendFriendRequest returns empty string on success', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
 
-      final result = await api.sendFriendRequest('pid', 'alias', '10.0.0.1');
+      final result = await api.sendFriendRequest(FriendRequest('pid', 'alias', '10.0.0.1'));
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
@@ -160,6 +178,22 @@ void main() {
       expect(decoded['PeerID'], 'pid');
       expect(decoded['Alias'], 'alias');
       expect(decoded['IpAddr'], '10.0.0.1');
+      expect(decoded['AllowUsingAsExitNode'], false);
+      expect(decoded['Token'], '');
+    });
+
+    test('sendFriendRequest carries the invite token and exit node permission', () async {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
+
+      final result = await api.sendFriendRequest(
+        FriendRequest('pid', 'alias', '', allowUsingAsExitNode: true, token: 'secret-token'),
+      );
+      expect(result, '');
+
+      final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
+      final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(decoded['Token'], 'secret-token');
+      expect(decoded['AllowUsingAsExitNode'], true);
     });
 
     test('sendFriendRequest returns ApiError.error on non-200', () async {
@@ -167,20 +201,23 @@ void main() {
         () => client.send(any()),
       ).thenAnswer((_) async => _streamed('{"error": "boom", "message": ""}', 400));
 
-      final result = await api.sendFriendRequest('pid', 'alias', '10.0.0.1');
+      final result = await api.sendFriendRequest(FriendRequest('pid', 'alias', '10.0.0.1'));
       expect(result, 'boom');
     });
 
     test('replyFriendRequest sends decline flag and POSTs to accept_peer', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
 
-      final result = await api.replyFriendRequest('pid', 'alias', true, '10.0.0.1');
+      final result = await api.replyFriendRequest(
+        FriendRequestReply('pid', 'alias', true, '10.0.0.1', allowUsingAsExitNode: true),
+      );
       expect(result, '');
 
       final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
       expect(captured.url.toString(), '$_baseUrl$acceptPeerInvitationPath');
       final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(decoded['Decline'], true);
+      expect(decoded['AllowUsingAsExitNode'], true);
     });
 
     test('replyFriendRequest returns error on non-200', () async {
@@ -188,8 +225,63 @@ void main() {
         () => client.send(any()),
       ).thenAnswer((_) async => _streamed('{"error": "nope", "message": ""}', 500));
 
-      final result = await api.replyFriendRequest('pid', 'alias', false, '10.0.0.1');
+      final result = await api.replyFriendRequest(FriendRequestReply('pid', 'alias', false, '10.0.0.1'));
       expect(result, 'nope');
+    });
+
+    test('createInvite sends the settings and parses the created invite', () async {
+      final created = invitesFixtureJson().first;
+      when(() => client.send(any())).thenAnswer((_) async => _streamed(jsonEncode(created), 200));
+
+      final invite = await api.createInvite(
+        CreateInviteRequest(
+          maxUses: 1,
+          expiresInSeconds: 86400,
+          alias: 'laptop',
+          allowUsingAsExitNode: true,
+          label: 'my laptop',
+        ),
+      );
+      expect(invite.id, '9f3a');
+      expect(invite.alias, 'laptop');
+      expect(invite.allowUsingAsExitNode, isTrue);
+
+      final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
+      expect(captured.url.toString(), '$_baseUrl$createInvitePath');
+      final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(decoded['MaxUses'], 1);
+      expect(decoded['ExpiresInSeconds'], 86400);
+      expect(decoded['Alias'], 'laptop');
+      expect(decoded['AllowUsingAsExitNode'], true);
+      expect(decoded['Label'], 'my laptop');
+    });
+
+    test('createInvite throws ApiError on non-200', () async {
+      when(
+        () => client.send(any()),
+      ).thenAnswer((_) async => _streamed('{"error": "alias can only be set for a single-use invite"}', 400));
+
+      await expectLater(
+        api.createInvite(CreateInviteRequest(maxUses: 5, alias: 'laptop')),
+        throwsA(isA<Exception>().having((e) => e.toString(), 'toString', contains('single-use'))),
+      );
+    });
+
+    test('revokeInvite posts the invite id', () async {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
+
+      final result = await api.revokeInvite('9f3a');
+      expect(result, '');
+
+      final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
+      expect(captured.url.toString(), '$_baseUrl$revokeInvitePath');
+      expect(jsonDecode(captured.body)['ID'], '9f3a');
+    });
+
+    test('revokeInvite returns error on non-200', () async {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed('{"error": "invite not found"}', 404));
+
+      expect(await api.revokeInvite('nope'), 'invite not found');
     });
 
     test('fetchKnownPeerConfig parses JSON on success', () async {
@@ -338,15 +430,6 @@ void main() {
   });
 
   group('VPN Gateway GET endpoints', () {
-    late MockHttpClient client;
-    late ApiClient api;
-
-    setUp(() {
-      client = MockHttpClient();
-      api = ApiClient(client);
-      serverAddress = _baseUrl;
-    });
-
     test('fetchAvailableVPNGateways parses response', () async {
       when(() => client.get(any<Uri>())).thenAnswer(
         (_) async => http.Response('{"VPNGateways":[{"PeerID":"p1","PeerName":"n1","Connected":true}]}', 200),

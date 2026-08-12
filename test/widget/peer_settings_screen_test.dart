@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../fixtures/fixture_reader.dart';
 import '../helpers/pump_app.dart';
+import '../helpers/samples.dart';
 
 KnownPeerConfig _loadConfig() {
   final json = loadFixtureJson('known_peer_config.json') as Map<String, dynamic>;
@@ -13,7 +14,7 @@ KnownPeerConfig _loadConfig() {
 
 void main() {
   // Tall viewport so the entire form (including the danger zone) fits without scrolling.
-  const desktopSize = Size(1200, 1600);
+  const desktopSize = tallSize;
 
   group('PeerSettingsView', () {
     testWidgets('renders fields prefilled from KnownPeerConfig', (tester) async {
@@ -22,7 +23,7 @@ void main() {
 
       // The form is rendered.
       expect(find.text('Peer settings'), findsOneWidget);
-      expect(find.text('Allow as exit node'), findsOneWidget);
+      expect(find.text('Allow them to use this device as an exit node'), findsOneWidget);
       expect(find.text('Save changes'), findsOneWidget);
       expect(find.text('Remove peer'), findsOneWidget);
 
@@ -38,6 +39,51 @@ void main() {
       final switchFinder = find.byType(Switch);
       expect(switchFinder, findsOneWidget);
       expect(tester.widget<Switch>(switchFinder).value, cfg.weAllowUsingAsExitNode);
+    });
+
+    testWidgets('no invite marker for a peer added the usual way', (tester) async {
+      await pumpAppWidget(tester, PeerSettingsView(peerConfig: _loadConfig()), size: desktopSize);
+
+      expect(find.textContaining('Added via invite link'), findsNothing);
+    });
+
+    testWidgets('invite marker names the link when its label is known', (tester) async {
+      final cfg = _loadConfig();
+      final invited = KnownPeerConfig(
+        cfg.peerId,
+        cfg.name,
+        cfg.alias,
+        cfg.ipAddr,
+        cfg.domainName,
+        cfg.weAllowUsingAsExitNode,
+        '9f3a',
+      );
+
+      await pumpAppWidget(
+        tester,
+        PeerSettingsView(peerConfig: invited, inviteLabel: 'my laptop'),
+        size: desktopSize,
+      );
+
+      expect(find.text("Added via invite link 'my laptop' (9f3a)"), findsOneWidget);
+    });
+
+    testWidgets('invite marker falls back to the id alone', (tester) async {
+      final cfg = _loadConfig();
+      final invited = KnownPeerConfig(
+        cfg.peerId,
+        cfg.name,
+        cfg.alias,
+        cfg.ipAddr,
+        cfg.domainName,
+        cfg.weAllowUsingAsExitNode,
+        '9f3a',
+      );
+
+      // Label unknown: the invites list hasn't loaded, or the link had none.
+      await pumpAppWidget(tester, PeerSettingsView(peerConfig: invited), size: desktopSize);
+
+      expect(find.text('Added via invite link 9f3a'), findsOneWidget);
     });
 
     testWidgets('Save changes calls onSave with edited payload', (tester) async {
@@ -104,10 +150,17 @@ void main() {
 
       await tester.tap(find.text('Remove peer'));
       await tester.pumpAndSettle();
-      expect(find.text('Remove Peer'), findsOneWidget);
+      expect(find.textContaining('will be removed from your peers list'), findsOneWidget);
 
-      // Confirm.
-      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+      // Confirm. The action keeps its name through the flow, so the screen's
+      // button, the dialog title and the confirmation all read "Remove peer" —
+      // scope to the dialog.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(TextButton, 'Remove peer'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(removeCalls, 1);

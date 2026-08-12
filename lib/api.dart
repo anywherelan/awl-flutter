@@ -20,6 +20,11 @@ const sendFriendRequestPath = "${v0Prefix}peers/invite_peer";
 const acceptPeerInvitationPath = "${v0Prefix}peers/accept_peer";
 const getAuthRequestsPath = "${v0Prefix}peers/auth_requests";
 
+// Invite links
+const createInvitePath = "${v0Prefix}peers/invites/create";
+const getInvitesPath = "${v0Prefix}peers/invites/list";
+const revokeInvitePath = "${v0Prefix}peers/invites/revoke";
+
 // Settings
 const getMyPeerInfoPath = "${v0Prefix}settings/peer_info";
 const updateMyInfoPath = "${v0Prefix}settings/update";
@@ -129,17 +134,35 @@ class ApiClient {
     return parsed.map<BlockedPeer>((json) => BlockedPeer.fromJson(json)).toList();
   }
 
-  // ---- POSTs ----
-
-  Future<String> sendFriendRequest(String peerID, String alias, String ipAddr) {
-    return _postJsonOrError(sendFriendRequestPath, FriendRequest(peerID, alias, ipAddr).toJson());
+  Future<List<Invite>> fetchInvites() async {
+    try {
+      final response = await _client.get(_uri(getInvitesPath));
+      final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
+      return parsed.map<Invite>((json) => Invite.fromJson(json)).toList();
+    } catch (e, s) {
+      Error.throwWithStackTrace(Exception('Failed to fetchInvites: $e'), s);
+    }
   }
 
-  Future<String> replyFriendRequest(String peerID, String alias, bool decline, String ipAddr) {
-    return _postJsonOrError(
-      acceptPeerInvitationPath,
-      FriendRequestReply(peerID, alias, decline, ipAddr).toJson(),
-    );
+  // ---- POSTs ----
+
+  Future<String> sendFriendRequest(FriendRequest payload) {
+    return _postJsonOrError(sendFriendRequestPath, payload.toJson());
+  }
+
+  Future<String> replyFriendRequest(FriendRequestReply payload) {
+    return _postJsonOrError(acceptPeerInvitationPath, payload.toJson());
+  }
+
+  Future<Invite> createInvite(CreateInviteRequest payload) async {
+    final body = await _postJson(createInvitePath, payload.toJson());
+    final Map<String, dynamic> parsed = jsonDecode(body);
+    return Invite.fromJson(parsed);
+  }
+
+  /// Stops new connections through the link; peers already added stay.
+  Future<String> revokeInvite(String id) {
+    return _postJsonOrError(revokeInvitePath, RevokeInviteRequest(id).toJson());
   }
 
   Future<KnownPeerConfig> fetchKnownPeerConfig(String peerID) async {

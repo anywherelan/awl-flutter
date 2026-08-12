@@ -2,6 +2,7 @@ import 'package:anywherelan/common.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/peer_settings_screen.dart' show KnownPeerSettingsScreen;
 import 'package:anywherelan/providers.dart';
+import 'package:anywherelan/qr_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,7 +26,7 @@ class PeersListPage extends ConsumerWidget {
   }
 
   Future<void> _onShowQR(BuildContext context, KnownPeer peer) async {
-    await showQRDialog(context, peer.peerID, peer.displayName);
+    await showPeerQRDialog(context, peer.peerID, peer.displayName);
   }
 
   @override

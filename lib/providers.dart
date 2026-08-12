@@ -120,6 +120,18 @@ final availableVPNGatewaysProvider =
       AvailableVPNGatewaysNotifier.new,
     );
 
+/// Invite links owned by this device. Deliberately *not* polled: invites only
+/// change when this app creates or revokes one, which refreshes it explicitly
+/// with `ref.invalidate(invitesProvider)`.
+///
+/// `autoDispose` is what keeps the one thing this app does *not* control —
+/// a peer redeeming a link, which moves `usedCount` and can turn a link
+/// `used_up` — from going stale: with no listeners left the cache is dropped,
+/// so re-opening the screen refetches instead of showing last session's counts.
+final invitesProvider = FutureProvider.autoDispose<List<Invite>>(
+  (ref) => ref.watch(apiProvider).fetchInvites(),
+);
+
 /// Force-refresh all polling providers. Throws if any fetch fails.
 Future<void> refreshProviders(ProviderContainer container) => Future.wait([
   container.read(myPeerInfoProvider.notifier).refresh(),

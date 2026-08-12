@@ -47,6 +47,18 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage
 
+      # Golden (screenshot) tests compare pixels, so a mismatch can mean either
+      # a real layout change or a different rendering stack. These are the
+      # actual/expected/diff images Flutter writes on failure — look at them
+      # before assuming either.
+      - name: Upload golden failures
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: golden-failures
+          path: test/golden/failures/
+          if-no-files-found: ignore
+
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v7

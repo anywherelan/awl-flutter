@@ -4,6 +4,7 @@ import 'package:anywherelan/common.dart';
 import 'package:anywherelan/connection_error.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/providers.dart';
+import 'package:anywherelan/qr_dialog.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -65,7 +66,7 @@ class _StatusPageState extends ConsumerState<StatusPage> {
   }
 
   Future<void> _onShowQR(MyPeerInfo peerInfo) async {
-    await showQRDialog(context, peerInfo.peerID, peerInfo.name);
+    await showMyQRDialog(context, peerInfo.peerID, peerInfo.name);
   }
 
   Future<void> _onShowSettings(MyPeerInfo? peerInfo, {bool firstSetup = false}) async {
@@ -268,7 +269,13 @@ class _ProxyCard extends StatelessWidget {
     if (!listenerUp) {
       pillText = 'Stopped';
       pillColor = errorColor;
-    } else if (hasUpstream && !socks5.connected) {
+    } else if (!hasUpstream) {
+      // No exit peer is picked, so the listener accepts connections it cannot
+      // serve. Same wording and colour as the gateway card's disabled state —
+      // "Active" here would be a lie, and a third state is not worth it.
+      pillText = 'Off';
+      pillColor = colorScheme.onSurfaceVariant;
+    } else if (!socks5.connected) {
       pillText = 'Connecting…';
       pillColor = colorScheme.tertiary;
     } else {
@@ -304,14 +311,15 @@ class _ProxyCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
           child: showEmptyState
               ? Text(
-                  'The proxy listener is running, but no devices offer SOCKS5 exit — '
-                  'every connection will fail. Ask a remote device to allow you in their peer settings.',
+                  'The proxy listener is running, but no devices offer SOCKS5 exit, so every '
+                  'connection will fail. Ask a remote device to allow you in their peer settings.',
                   style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.72)),
                 )
               : _ExitThroughRow(
                   currentName: socks5.usingPeerName,
                   proxiesData: proxiesData,
-                  upstreamKnownOffline: hasUpstream && !socks5.connected,
+                  hasUpstream: hasUpstream,
+                  upstreamConnected: socks5.connected,
                   usingPublicIP: socks5.usingPeerPublicIP,
                   usingPing: socks5.usingPeerPing,
                   usingThroughRelay: socks5.usingPeerThroughRelay,
@@ -762,7 +770,12 @@ class _AddressField extends StatelessWidget {
 class _ExitThroughRow extends StatelessWidget {
   final String currentName;
   final ListAvailableProxiesResponse? proxiesData;
-  final bool upstreamKnownOffline;
+
+  /// Whether an exit peer is selected at all. Kept separate from
+  /// [upstreamConnected]: with no selection there is nothing to be connected
+  /// to, and the meta line below the picker must not claim a direct link.
+  final bool hasUpstream;
+  final bool upstreamConnected;
   final String usingPublicIP;
   final Duration usingPing;
   final bool usingThroughRelay;
@@ -771,7 +784,8 @@ class _ExitThroughRow extends StatelessWidget {
   const _ExitThroughRow({
     required this.currentName,
     required this.proxiesData,
-    required this.upstreamKnownOffline,
+    required this.hasUpstream,
+    required this.upstreamConnected,
     required this.usingPublicIP,
     required this.usingPing,
     required this.usingThroughRelay,
@@ -792,10 +806,10 @@ class _ExitThroughRow extends StatelessWidget {
     }
 
     Widget? triggerLeading;
-    if (displayName != 'None') {
+    if (hasUpstream) {
       triggerLeading = Padding(
         padding: const EdgeInsets.only(right: 8),
-        child: _ConnectedDot(connected: !upstreamKnownOffline),
+        child: _ConnectedDot(connected: upstreamConnected),
       );
     }
 
@@ -803,7 +817,7 @@ class _ExitThroughRow extends StatelessWidget {
       options: options,
       selected: displayName,
       triggerLeading: triggerLeading,
-      metaLine: !upstreamKnownOffline
+      metaLine: hasUpstream && upstreamConnected
           ? _buildExitMeta(
               context,
               connected: true,
@@ -826,6 +840,12 @@ class _ExitThroughRow extends StatelessWidget {
         (e) => e.peerName == name,
         orElse: () => AvailableProxy('', name, false),
       );
+      // An empty id means the picked name is not among the candidates — which
+      // happens for the selection the picker carries over when the peer has
+      // dropped off the list. Passing it on would send an empty UsingPeerID,
+      // and the backend reads that as "no exit peer": picking the entry that is
+      // already selected would silently switch the proxy off.
+      if (found.peerID.isEmpty) return;
       usingPeerID = found.peerID;
     }
     final response = await onUpdateProxy!(usingPeerID);
@@ -961,9 +981,7 @@ class _ExitPeerDropdown extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () async {
           final picked = await _showExitPeerSheet(context, options, selected);
-          if (picked == null || picked == selected) return;
-          if (!context.mounted) return;
-          await onPick(picked);
+          await _pick(picked);
         },
         child: trigger,
       );
@@ -972,7 +990,7 @@ class _ExitPeerDropdown extends StatelessWidget {
     return PopupMenuButton<String>(
       tooltip: '',
       initialValue: selected,
-      onSelected: onPick,
+      onSelected: _pick,
       itemBuilder: (_) => options
           .map(
             (o) => PopupMenuItem<String>(
@@ -992,6 +1010,11 @@ class _ExitPeerDropdown extends StatelessWidget {
           .toList(),
       child: trigger,
     );
+  }
+
+  Future<void> _pick(String? picked) async {
+    if (picked == null || picked == selected) return;
+    await onPick(picked);
   }
 
   Future<String?> _showExitPeerSheet(BuildContext context, List<_ExitPeerOption> options, String selected) {
@@ -1144,46 +1167,101 @@ Future<void> showSettingsDialog(BuildContext context, MyPeerInfo? peerInfo, bool
   return showDialog(
     context: context,
     barrierDismissible: !firstSetup,
-    builder: (context) {
-      return SimpleDialog(
-        title: Text("Settings"),
-        children: [
-          Center(
-            child: SizedBox(width: 350, child: SettingsForm(peerInfo: peerInfo)),
-          ),
-        ],
-      );
-    },
+    builder: (context) => SettingsDialog(peerInfo: peerInfo),
   );
 }
 
-class SettingsForm extends ConsumerStatefulWidget {
+/// Adapter for [SettingsDialogView]: owns the API call and supplies the
+/// gateway toggle, which is a Riverpod island of its own. The pure
+/// presentation logic lives in [SettingsDialogView].
+class SettingsDialog extends ConsumerStatefulWidget {
   final MyPeerInfo? peerInfo;
 
-  const SettingsForm({super.key, this.peerInfo});
+  const SettingsDialog({super.key, this.peerInfo});
 
   @override
-  ConsumerState<SettingsForm> createState() => _SettingsFormState();
+  ConsumerState<SettingsDialog> createState() => _SettingsDialogState();
 }
 
-class _SettingsFormState extends ConsumerState<SettingsForm> {
-  TextEditingController? _peerNameTextController;
+class _SettingsDialogState extends ConsumerState<SettingsDialog> {
+  Future<String> _onSubmit(String name) => ref.read(apiProvider).updateMySettings(name);
+
+  void _onDone() {
+    // Taken before the pop: afterwards this context is defunct.
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
+    messenger.showSnackBar(SnackBar(content: Text("Saved")));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsDialogView(
+      initialName: widget.peerInfo?.name ?? '',
+      gatewayTile: _BeGatewaySwitch(initial: widget.peerInfo?.vpnGateway.serverEnabled ?? false),
+      onSubmit: _onSubmit,
+      onDone: _onDone,
+    );
+  }
+}
+
+/// Pure presentation widget for this device's settings. Receives its data and
+/// callbacks via constructor; never reads global services. Tests target this
+/// widget directly.
+class SettingsDialogView extends StatefulWidget {
+  final String initialName;
+
+  /// The "Serve as VPN Gateway" row. Injected rather than built here because it
+  /// applies its own state through a dedicated endpoint — see
+  /// [_BeGatewaySwitch] — and this view does no I/O.
+  final Widget? gatewayTile;
+
+  /// Saves the peer name; returns "" on success or the server error message.
+  final Future<String> Function(String name) onSubmit;
+
+  /// Called after a successful save (the dialog closes itself this way).
+  final VoidCallback? onDone;
+
+  const SettingsDialogView({
+    super.key,
+    required this.initialName,
+    required this.onSubmit,
+    this.gatewayTile,
+    this.onDone,
+  });
+
+  @override
+  State<SettingsDialogView> createState() => _SettingsDialogViewState();
+}
+
+class _SettingsDialogViewState extends State<SettingsDialogView> {
+  late final TextEditingController _peerNameTextController;
   final _formKey = GlobalKey<FormState>();
 
   String _serverError = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _peerNameTextController = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _peerNameTextController.dispose();
+    super.dispose();
+  }
 
   void _onPressSave() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    var response = await ref.read(apiProvider).updateMySettings(_peerNameTextController!.text);
+    var response = await widget.onSubmit(_peerNameTextController.text);
     if (!mounted) return;
     if (response == "") {
-      Navigator.pop(context);
       _serverError = "";
       _formKey.currentState!.validate();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Successfully saved")));
+      widget.onDone?.call();
     } else {
       _serverError = response;
       _formKey.currentState!.validate();
@@ -1192,65 +1270,49 @@ class _SettingsFormState extends ConsumerState<SettingsForm> {
   }
 
   @override
-  void initState() {
-    super.initState();
-
-    _peerNameTextController = TextEditingController(text: widget.peerInfo!.name);
+  Widget build(BuildContext context) {
+    // Same width as the other dialogs of this app, and `scrollable`.
+    return AlertDialog(
+      scrollable: true,
+      title: Text("Settings"),
+      content: SizedBox(width: 450, child: _buildForm(context)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
+        FilledButton(onPressed: _onPressSave, child: Text('Save')),
+      ],
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildForm(BuildContext context) {
     return Form(
       key: _formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: TextFormField(
-              controller: _peerNameTextController,
-              decoration: InputDecoration(labelText: 'Your peer name'),
-              validator: (value) {
-                if (value!.isEmpty) {
-                  return 'Please enter peer name';
-                } else if (_serverError != "") {
-                  return _serverError;
-                }
-                return null;
-              },
-              maxLines: 2,
-              minLines: 1,
-              textInputAction: TextInputAction.done,
-            ),
-          ),
-          _BeGatewaySwitch(initial: widget.peerInfo?.vpnGateway.serverEnabled ?? false),
-          SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              ElevatedButton(
-                child: Text('Cancel'),
-                onPressed: () async {
-                  Navigator.pop(context);
-                },
-              ),
-              SizedBox(width: 20),
-              ElevatedButton(
-                child: Text('Save'),
-                onPressed: () async {
-                  _onPressSave();
-                },
-              ),
-            ],
+          TextFormField(
+            controller: _peerNameTextController,
+            decoration: InputDecoration(labelText: 'Your peer name'),
+            validator: (value) {
+              if (value!.isEmpty) {
+                return 'Please enter peer name';
+              } else if (_serverError != "") {
+                return _serverError;
+              }
+              return null;
+            },
+            maxLines: 2,
+            minLines: 1,
+            textInputAction: TextInputAction.done,
           ),
           SizedBox(height: 8),
+          if (widget.gatewayTile != null) widget.gatewayTile!,
         ],
       ),
     );
   }
 }
 
-/// "Serve as VPN Gateway" toggle. Lives inside [SettingsForm] but applies its
+/// "Serve as VPN Gateway" toggle. Lives inside [SettingsDialogView] but applies its
 /// own state independently — the backend has a dedicated endpoint and
 /// flipping this is rare and consequential, so we don't bundle it with the
 /// peer-name save button.
@@ -1303,7 +1365,7 @@ class _BeGatewaySwitchState extends ConsumerState<_BeGatewaySwitch> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Enable')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Enable')),
         ],
       ),
     );
@@ -1314,7 +1376,9 @@ class _BeGatewaySwitchState extends ConsumerState<_BeGatewaySwitch> {
     final colorScheme = Theme.of(context).colorScheme;
     final disabled = _androidUnsupported || _busy;
     final tile = SwitchListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+      // Zero, like the field above it: the dialog already supplies Material's
+      // 24px content edge, and the tile's own inset would push this row off it.
+      contentPadding: EdgeInsets.zero,
       title: Row(
         children: [
           const Flexible(child: Text('Serve as VPN Gateway')),

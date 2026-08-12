@@ -1,9 +1,12 @@
 import 'dart:convert';
 
+import 'package:anywherelan/common.dart' show zeroGoTime;
 import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/invite_link.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../fixtures/fixture_reader.dart';
+import '../helpers/samples.dart';
 
 /// Round-trips a JSON-serializable object the same way production code does:
 /// `toJson` produces a Map that may still contain nested model objects;
@@ -22,7 +25,9 @@ void main() {
       final json = loadFixtureJson('my_peer_info.json') as Map<String, dynamic>;
       final info = MyPeerInfo.fromJson(json);
 
-      expect(info.peerID, '12D3KooWPxx4CkH2AL45tzKUR2g6Ht55g82eFuSMevAximtCQfwR');
+      // The same id `samplePeerID` carries, which is what lets a test mix this
+      // fixture with the sample links without describing two devices.
+      expect(info.peerID, samplePeerID);
       expect(info.name, 'myawesomelaptop');
       expect(info.serverVersion, 'dev');
       expect(info.totalBootstrapPeers, 5);
@@ -83,6 +88,21 @@ void main() {
 
       // Converter: ns → microseconds (truncating divide by 1000)
       expect(peer.ping.inMicroseconds, pingNs ~/ 1000);
+    });
+
+    test('inviteID is read from the response and survives a round-trip', () {
+      final list = loadFixtureJson('known_peers.json') as List<dynamic>;
+      final rawFirst = Map<String, dynamic>.from(list.first as Map<String, dynamic>);
+
+      // A peer that did not come in through a link. The key is always there —
+      // `entity.KnownPeer.InviteID` carries no `omitempty` — so an uninvited
+      // peer arrives as an empty string rather than as a missing field.
+      expect(KnownPeer.fromJson(rawFirst).inviteID, '');
+
+      rawFirst['InviteID'] = '9f3a';
+      final invited = KnownPeer.fromJson(rawFirst);
+      expect(invited.inviteID, '9f3a');
+      expect(KnownPeer.fromJson(jsonRoundtrip(invited.toJson())).inviteID, '9f3a');
     });
 
     test('round-trips through Dart model', () {
@@ -154,6 +174,17 @@ void main() {
       expect(cfg.ipAddr, '10.66.0.2');
       expect(cfg.domainName, 'awl-tester');
       expect(cfg.weAllowUsingAsExitNode, isFalse);
+      // Omitted by the backend for peers not added through an invite link.
+      expect(cfg.inviteID, '');
+    });
+
+    test('picks up inviteID when the backend sends one', () {
+      final json = Map<String, dynamic>.from(
+        loadFixtureJson('known_peer_config.json') as Map<String, dynamic>,
+      );
+      json['inviteID'] = '9f3a';
+
+      expect(KnownPeerConfig.fromJson(json).inviteID, '9f3a');
     });
 
     test('round-trips through Dart model', () {
@@ -170,6 +201,55 @@ void main() {
     });
   });
 
+  group('Invite', () {
+    test('parses captured fixture', () {
+      final invites = invitesFixture();
+
+      expect(invites, hasLength(3));
+      final first = invites.first;
+      // "ID" is not what FieldRename.pascal would produce from `id` — the key
+      // is pinned with @JsonKey, and this is the regression for it.
+      expect(first.id, '9f3a');
+      expect(first.label, 'my laptop');
+      expect(first.link, contains('awl://invite?p='));
+      expect(first.alias, 'laptop');
+      expect(first.allowUsingAsExitNode, isTrue);
+      expect(first.maxUses, 1);
+      expect(first.usedCount, 0);
+      expect(first.status, inviteStatusActive);
+      expect(first.isActive, isTrue);
+      expect(first.expires, isTrue);
+    });
+
+    test('reads Go zero time as "never expires"', () {
+      final neverExpiring = invitesFixture().last;
+
+      expect(neverExpiring.expiresAt, zeroGoTime);
+      expect(neverExpiring.expires, isFalse);
+      expect(neverExpiring.status, inviteStatusRevoked);
+      expect(neverExpiring.isActive, isFalse);
+    });
+
+    test('round-trips through Dart model', () {
+      final original = invitesFixture().first;
+      final reparsed = Invite.fromJson(jsonRoundtrip(original.toJson()));
+
+      expect(reparsed.id, original.id);
+      expect(reparsed.link, original.link);
+      expect(reparsed.expiresAt, original.expiresAt);
+      expect(reparsed.createdAt, original.createdAt);
+      expect(reparsed.status, original.status);
+    });
+
+    test('the link in the fixture parses with the shared parser', () {
+      final parsed = parseInviteLink(invitesFixture().first.link);
+
+      expect(parsed.peerID, samplePeerID);
+      expect(parsed.token, isNotEmpty);
+      expect(parsed.name, 'myawesomelaptop');
+    });
+  });
+
   group('Constructed-only models', () {
     test('FriendRequest round-trip', () {
       final original = FriendRequest('peer-id-1', 'alias-1', '10.0.0.1');
@@ -177,6 +257,21 @@ void main() {
       expect(round.peerID, 'peer-id-1');
       expect(round.alias, 'alias-1');
       expect(round.ipAddr, '10.0.0.1');
+      expect(round.allowUsingAsExitNode, isFalse);
+      expect(round.token, '');
+    });
+
+    test('FriendRequest round-trip with invite token', () {
+      final original = FriendRequest(
+        'peer-id-1',
+        'alias-1',
+        '',
+        allowUsingAsExitNode: true,
+        token: 'secret-token',
+      );
+      final round = FriendRequest.fromJson(original.toJson());
+      expect(round.allowUsingAsExitNode, isTrue);
+      expect(round.token, 'secret-token');
     });
 
     test('FriendRequestReply round-trip', () {
@@ -186,6 +281,34 @@ void main() {
       expect(round.alias, 'alias-1');
       expect(round.decline, isTrue);
       expect(round.ipAddr, '10.0.0.1');
+      expect(round.allowUsingAsExitNode, isFalse);
+    });
+
+    test('FriendRequestReply carries the exit node permission', () {
+      final original = FriendRequestReply('peer-id-1', 'alias-1', false, '', allowUsingAsExitNode: true);
+      final round = FriendRequestReply.fromJson(original.toJson());
+      expect(round.allowUsingAsExitNode, isTrue);
+    });
+
+    test('CreateInviteRequest round-trip', () {
+      final original = CreateInviteRequest(
+        maxUses: 5,
+        expiresInSeconds: 604800,
+        allowUsingAsExitNode: true,
+        label: 'friends',
+      );
+      final round = CreateInviteRequest.fromJson(original.toJson());
+      expect(round.maxUses, 5);
+      expect(round.expiresInSeconds, 604800);
+      expect(round.alias, '');
+      expect(round.allowUsingAsExitNode, isTrue);
+      expect(round.label, 'friends');
+    });
+
+    test('RevokeInviteRequest round-trip', () {
+      final original = RevokeInviteRequest('9f3a');
+      expect(original.toJson()['ID'], '9f3a');
+      expect(RevokeInviteRequest.fromJson(original.toJson()).id, '9f3a');
     });
 
     test('PeerIDRequest round-trip', () {
