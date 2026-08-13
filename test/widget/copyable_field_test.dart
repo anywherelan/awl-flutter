@@ -48,6 +48,29 @@ void main() {
     expect(shared, 1);
   });
 
+  testWidgets('says the copy failed instead of confirming one that did not happen', (tester) async {
+    // What the web build over plain HTTP does when the browser refuses: the
+    // button used to leave no trace at all, the throw going nowhere.
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        throw PlatformException(code: 'copy_fail', message: 'Clipboard is not available in the context.');
+      }
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    await pumpField(tester);
+    await tester.tap(find.byIcon(Icons.content_copy));
+    await tester.pump();
+
+    expect(find.text(copyFailedMessage), findsOneWidget);
+    expect(find.text('Link copied to clipboard'), findsNothing);
+    // No tick either: it is the same claim of success in another form.
+    expect(find.byIcon(Icons.check), findsNothing);
+  });
+
   testWidgets('copies the value and says so, share or no share', (tester) async {
     String? copied;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {

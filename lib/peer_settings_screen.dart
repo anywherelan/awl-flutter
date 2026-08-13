@@ -1,10 +1,10 @@
 import 'dart:async';
 
+import 'package:anywherelan/clipboard_interop/clipboard_interop.dart';
 import 'package:anywherelan/common.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Adapter for [PeerSettingsView] that loads the peer config from the
@@ -332,8 +332,17 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
                 suffixIcon: IconButton(
                   icon: Icon(Icons.content_copy),
                   tooltip: 'Copy Peer ID',
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: widget.peerConfig.peerId));
+                  onPressed: () async {
+                    try {
+                      await copyText(widget.peerConfig.peerId);
+                    } catch (_) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(const SnackBar(content: Text(copyFailedMessage)));
+                      return;
+                    }
+                    if (!mounted) return;
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text("Peer ID copied to clipboard")));

@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:anywherelan/clipboard_interop/clipboard_interop.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -91,16 +92,19 @@ class ExitNodePermissionField extends StatelessWidget {
   }
 }
 
+const copyFailedMessage = kIsWeb
+    ? 'Could not copy. Select the text and press Ctrl+C.'
+    : 'Could not copy to clipboard.';
+
 /// A value the user is meant to take away rather than read: a link, a peer ID.
 /// Rendered as a field so that seventy-odd characters of base58 read as a value
 /// with a copy button on it instead of as a paragraph.
 ///
 /// The value stays **in full and selectable**, however many lines that takes,
 /// and copying is a button beside it rather than a tap on the field. Truncating
-/// to one line is tidier and must not happen: on the web build served over
-/// plain HTTP `Clipboard.setData` throws (`navigator.clipboard` is
-/// secure-context-only), so hand-selecting the text is the only copy path that
-/// works there, and it needs the whole value on screen.
+/// to one line is tidier and must not happen: a browser can refuse a
+/// programmatic copy, and hand-selecting the text is then the only path left,
+/// which needs the whole value on screen.
 ///
 /// The button answers in place, the tick replacing the icon for two seconds: a
 /// [SnackBar] raised inside a dialog lands at the bottom of the screen, far
@@ -161,7 +165,13 @@ class _CopyableFieldState extends State<CopyableField> {
   }
 
   Future<void> _copy() async {
-    await Clipboard.setData(ClipboardData(text: widget.value));
+    try {
+      await copyText(widget.value);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(copyFailedMessage)));
+      return;
+    }
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.copiedMessage)));
