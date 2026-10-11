@@ -205,6 +205,24 @@ void main() {
       expect(result, 'boom');
     });
 
+    test('a framework error, which has "message" and no "error", is reported by its message', () async {
+      when(
+        () => client.send(any()),
+      ).thenAnswer((_) async => _streamed('{"message":"Method Not Allowed"}', 405));
+
+      expect(await api.unblockPeer('pid'), 'Method Not Allowed');
+      await expectLater(
+        api.fetchKnownPeerConfig('pid'),
+        throwsA(isA<Exception>().having((e) => e.toString(), 'text', contains('Method Not Allowed'))),
+      );
+    });
+
+    test('a non-200 with neither field is still an error, named by its status code', () async {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed('{}', 500));
+
+      expect(await api.unblockPeer('pid'), 'HTTP 500');
+    });
+
     test('replyFriendRequest sends decline flag and POSTs to accept_peer', () async {
       when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
 
@@ -384,6 +402,26 @@ void main() {
 
       final result = await api.removePeer('pid');
       expect(result, 'cannot remove');
+    });
+
+    test('unblockPeer sends PeerID and returns empty on success', () async {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed('', 200));
+
+      final result = await api.unblockPeer('pid');
+      expect(result, '');
+
+      final captured = verify(() => client.send(captureAny())).captured.single as http.Request;
+      expect(captured.url.toString(), '$_baseUrl$unblockPeerPath');
+      final decoded = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(decoded, {'PeerID': 'pid'});
+    });
+
+    test('unblockPeer returns error on non-200', () async {
+      when(
+        () => client.send(any()),
+      ).thenAnswer((_) async => _streamed('{"error": "peer is not blocked"}', 404));
+
+      expect(await api.unblockPeer('pid'), 'peer is not blocked');
     });
 
     test('enableVPNGatewayClient sends GatewayPeerID and returns empty on success', () async {

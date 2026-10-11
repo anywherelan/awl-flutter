@@ -352,7 +352,38 @@ class InfoNote extends StatelessWidget {
   }
 }
 
+/// Width of the single centered column on the screens that are one list
+/// (invite links, blocked peers), so they stay a column on a wide monitor.
+const listColumnMaxWidth = 600.0;
+
 final zeroGoTime = DateTime.fromMicrosecondsSinceEpoch(-62135596800000000, isUtc: true);
+
+const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/// A moment that has passed, as the list screens state it: `today at 14:20`,
+/// `yesterday at 14:20`, `3 Aug`, `3 Aug 2025`. The clock survives where it
+/// discriminates: two entries made minutes apart are a today-or-yesterday
+/// case, further back the day is enough.
+String pastMomentText(DateTime at, {DateTime? now}) {
+  final localAt = at.toLocal();
+  final localNow = (now ?? DateTime.now()).toLocal();
+  final days = calendarDaysBetween(localAt, localNow);
+
+  String two(int n) => n.toString().padLeft(2, '0');
+  final time = '${two(localAt.hour)}:${two(localAt.minute)}';
+
+  if (days == 0) return 'today at $time';
+  if (days == -1) return 'yesterday at $time';
+  final date = '${localAt.day} ${shortMonths[localAt.month - 1]}';
+  return localAt.year == localNow.year ? date : '$date ${localAt.year}';
+}
+
+/// Whole days between two local calendar dates, ignoring the time of day:
+/// 23:00 and the 01:00 two hours later are a day apart, which is how a reader
+/// counts them.
+int calendarDaysBetween(DateTime at, DateTime now) {
+  return DateTime(at.year, at.month, at.day).difference(DateTime(now.year, now.month, now.day)).inDays;
+}
 
 String formatDurationRough(Duration duration) {
   if (duration.inDays.abs() >= 1) {

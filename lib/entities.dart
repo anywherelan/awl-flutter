@@ -285,9 +285,22 @@ class FriendRequestReply {
 
 @JsonSerializable()
 class ApiError {
+  @JsonKey(defaultValue: '')
   final String error;
 
-  ApiError(this.error);
+  /// What the backend's framework answers with instead of [error] when the request never reaches a handler:
+  /// an unknown route, a wrong method, a failed Basic Auth.
+  final String message;
+
+  ApiError(this.error, {this.message = ''});
+
+  /// Whichever of the two the response carried, joined the way the backend's own `Error()` joins them.
+  String get text {
+    if (error.isNotEmpty && message.isNotEmpty) {
+      return 'error: $error; message: $message';
+    }
+    return error + message;
+  }
 
   factory ApiError.fromJson(Map<String, dynamic> json) => _$ApiErrorFromJson(json);
 
