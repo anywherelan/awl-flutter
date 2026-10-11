@@ -536,8 +536,8 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
       builder: (BuildContext context) => AlertDialog(
         title: const Text('Remove peer'),
         content: Text(
-          '"$_peerDisplayName" will be removed from your peers list and will no longer '
-          'be able to connect to this device. You can add them again later.',
+          '"$_peerDisplayName" will be removed from your peers list and added to Blocked peers. '
+          'They will no longer be able to connect to this device. You can add them again later.',
         ),
         actions: <Widget>[
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),

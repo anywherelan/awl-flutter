@@ -327,8 +327,8 @@ class _AuthRequestDialogViewState extends State<AuthRequestDialogView> {
           ),
           SizedBox(height: 16),
           Text(
-            "If you decline the invitation, it will no longer be shown. "
-            "You can still add the peer yourself later if you want.",
+            "If you decline the invitation, the peer is added to Blocked peers and their requests "
+            "are no longer shown. You can still add the peer yourself later if you want.",
           ),
         ],
       ),

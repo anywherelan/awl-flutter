@@ -332,5 +332,15 @@ void main() {
       final round = ApiError.fromJson(original.toJson());
       expect(round.error, 'something failed');
     });
+
+    test('ApiError.text is whichever field is set, or both', () {
+      expect(ApiError.fromJson({'error': 'boom'}).text, 'boom');
+      expect(ApiError.fromJson({'message': 'Unauthorized'}).text, 'Unauthorized');
+      expect(
+        ApiError.fromJson({'error': 'boom', 'message': 'Unauthorized'}).text,
+        'error: boom; message: Unauthorized',
+      );
+      expect(ApiError.fromJson({}).text, '');
+    });
   });
 }

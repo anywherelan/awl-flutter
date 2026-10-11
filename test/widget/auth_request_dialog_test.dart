@@ -90,6 +90,12 @@ void main() {
     expect(sent.single.decline, isFalse);
   });
 
+  testWidgets('says where a declined peer ends up', (tester) async {
+    await pumpDialog(tester);
+
+    expect(find.textContaining('the peer is added to Blocked peers'), findsOneWidget);
+  });
+
   testWidgets('Decline sends the same reply, marked declined', (tester) async {
     final sent = await pumpDialog(tester);
 

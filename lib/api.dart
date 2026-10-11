@@ -15,6 +15,7 @@ const updatePeerSettingsPath = "${v0Prefix}peers/update_settings";
 const removePeerSettingsPath = "${v0Prefix}peers/remove";
 
 const getBlockedPeersPath = "${v0Prefix}peers/get_blocked";
+const unblockPeerPath = "${v0Prefix}peers/unblock";
 
 const sendFriendRequestPath = "${v0Prefix}peers/invite_peer";
 const acceptPeerInvitationPath = "${v0Prefix}peers/accept_peer";
@@ -187,6 +188,12 @@ class ApiClient {
     return _postJsonOrError(removePeerSettingsPath, PeerIDRequest(peerID).toJson());
   }
 
+  /// Takes the peer off the blocked list, so its requests are shown again. It
+  /// does not add the peer.
+  Future<String> unblockPeer(String peerID) {
+    return _postJsonOrError(unblockPeerPath, PeerIDRequest(peerID).toJson());
+  }
+
   Future<String> enableVPNGatewayClient(String gatewayPeerID) {
     return _postJsonOrError(enableVPNGatewayClientPath, {"GatewayPeerID": gatewayPeerID});
   }
@@ -202,7 +209,7 @@ class ApiClient {
   // ---- private helpers ----
 
   /// POSTs a JSON payload, returns the raw response body. Throws on non-200
-  /// with the server's [ApiError.error] as the exception message.
+  /// with the server's [ApiError.text] as the exception message.
   Future<String> _postJson(String path, Map<String, dynamic> payload) async {
     final request = http.Request("POST", _uri(path));
     request.headers["Content-Type"] = "application/json";
@@ -211,14 +218,13 @@ class ApiClient {
     final response = await _client.send(request);
     final body = await response.stream.bytesToString();
     if (response.statusCode != 200) {
-      final Map<String, dynamic> parsed = jsonDecode(body);
-      throw Exception(ApiError.fromJson(parsed).error);
+      throw Exception(_errorText(response.statusCode, body));
     }
     return body;
   }
 
   /// POSTs a JSON payload, returns "" on success or the server's
-  /// [ApiError.error] string on non-200. Matches the existing convention for
+  /// [ApiError.text] string on non-200. Matches the existing convention for
   /// mutation endpoints that want to surface the error string to the UI
   /// instead of throwing.
   Future<String> _postJsonOrError(String path, Map<String, dynamic> payload) async {
@@ -229,9 +235,16 @@ class ApiClient {
     final response = await _client.send(request);
     final body = await response.stream.bytesToString();
     if (response.statusCode != 200) {
-      final Map<String, dynamic> parsed = jsonDecode(body);
-      return ApiError.fromJson(parsed).error;
+      return _errorText(response.statusCode, body);
     }
     return "";
+  }
+
+  /// The message of a non-200 response. Never empty: [_postJsonOrError] returns it as is, and "" there
+  /// means success.
+  String _errorText(int statusCode, String body) {
+    final Map<String, dynamic> parsed = jsonDecode(body);
+    final text = ApiError.fromJson(parsed).text;
+    return text.isEmpty ? 'HTTP $statusCode' : text;
   }
 }

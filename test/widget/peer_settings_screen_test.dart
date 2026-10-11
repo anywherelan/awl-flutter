@@ -174,7 +174,12 @@ void main() {
 
       await tester.tap(find.text('Remove peer'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('will be removed from your peers list'), findsOneWidget);
+      // Names the screen the peer ends up on: removing blocks, and that is
+      // where it can be taken back.
+      expect(
+        find.textContaining('will be removed from your peers list and added to Blocked peers'),
+        findsOneWidget,
+      );
 
       // Confirm. The action keeps its name through the flow, so the screen's
       // button, the dialog title and the confirmation all read "Remove peer" —

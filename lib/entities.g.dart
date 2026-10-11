@@ -251,11 +251,14 @@ Map<String, dynamic> _$FriendRequestReplyToJson(FriendRequestReply instance) =>
       'AllowUsingAsExitNode': instance.allowUsingAsExitNode,
     };
 
-ApiError _$ApiErrorFromJson(Map<String, dynamic> json) =>
-    ApiError(json['error'] as String);
+ApiError _$ApiErrorFromJson(Map<String, dynamic> json) => ApiError(
+  json['error'] as String? ?? '',
+  message: json['message'] as String? ?? '',
+);
 
 Map<String, dynamic> _$ApiErrorToJson(ApiError instance) => <String, dynamic>{
   'error': instance.error,
+  'message': instance.message,
 };
 
 AuthRequest _$AuthRequestFromJson(Map<String, dynamic> json) => AuthRequest(

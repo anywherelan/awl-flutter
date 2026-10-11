@@ -132,6 +132,14 @@ final invitesProvider = FutureProvider.autoDispose<List<Invite>>(
   (ref) => ref.watch(apiProvider).fetchInvites(),
 );
 
+/// Peers whose requests are declined without asking. Not polled, for the same
+/// reason as [invitesProvider]: the list only changes when this app declines,
+/// removes, adds or unblocks a peer. `autoDispose` covers the changes made on
+/// other screens, by refetching when this one is opened again.
+final blockedPeersProvider = FutureProvider.autoDispose<List<BlockedPeer>>(
+  (ref) => ref.watch(apiProvider).fetchBlockedPeers(),
+);
+
 /// Force-refresh all polling providers. Throws if any fetch fails.
 Future<void> refreshProviders(ProviderContainer container) => Future.wait([
   container.read(myPeerInfoProvider.notifier).refresh(),

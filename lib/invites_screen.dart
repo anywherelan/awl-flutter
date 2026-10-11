@@ -150,7 +150,7 @@ class InvitesView extends StatelessWidget {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
+        constraints: const BoxConstraints(maxWidth: listColumnMaxWidth),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -454,7 +454,7 @@ String inviteUsageText(Invite invite) {
 /// `ExpiresAt` under a `Revoked` pill would tell a competing story.
 String inviteEndedText(Invite invite, {DateTime? now}) {
   if (invite.status != inviteStatusExpired || !invite.expires) return '';
-  return 'expired ${_pastMoment(invite.expiresAt, now: now)}';
+  return 'expired ${pastMomentText(invite.expiresAt, now: now)}';
 }
 
 String inviteStatusText(String status) {
@@ -506,32 +506,7 @@ String _timeLeftText(Duration left) {
 
 /// When the link was made. Without it two links created minutes apart with the
 /// same settings are indistinguishable in the list.
-String inviteCreatedText(DateTime at, {DateTime? now}) => 'created ${_pastMoment(at, now: now)}';
-
-/// A moment that has passed, as this screen states it — the mirror of
-/// [inviteExpiryMoment]: `today at 14:20`, `yesterday at 14:20`, `3 Aug`,
-/// `3 Aug 2025`. The clock survives where it discriminates: two links made
-/// minutes apart are a today-or-yesterday case, further back the day is enough.
-String _pastMoment(DateTime at, {DateTime? now}) {
-  final localAt = at.toLocal();
-  final localNow = (now ?? DateTime.now()).toLocal();
-  final days = _calendarDaysBetween(localAt, localNow);
-
-  String two(int n) => n.toString().padLeft(2, '0');
-  final time = '${two(localAt.hour)}:${two(localAt.minute)}';
-
-  if (days == 0) return 'today at $time';
-  if (days == -1) return 'yesterday at $time';
-  final date = '${localAt.day} ${_shortMonths[localAt.month - 1]}';
-  return localAt.year == localNow.year ? date : '$date ${localAt.year}';
-}
-
-/// Whole days between two local calendar dates, ignoring the time of day:
-/// 23:00 and the 01:00 two hours later are a day apart, which is how a reader
-/// counts them.
-int _calendarDaysBetween(DateTime at, DateTime now) {
-  return DateTime(at.year, at.month, at.day).difference(DateTime(now.year, now.month, now.day)).inDays;
-}
+String inviteCreatedText(DateTime at, {DateTime? now}) => 'created ${pastMomentText(at, now: now)}';
 
 /// "2026-07-12 14:00" in local time. Deliberately not localized: the rest of
 /// the app shows raw timestamps too, and this one sits next to a shareable
@@ -550,7 +525,7 @@ String formatInviteDateTime(DateTime value) {
 String inviteExpiryMoment(DateTime at, {DateTime? now}) {
   final localAt = at.toLocal();
   final localNow = (now ?? DateTime.now()).toLocal();
-  final days = _calendarDaysBetween(localAt, localNow);
+  final days = calendarDaysBetween(localAt, localNow);
 
   String two(int n) => n.toString().padLeft(2, '0');
   final time = '${two(localAt.hour)}:${two(localAt.minute)}';
@@ -560,10 +535,8 @@ String inviteExpiryMoment(DateTime at, {DateTime? now}) {
   // Spelled out rather than the ISO form of [formatInviteDateTime]: this one
   // is read inside a sentence, where "2026-08-08 17:07" lands like a log line.
   // The ISO form stays where dates are data — the list and the link panel.
-  return '${localAt.day} ${_shortMonths[localAt.month - 1]} ${localAt.year}, $time';
+  return '${localAt.day} ${shortMonths[localAt.month - 1]} ${localAt.year}, $time';
 }
-
-const _shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /// What the picked duration resolves to, shown under the "Expires in" dropdown
 /// — a relative duration alone is no help when the link is created now to be
