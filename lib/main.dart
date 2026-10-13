@@ -131,9 +131,7 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  late TabController _tabController;
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
   late final notif.NotificationsService _notificationsService;
   late final DeepLinkService _deepLinkService;
 
@@ -146,18 +144,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _deepLinkService = DeepLinkService(_onDeepLink);
     _deepLinkService.init();
     WidgetsBinding.instance.addObserver(this);
-
-    _tabController = TabController(vsync: this, length: 2, initialIndex: 0);
-    _tabController.addListener(() {
-      // to trigger build and refresh FloatingActionButton
-      setState(() {});
-    });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
-
     WidgetsBinding.instance.removeObserver(this);
     _notificationsService.close();
     _deepLinkService.close();
@@ -195,6 +185,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _notificationsService.setTimerIntervalShort();
         break;
     }
+  }
+
+  @override
+  Widget build(BuildContext context) => HomeLayout(title: widget.title);
+}
+
+/// What the home screen looks like, apart from the services [HomeScreen] runs
+/// behind it. Reads providers only, so a test can pump it over a mocked http
+/// client; the notifications plugin [HomeScreen] starts has no test double.
+class HomeLayout extends ConsumerStatefulWidget {
+  const HomeLayout({super.key, required this.title});
+
+  final String title;
+
+  @override
+  ConsumerState<HomeLayout> createState() => _HomeLayoutState();
+}
+
+class _HomeLayoutState extends ConsumerState<HomeLayout> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _tabController = TabController(vsync: this, length: 2, initialIndex: 0);
+    _tabController.addListener(() {
+      // to trigger build and refresh FloatingActionButton
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
