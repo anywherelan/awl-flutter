@@ -489,4 +489,94 @@ void main() {
       expect(res.vpnGateways, isEmpty);
     });
   });
+
+  // A stopped server answers nothing, and that used to surface as whatever the
+  // transport threw, or as nothing at all once nobody caught it.
+  group('a server that does not answer', () {
+    setUp(() {
+      when(() => client.send(any())).thenThrow(http.ClientException('Connection refused'));
+      when(() => client.get(any())).thenThrow(http.ClientException('Connection refused'));
+    });
+
+    test('a mutation returns the message instead of throwing', () async {
+      expect(await api.sendFriendRequest(FriendRequest('pid', 'alias', '')), serverUnreachableMessage);
+      expect(await api.removePeer('pid'), serverUnreachableMessage);
+    });
+
+    test('a request that returns data throws ServerUnreachable, whose text is the message', () async {
+      await expectLater(
+        api.createInvite(CreateInviteRequest(maxUses: 1)),
+        throwsA(isA<ServerUnreachable>().having((e) => e.toString(), 'text', serverUnreachableMessage)),
+      );
+      await expectLater(api.fetchBlockedPeers(), throwsA(isA<ServerUnreachable>()));
+    });
+
+    test('a GET that wraps its failures leaves this one unwrapped', () async {
+      await expectLater(api.fetchInvites(), throwsA(isA<ServerUnreachable>()));
+      await expectLater(api.fetchMyPeerInfo(), throwsA(isA<ServerUnreachable>()));
+    });
+
+    test('fetchAuthRequests still answers with an empty list', () async {
+      expect(await api.fetchAuthRequests(), isEmpty);
+    });
+  });
+
+  // On Android until the first successful start.
+  group('no server address yet', () {
+    setUp(() => serverAddress = '');
+
+    test('a mutation returns the message without touching the network', () async {
+      expect(await api.sendFriendRequest(FriendRequest('pid', 'alias', '')), serverUnreachableMessage);
+      verifyNever(() => client.send(any()));
+    });
+
+    test('a GET throws ServerUnreachable without touching the network', () async {
+      await expectLater(api.fetchBlockedPeers(), throwsA(isA<ServerUnreachable>()));
+      verifyNever(() => client.get(any()));
+    });
+  });
+
+  // A proxy in front of the backend answers with its own page, not with ours.
+  group('an error body that is not the backend\'s JSON', () {
+    void answer(String body, int status) {
+      when(() => client.send(any())).thenAnswer((_) async => _streamed(body, status));
+    }
+
+    test('is quoted after the status code', () async {
+      answer('<html>\n  <body>502 Bad Gateway</body>\n</html>', 502);
+
+      expect(await api.unblockPeer('pid'), 'HTTP 502: <html> <body>502 Bad Gateway</body> </html>');
+      await expectLater(
+        api.fetchKnownPeerConfig('pid'),
+        throwsA(isA<ApiException>().having((e) => e.message, 'message', startsWith('HTTP 502: <html>'))),
+      );
+    });
+
+    test('is cut to its first hundred characters', () async {
+      answer('x' * 500, 502);
+
+      expect(await api.unblockPeer('pid'), 'HTTP 502: ${'x' * 100}…');
+    });
+
+    test('is left out when there is none', () async {
+      answer('  \n', 502);
+
+      expect(await api.unblockPeer('pid'), 'HTTP 502');
+    });
+
+    test('is quoted when it is JSON of some other shape', () async {
+      answer('"nope"', 500);
+
+      expect(await api.unblockPeer('pid'), 'HTTP 500: "nope"');
+    });
+  });
+
+  test('a server error is an ApiException whose text is the message alone', () async {
+    when(() => client.send(any())).thenAnswer((_) async => _streamed('{"error": "boom"}', 400));
+
+    await expectLater(
+      api.createInvite(CreateInviteRequest(maxUses: 1)),
+      throwsA(isA<ApiException>().having((e) => e.toString(), 'text', 'boom')),
+    );
+  });
 }

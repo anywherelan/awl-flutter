@@ -309,6 +309,34 @@ class LinkSharePanel extends StatelessWidget {
   }
 }
 
+/// What a form's submit came back with, when it is not about any one field:
+/// the server's refusal, or no answer at all.
+///
+/// Body text with an icon rather than the small red line a field puts under
+/// itself, so that it is not taken for one, and does not rest on colour alone.
+class SubmitError extends StatelessWidget {
+  final String text;
+
+  const SubmitError(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.error;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.error_outline, size: 20, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text, style: theme.textTheme.bodyMedium?.copyWith(color: color)),
+        ),
+      ],
+    );
+  }
+}
+
 /// Tone of an [InfoNote]: plain explanation, or the terms of something the
 /// reader is about to hand out.
 enum NoteTone { neutral, warning }

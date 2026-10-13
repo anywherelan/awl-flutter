@@ -23,8 +23,8 @@ class AppSettingsScreen extends ConsumerStatefulWidget {
 
 class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   Future<PickerResponse> _exportSettings() async {
-    final exportedSettings = await ref.read(apiProvider).fetchExportedServerConfig();
     try {
+      final exportedSettings = await ref.read(apiProvider).fetchExportedServerConfig();
       String? response;
       if (kIsWeb) {
         response = await FileSaver.instance.saveFile(
@@ -87,7 +87,8 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
       final fileString = utf8.decode(fileBytes!.toList());
       final fileName = result.files.first.name;
 
-      await stopServer();
+      // Importing into a stopped server is the ordinary case on a fresh install.
+      if (isServerRunning()) await stopServer();
       var importResponse = await importConfig(fileString);
       var startResponse = await initServer();
 
@@ -112,25 +113,31 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          ListTile(
-            title: Text("Export settings"),
-            enabled: true,
-            selected: false,
-            leading: const Icon(Icons.import_export),
-            onTap: () async {
-              var result = await _exportSettings();
-              if (!context.mounted) return;
-              if (result.message != "") {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: result.success
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.error,
-                    content: Text(result.message),
-                  ),
-                );
-              }
-            },
+          // The settings are read from the running server, so without one
+          // there is nothing to export.
+          ValueListenableBuilder<bool>(
+            valueListenable: isServerAvailable,
+            builder: (context, isAvailable, _) => ListTile(
+              title: Text("Export settings"),
+              subtitle: isAvailable ? null : const Text("Needs a running server."),
+              enabled: isAvailable,
+              selected: false,
+              leading: const Icon(Icons.import_export),
+              onTap: () async {
+                var result = await _exportSettings();
+                if (!context.mounted) return;
+                if (result.message != "") {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: result.success
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.error,
+                      content: Text(result.message),
+                    ),
+                  );
+                }
+              },
+            ),
           ),
           if (!kIsWeb)
             ListTile(

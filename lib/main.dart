@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:anywherelan/add_peer.dart';
 import 'package:anywherelan/app_shell.dart';
 import 'package:anywherelan/blocked_peers_screen.dart';
+import 'package:anywherelan/connection_error.dart';
 import 'package:anywherelan/deep_links.dart';
 import 'package:anywherelan/diagnostics_screen.dart';
 import 'package:anywherelan/drawer.dart';
@@ -225,14 +226,23 @@ class _HomeLayoutState extends ConsumerState<HomeLayout> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: isServerAvailable,
+      builder: (context, isAvailable, _) => _buildLayout(isAvailable),
+    );
+  }
+
+  Widget _buildLayout(bool isAvailable) {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 800) {
-          return _buildWideAdaptiveScreen(constraints, context);
+          return _buildWideAdaptiveScreen(constraints, context, isAvailable);
         }
 
+        // Without a server both tabs are the connection error, which leaves a
+        // button for adding a peer nothing to stand over.
         FloatingActionButton? actionButton;
-        if (_tabController.index == 1) {
+        if (_tabController.index == 1 && isAvailable) {
           actionButton = FloatingActionButton(
             tooltip: 'Add new peer',
             onPressed: () {
@@ -289,12 +299,36 @@ class _HomeLayoutState extends ConsumerState<HomeLayout> with SingleTickerProvid
     );
   }
 
-  Widget _buildWideAdaptiveScreen(BoxConstraints constraints, BuildContext context) {
+  Widget _buildWideAdaptiveScreen(BoxConstraints constraints, BuildContext context, bool isAvailable) {
+    // Watched here, above the connection error's early return, although only
+    // the headers below use them: these polls are what lifts the error, and a
+    // poll nobody watches does not survive a lifecycle pause.
+    ref.watch(knownPeersProvider);
+    ref.watch(myPeerInfoProvider);
+
     var hasScaffoldDrawer = true;
     var spaceBetweenItems = 15.0;
 
     if (constraints.maxWidth > 1100) {
       hasScaffoldDrawer = false;
+    }
+
+    // One error for the screen instead of one per column: each column would
+    // draw its own, under a header still showing what the server last said.
+    if (!isAvailable) {
+      return Scaffold(
+        appBar: AppBar(title: _buildAppBarTitle()),
+        drawer: hasScaffoldDrawer ? MyDrawer(selected: AppSection.overview) : null,
+        body: SafeArea(
+          bottom: false,
+          child: Row(
+            children: [
+              if (!hasScaffoldDrawer) MyDrawer(selected: AppSection.overview, isRetractable: false),
+              Expanded(child: showDefaultServerConnectionError(context)),
+            ],
+          ),
+        ),
+      );
     }
 
     if (constraints.maxWidth > 2000) {

@@ -8,6 +8,7 @@ library;
 
 import 'package:anywherelan/main.dart';
 import 'package:anywherelan/providers.dart';
+import 'package:anywherelan/server_interop/server_interop_mobile.dart' as interop;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -48,6 +49,17 @@ void main() {
     await pumpHome(tester, wideSize);
 
     await expectGolden(tester, 'home_wide');
+  });
+
+  // A stopped server on Android: one error for the whole screen, and the drawer
+  // beside it, which is where the server is started from.
+  testWidgets('home, wide layout, server unreachable', (tester) async {
+    await pumpHome(tester, wideSize);
+    backend.down = true;
+    interop.serverRunning = false;
+    await tester.pump(const Duration(seconds: 3));
+
+    await expectGolden(tester, 'home_offline_wide');
   });
 
   testWidgets('home on a phone, Status tab', (tester) async {
