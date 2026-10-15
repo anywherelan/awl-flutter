@@ -14,6 +14,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:overlay_support/overlay_support.dart';
 
+/// Notifies about incoming friend requests: system notifications on Android,
+/// overlays on web. What is shown follows `auth_requests`: a request that
+/// disappears takes its notification with it, and everything goes when the
+/// server becomes unavailable, since nothing can be answered without it.
 class NotificationsService {
   /// Null on web, and on Android when the plugin failed to initialize: polling
   /// runs either way, there is just no system notification to show.
@@ -26,6 +30,9 @@ class NotificationsService {
 
   List<AuthRequest> _lastRequests = [];
 
+  /// Web only: the overlay shown for each peer ID, so it can be withdrawn.
+  final Map<String, OverlaySupportEntry> _overlays = {};
+
   final ApiClient _api;
 
   NotificationsService(this._api);
@@ -34,6 +41,7 @@ class NotificationsService {
     if (!kIsWeb) {
       await _initMobilePlugin();
     }
+    isServerAvailable.addListener(_onServerAvailabilityChanged);
 
     // A lifecycle change may have started a timer while the plugin initialized.
     _timer?.cancel();
@@ -57,13 +65,18 @@ class NotificationsService {
       return;
     }
     _notificationsPlugin = plugin;
+    // Left over from a previous run and possibly stale; the first poll shows
+    // again whatever is still pending.
+    await _cancelAllMobile();
 
     var androidPlatformChannelSpecifics = AndroidNotificationDetails(
       'friend_requests',
       'Friend requests',
+      channelDescription: 'Devices asking to join your network',
       importance: Importance.high,
       priority: Priority.high,
-      ticker: 'ticker',
+      // A tap opens the request; the notification goes once it is answered.
+      autoCancel: false,
     );
     _notificationDetails = NotificationDetails(android: androidPlatformChannelSpecifics);
 
@@ -81,6 +94,7 @@ class NotificationsService {
 
   void close() async {
     _timer?.cancel();
+    isServerAvailable.removeListener(_onServerAvailabilityChanged);
   }
 
   void setTimerIntervalShort() async {
@@ -94,24 +108,60 @@ class NotificationsService {
   }
 
   void _checkForNotifications() async {
-    var newRequests = await _api.fetchAuthRequests();
-    if (newRequests.isEmpty) {
-      _lastRequests = newRequests;
+    final List<AuthRequest> requests;
+    try {
+      requests = await _api.fetchAuthRequests();
+    } catch (_) {
+      // Not the same as an empty list: nothing is withdrawn on a failed poll.
+      // A server that is really gone is handled by [_onServerAvailabilityChanged].
       return;
     }
 
-    for (final req in newRequests) {
-      if (_lastRequests.indexWhere((obj) => obj.peerID == req.peerID) != -1) {
-        continue;
-      }
+    final diff = diffAuthRequests(_lastRequests, requests);
+    _lastRequests = requests;
+
+    for (final peerID in diff.removed) {
+      await _withdraw(peerID);
+    }
+    for (final req in diff.added) {
       if (kIsWeb) {
         _showOverlayNotification(req);
       } else {
         await _showMobileNotification(req);
       }
     }
+  }
 
-    _lastRequests = newRequests;
+  void _onServerAvailabilityChanged() {
+    if (isServerAvailable.value) return;
+    _lastRequests = [];
+    for (final entry in _overlays.values.toList()) {
+      entry.dismiss();
+    }
+    _overlays.clear();
+    unawaited(_cancelAllMobile());
+  }
+
+  Future<void> _withdraw(String peerID) async {
+    _overlays.remove(peerID)?.dismiss();
+
+    final plugin = _notificationsPlugin;
+    if (plugin == null) return;
+    try {
+      await plugin.cancel(generateNotificationId(peerID));
+    } catch (e, s) {
+      debugPrint('NotificationsService: failed to cancel notification: $e\n$s');
+    }
+  }
+
+  Future<void> _cancelAllMobile() async {
+    final plugin = _notificationsPlugin;
+    if (plugin == null) return;
+    try {
+      await plugin.cancelAll();
+    } catch (e, s) {
+      debugPrint('NotificationsService: failed to cancel notifications: $e\n$s');
+    }
   }
 
   Future<void> _showMobileNotification(AuthRequest req) async {
@@ -124,21 +174,17 @@ class NotificationsService {
       name: 'NotificationsService',
     );
 
+    final text = authRequestNotificationText(req, web: false);
     try {
-      await plugin.show(
-        notificationId,
-        'Incoming friend request',
-        'from ${req.name} with peerId ${req.peerID}',
-        _notificationDetails,
-        payload: req.peerID,
-      );
+      await plugin.show(notificationId, text.title, text.body, _notificationDetails, payload: req.peerID);
     } catch (e, s) {
       debugPrint('NotificationsService: failed to show notification: $e\n$s');
     }
   }
 
-  Future<void> _showOverlayNotification(AuthRequest req) async {
-    showOverlayNotification((context) {
+  void _showOverlayNotification(AuthRequest req) {
+    final text = authRequestNotificationText(req, web: true);
+    final entry = showOverlayNotification((context) {
       return Card(
         margin: const EdgeInsets.symmetric(horizontal: 4),
         child: SafeArea(
@@ -147,25 +193,32 @@ class NotificationsService {
               size: const Size(40, 40),
               child: ClipOval(child: Icon(Icons.devices)),
             ),
-            title: Text('Incoming friend request'),
-            subtitle: req.name == ""
-                ? Text("from PeerID ${req.peerID}")
-                : Text("from '${req.name}' with peerId ${req.peerID}"),
-            trailing: IconButton(
-              icon: Icon(Icons.add),
-              onPressed: () {
-                OverlaySupportEntry.of(context)!.dismiss();
-                _showAuthRequestDialog(req);
-              },
-            ),
-            onTap: () {
-              OverlaySupportEntry.of(context)!.dismiss();
-              _showAuthRequestDialog(req);
-            },
+            title: Text(text.title),
+            subtitle: Text(text.body),
+            trailing: IconButton(icon: Icon(Icons.add), onPressed: () => _answer(req)),
+            onTap: () => _answer(req),
           ),
         ),
       );
     }, duration: Duration(milliseconds: 0));
+
+    // A second overlay would sit exactly on top of the first, and only one of
+    // them could be withdrawn.
+    final previous = _overlays[req.peerID];
+    if (previous != null) {
+      debugPrint('NotificationsService: overlay for ${req.peerID} shown twice, replacing the first');
+      previous.dismiss();
+    }
+    _overlays[req.peerID] = entry;
+  }
+
+  /// Opens the request. Its notification stays until the request is answered
+  /// or disappears from the server, so closing the dialog keeps it.
+  Future<void> _answer(AuthRequest req) async {
+    if (await _showAuthRequestDialog(req)) {
+      // Without waiting up to a poll for the server to drop it.
+      await _withdraw(req.peerID);
+    }
   }
 
   void _onSelectMobileNotification(NotificationResponse notificationResponse) async {
@@ -177,16 +230,19 @@ class NotificationsService {
       (obj) => obj.peerID == payload,
       orElse: () => AuthRequest(payload, "", ""),
     );
-    _showAuthRequestDialog(authReq);
+    await _answer(authReq);
   }
 }
 
-Future _showAuthRequestDialog(AuthRequest req) async {
-  if (navigatorKey.currentContext == null) return;
-  showDialog(
-    context: navigatorKey.currentContext!,
+/// True once the request was answered, false if the dialog was closed without.
+Future<bool> _showAuthRequestDialog(AuthRequest req) async {
+  final context = navigatorKey.currentContext;
+  if (context == null) return false;
+  final answered = await showDialog<bool>(
+    context: context,
     builder: (context) => AuthRequestDialog(request: req),
   );
+  return answered ?? false;
 }
 
 /// Adapter for [AuthRequestDialogView]: owns the API call. The pure
@@ -210,7 +266,7 @@ class _AuthRequestDialogState extends ConsumerState<AuthRequestDialog> {
     return AuthRequestDialogView(
       request: widget.request,
       onSubmit: _onSubmit,
-      onDone: () => Navigator.pop(context),
+      onDone: () => Navigator.pop(context, true),
     );
   }
 }
@@ -360,6 +416,37 @@ class _AuthRequestDialogViewState extends State<AuthRequestDialogView> {
       ),
     );
   }
+}
+
+/// What a notification about [req] says, on Android and in the web overlay
+/// alike. No peer ID: it is in the dialog the notification opens, and in a
+/// notification it only pushes the name out of sight.
+({String title, String body}) authRequestNotificationText(AuthRequest req, {required bool web}) {
+  final name = req.name.trim();
+  final action = '${web ? 'Click' : 'Tap'} to accept or decline.';
+  return name.isEmpty
+      ? (title: 'Incoming friend request', body: 'From an unnamed device. $action')
+      : (title: 'Friend request from $name', body: action);
+}
+
+/// Compares two polls of `auth_requests` by peer ID: [added] are the requests to
+/// notify about, [removed] the peer IDs whose notifications have to go.
+({List<AuthRequest> added, List<String> removed}) diffAuthRequests(
+  List<AuthRequest> previous,
+  List<AuthRequest> current,
+) {
+  final previousIDs = {for (final req in previous) req.peerID};
+  final currentIDs = {for (final req in current) req.peerID};
+  return (
+    added: [
+      for (final req in current)
+        if (!previousIDs.contains(req.peerID)) req,
+    ],
+    removed: [
+      for (final peerID in previousIDs)
+        if (!currentIDs.contains(peerID)) peerID,
+    ],
+  );
 }
 
 int generateNotificationId(String id) {
