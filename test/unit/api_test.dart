@@ -100,14 +100,11 @@ void main() {
       expect(reqs.first.name, 'incoming-friend');
     });
 
-    test('fetchAuthRequests returns empty list on error (does not throw)', () async {
-      // Documented behavior in lib/api.dart: errors are logged and an empty
-      // list is returned, which keeps the notifications poller from crashing
-      // the UI when the server is unreachable.
+    test('fetchAuthRequests throws on a malformed body rather than answering with no requests', () async {
+      // An empty list would withdraw every notification shown.
       when(() => client.get(any())).thenAnswer((_) async => http.Response('not json', 200));
 
-      final reqs = await api.fetchAuthRequests();
-      expect(reqs, isEmpty);
+      await expectLater(api.fetchAuthRequests(), throwsA(isA<Exception>()));
     });
 
     test('fetchBlockedPeers parses sample fixture', () async {
@@ -514,10 +511,7 @@ void main() {
     test('a GET that wraps its failures leaves this one unwrapped', () async {
       await expectLater(api.fetchInvites(), throwsA(isA<ServerUnreachable>()));
       await expectLater(api.fetchMyPeerInfo(), throwsA(isA<ServerUnreachable>()));
-    });
-
-    test('fetchAuthRequests still answers with an empty list', () async {
-      expect(await api.fetchAuthRequests(), isEmpty);
+      await expectLater(api.fetchAuthRequests(), throwsA(isA<ServerUnreachable>()));
     });
   });
 

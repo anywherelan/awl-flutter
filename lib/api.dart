@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:anywherelan/entities.dart';
@@ -161,9 +160,10 @@ class ApiClient {
       final response = await _get(getAuthRequestsPath);
       final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
       return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
+    } on ServerUnreachable {
+      rethrow;
     } catch (e, s) {
-      log('Failed to fetchAuthRequests', error: e, stackTrace: s, name: 'api');
-      return [];
+      Error.throwWithStackTrace(Exception('Failed to fetchAuthRequests: $e'), s);
     }
   }
 

@@ -6,6 +6,7 @@
 @Tags(['golden'])
 library;
 
+import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/main.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop_mobile.dart' as interop;
@@ -68,9 +69,11 @@ void main() {
     await expectGolden(tester, 'home_phone_status');
   });
 
+  // With an incoming request, listed above the peers as a card of their shape.
   // The black ring around the FAB is its shadow: the test engine paints
   // shadows as solid outlines so that they compare pixel for pixel.
   testWidgets('home on a phone, Peers tab', (tester) async {
+    backend.authRequests.add(AuthRequest(otherPeerID, 'pixel-7', '10.66.0.4'));
     await pumpHome(tester, phoneSize);
     await tester.tap(find.text('Peers'));
 
