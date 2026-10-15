@@ -29,7 +29,7 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
         try {
           created = await ref.read(apiProvider).createInvite(request);
         } catch (e) {
-          return e.toString().replaceFirst('Exception: ', '');
+          return e.toString();
         }
         ref.invalidate(invitesProvider);
         return '';
@@ -775,9 +775,6 @@ class _CreateInviteDialogState extends State<CreateInviteDialog> {
   }
 
   Widget _buildFields(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -804,10 +801,7 @@ class _CreateInviteDialogState extends State<CreateInviteDialog> {
         if (_submitError.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 12),
-            child: Text(
-              'Could not create the link: $_submitError',
-              style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.error),
-            ),
+            child: SubmitError('Could not create the link: $_submitError'),
           ),
       ],
     );

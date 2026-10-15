@@ -34,6 +34,9 @@ Future<void> loadTestFonts() async {
     '${fontsDir.path}/Roboto-Bold.ttf',
   ]);
   await _load('MaterialIcons', ['${fontsDir.path}/MaterialIcons-Regular.otf']);
+  // The app asks the platform for its monospace face, and the test engine has
+  // none: without a stand-in an IP address is a row of boxes.
+  await _load('monospace', ['${fontsDir.path}/Roboto-Regular.ttf']);
 }
 
 Future<void> _load(String family, List<String> paths) async {

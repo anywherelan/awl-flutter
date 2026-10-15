@@ -12,6 +12,7 @@
 library;
 
 import 'package:anywherelan/add_peer.dart';
+import 'package:anywherelan/api.dart' show serverUnreachableMessage;
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/invites_screen.dart';
 import 'package:anywherelan/qr_dialog.dart';
@@ -260,6 +261,31 @@ void main() {
           ),
         );
       });
+    });
+
+    // Where a rejected request lands: a line of the form, below the fields and
+    // within sight of the button that was pressed.
+    testWidgets('add peer form after a failed attempt', (tester) async {
+      await goldenOfDialog(
+        tester,
+        wide,
+        'add_peer_submit_error',
+        (context) {
+          showDialog<void>(
+            context: context,
+            builder: (_) => AddPeerDialogView(
+              initialInput: _link,
+              onSubmit: (_) async => serverUnreachableMessage,
+              onScanQR: () async => null,
+              onCreateInviteLink: () {},
+            ),
+          );
+        },
+        afterOpen: (tester) async {
+          await tester.pumpAndSettle();
+          await tester.tap(find.widgetWithText(FilledButton, 'Add peer'));
+        },
+      );
     });
   });
 

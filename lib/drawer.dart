@@ -93,7 +93,7 @@ class _MyDrawerState extends ConsumerState<MyDrawer> {
                 filterQuality: FilterQuality.high,
               ),
               applicationName: 'Anywherelan',
-              applicationVersion: 'April 2026',
+              applicationVersion: 'October 2026',
               applicationLegalese: '© 2026 The Anywherelan Authors',
               children: _buildAboutBox(),
             );

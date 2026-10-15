@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:anywherelan/add_peer.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:flutter/material.dart';
@@ -284,8 +286,93 @@ void main() {
       await tester.tap(addButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('peer has already been added'), findsOneWidget);
+      expect(find.text('Could not add the peer: peer has already been added'), findsOneWidget);
       expect(done, 0);
+    });
+
+    // The backend answers with a text and no field, so the message is the
+    // form's, not the first field's: under "Invite link or Peer ID" a rejected
+    // name or an unreachable server read as a wrong peer id.
+    testWidgets('a server error is not attached to the input field', (tester) async {
+      await pumpAppWidget(
+        tester,
+        AddPeerDialogView(onSubmit: (_) async => 'peer name is not unique'),
+        size: desktopSize,
+      );
+
+      await tester.enterText(inputField(), _link);
+      await tester.pump();
+      await tester.tap(addButton());
+      await tester.pumpAndSettle();
+
+      final decorations = tester.widgetList<InputDecorator>(find.byType(InputDecorator));
+      expect(decorations.map((d) => d.decoration.errorText), everyElement(isNull));
+      expect(find.textContaining('peer name is not unique'), findsOneWidget);
+    });
+
+    testWidgets('the error of one attempt is gone once the next one starts', (tester) async {
+      final answers = ['peer name is not unique', ''];
+      var done = 0;
+      await pumpAppWidget(
+        tester,
+        AddPeerDialogView(onSubmit: (_) async => answers.removeAt(0), onDone: () => done++),
+        size: desktopSize,
+      );
+
+      await tester.enterText(inputField(), _link);
+      await tester.pump();
+      await tester.tap(addButton());
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Could not add the peer'), findsOneWidget);
+
+      await tester.tap(addButton());
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Could not add the peer'), findsNothing);
+      expect(done, 1);
+    });
+
+    // A request that hangs used to look exactly like the button doing nothing,
+    // and a second tap sent the friend request twice.
+    testWidgets('while the request is in flight the button is off and sends nothing more', (tester) async {
+      final answer = Completer<String>();
+      var submits = 0;
+      await pumpAppWidget(
+        tester,
+        AddPeerDialogView(
+          onSubmit: (_) {
+            submits++;
+            return answer.future;
+          },
+        ),
+        size: desktopSize,
+      );
+
+      await tester.enterText(inputField(), _link);
+      await tester.pump();
+      await tester.tap(addButton());
+      await tester.pump();
+
+      expect(tester.widget<FilledButton>(addButton()).onPressed, isNull);
+      await tester.tap(addButton(), warnIfMissed: false);
+      await tester.pump();
+      expect(submits, 1);
+
+      answer.complete('peer has already been added');
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(addButton()).onPressed, isNotNull);
+    });
+
+    // Nothing closes the form here, so it has to come back to life by itself.
+    testWidgets('the button is back on after a success that leaves the form open', (tester) async {
+      await pumpAppWidget(tester, AddPeerDialogView(onSubmit: (_) async => ''), size: desktopSize);
+
+      await tester.enterText(inputField(), _link);
+      await tester.pump();
+      await tester.tap(addButton());
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<FilledButton>(addButton()).onPressed, isNotNull);
     });
 
     testWidgets('a scanned link fills the form the same way as a pasted one', (tester) async {

@@ -48,6 +48,35 @@ const getDebugLogPath = "${v0Prefix}debug/log";
 // request URL.
 var serverAddress = "";
 
+/// What a request says when the server did not answer at all. One sentence for
+/// every screen, so that a stopped server reads the same wherever it is met.
+const serverUnreachableMessage = "Can't reach the server. Make sure it is running and try again.";
+
+/// The request never got an answer: the server is stopped, was never started,
+/// or the connection dropped. Its text is [serverUnreachableMessage], ready to
+/// be shown as is.
+class ServerUnreachable implements Exception {
+  const ServerUnreachable();
+
+  @override
+  String toString() => serverUnreachableMessage;
+}
+
+/// The server answered, and the answer was an error. [message] is its text,
+/// ready to be shown as is.
+class ApiException implements Exception {
+  final String message;
+
+  const ApiException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+/// How much of an error body that is not the backend's JSON gets shown: enough
+/// for the title of a proxy's error page, short enough for a snackbar.
+const _errorBodyPreviewLength = 100;
+
 /// HTTP client for the AWL backend REST API.
 ///
 /// Wraps a [http.Client] and exposes one method per endpoint. The duplicated
@@ -58,15 +87,23 @@ class ApiClient {
 
   final http.Client _client;
 
-  Uri _uri(String path) => Uri.parse(serverAddress + path);
+  /// Every request builds its URL here, which makes it the one place to notice
+  /// that there is no server to send it to yet. Checked rather than left to the
+  /// transport, which answers a URL without a host with an [Error].
+  Uri _uri(String path) {
+    if (serverAddress.isEmpty) throw const ServerUnreachable();
+    return Uri.parse(serverAddress + path);
+  }
 
   // ---- GETs ----
 
   Future<MyPeerInfo> fetchMyPeerInfo() async {
     try {
-      final response = await _client.get(_uri(getMyPeerInfoPath));
+      final response = await _get(getMyPeerInfoPath);
       final Map<String, dynamic> parsed = jsonDecode(response.body);
       return MyPeerInfo.fromJson(parsed);
+    } on ServerUnreachable {
+      rethrow;
     } catch (e, s) {
       Error.throwWithStackTrace(Exception('Failed to fetchMyPeerInfo: $e'), s);
     }
@@ -74,9 +111,11 @@ class ApiClient {
 
   Future<List<KnownPeer>?> fetchKnownPeers() async {
     try {
-      final response = await _client.get(_uri(getKnownPeersPath));
+      final response = await _get(getKnownPeersPath);
       final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
       return parsed.map<KnownPeer>((json) => KnownPeer.fromJson(json)).toList();
+    } on ServerUnreachable {
+      rethrow;
     } catch (e, s) {
       Error.throwWithStackTrace(Exception('Failed to fetchKnownPeers: $e'), s);
     }
@@ -84,9 +123,11 @@ class ApiClient {
 
   Future<ListAvailableProxiesResponse?> fetchAvailableProxies() async {
     try {
-      final response = await _client.get(_uri(listAvailableProxiesPath));
+      final response = await _get(listAvailableProxiesPath);
       final Map<String, dynamic> parsed = jsonDecode(response.body);
       return ListAvailableProxiesResponse.fromJson(parsed);
+    } on ServerUnreachable {
+      rethrow;
     } catch (e, s) {
       Error.throwWithStackTrace(Exception('Failed to fetchAvailableProxies: $e'), s);
     }
@@ -94,28 +135,30 @@ class ApiClient {
 
   Future<ListAvailableVPNGatewaysResponse> fetchAvailableVPNGateways() async {
     try {
-      final response = await _client.get(_uri(listAvailableVPNGatewaysPath));
+      final response = await _get(listAvailableVPNGatewaysPath);
       final Map<String, dynamic> parsed = jsonDecode(response.body);
       return ListAvailableVPNGatewaysResponse.fromJson(parsed);
+    } on ServerUnreachable {
+      rethrow;
     } catch (e, s) {
       Error.throwWithStackTrace(Exception('Failed to fetchAvailableVPNGateways: $e'), s);
     }
   }
 
   Future<Map<String, dynamic>?> fetchDebugInfo() async {
-    final response = await _client.get(_uri(getP2pDebugInfoPath));
+    final response = await _get(getP2pDebugInfoPath);
     final parsed = jsonDecode(response.body);
     return parsed;
   }
 
   Future<String> fetchLogs() async {
-    final response = await _client.get(_uri(getDebugLogPath));
+    final response = await _get(getDebugLogPath);
     return response.body;
   }
 
   Future<List<AuthRequest>> fetchAuthRequests() async {
     try {
-      final response = await _client.get(_uri(getAuthRequestsPath));
+      final response = await _get(getAuthRequestsPath);
       final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
       return parsed.map<AuthRequest>((json) => AuthRequest.fromJson(json)).toList();
     } catch (e, s) {
@@ -125,21 +168,23 @@ class ApiClient {
   }
 
   Future<Uint8List> fetchExportedServerConfig() async {
-    final response = await _client.get(_uri(exportServerConfigPath));
+    final response = await _get(exportServerConfigPath);
     return response.bodyBytes;
   }
 
   Future<List<BlockedPeer>> fetchBlockedPeers() async {
-    final response = await _client.get(_uri(getBlockedPeersPath));
+    final response = await _get(getBlockedPeersPath);
     final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
     return parsed.map<BlockedPeer>((json) => BlockedPeer.fromJson(json)).toList();
   }
 
   Future<List<Invite>> fetchInvites() async {
     try {
-      final response = await _client.get(_uri(getInvitesPath));
+      final response = await _get(getInvitesPath);
       final parsed = jsonDecode(response.body).cast<Map<String, dynamic>>();
       return parsed.map<Invite>((json) => Invite.fromJson(json)).toList();
+    } on ServerUnreachable {
+      rethrow;
     } catch (e, s) {
       Error.throwWithStackTrace(Exception('Failed to fetchInvites: $e'), s);
     }
@@ -208,43 +253,70 @@ class ApiClient {
 
   // ---- private helpers ----
 
-  /// POSTs a JSON payload, returns the raw response body. Throws on non-200
-  /// with the server's [ApiError.text] as the exception message.
+  /// Every GET goes through here, so that a server that does not answer is a
+  /// [ServerUnreachable] rather than whatever the transport happened to throw.
+  Future<http.Response> _get(String path) async {
+    final uri = _uri(path);
+    try {
+      return await _client.get(uri);
+    } on http.ClientException {
+      throw const ServerUnreachable();
+    }
+  }
+
+  /// POSTs a JSON payload, returns the raw response body. Throws
+  /// [ApiException] with the server's message on non-200, and
+  /// [ServerUnreachable] when there was no answer.
   Future<String> _postJson(String path, Map<String, dynamic> payload) async {
     final request = http.Request("POST", _uri(path));
     request.headers["Content-Type"] = "application/json";
     request.body = jsonEncode(payload);
 
-    final response = await _client.send(request);
-    final body = await response.stream.bytesToString();
-    if (response.statusCode != 200) {
-      throw Exception(_errorText(response.statusCode, body));
+    final int status;
+    final String body;
+    try {
+      final response = await _client.send(request);
+      status = response.statusCode;
+      body = await response.stream.bytesToString();
+    } on http.ClientException {
+      throw const ServerUnreachable();
     }
+    if (status != 200) throw ApiException(_errorText(status, body));
     return body;
   }
 
-  /// POSTs a JSON payload, returns "" on success or the server's
-  /// [ApiError.text] string on non-200. Matches the existing convention for
-  /// mutation endpoints that want to surface the error string to the UI
-  /// instead of throwing.
+  /// [_postJson] for the mutation endpoints, which hand a string straight to
+  /// the UI: "" on success, otherwise the message to show.
   Future<String> _postJsonOrError(String path, Map<String, dynamic> payload) async {
-    final request = http.Request("POST", _uri(path));
-    request.headers["Content-Type"] = "application/json";
-    request.body = jsonEncode(payload);
-
-    final response = await _client.send(request);
-    final body = await response.stream.bytesToString();
-    if (response.statusCode != 200) {
-      return _errorText(response.statusCode, body);
+    try {
+      await _postJson(path, payload);
+      return "";
+    } on ApiException catch (e) {
+      return e.message;
+    } on ServerUnreachable catch (e) {
+      return e.toString();
     }
-    return "";
   }
 
   /// The message of a non-200 response. Never empty: [_postJsonOrError] returns it as is, and "" there
-  /// means success.
+  /// means success. A body that is not the backend's error object (a proxy's error page) is quoted from
+  /// its start, since the status code alone rarely says who answered.
   String _errorText(int statusCode, String body) {
-    final Map<String, dynamic> parsed = jsonDecode(body);
-    final text = ApiError.fromJson(parsed).text;
-    return text.isEmpty ? 'HTTP $statusCode' : text;
+    try {
+      final parsed = jsonDecode(body);
+      if (parsed is Map<String, dynamic>) {
+        final text = ApiError.fromJson(parsed).text;
+        return text.isEmpty ? 'HTTP $statusCode' : text;
+      }
+    } on FormatException {
+      // Not JSON.
+    }
+
+    final text = body.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (text.isEmpty) return 'HTTP $statusCode';
+    final preview = text.length > _errorBodyPreviewLength
+        ? '${text.substring(0, _errorBodyPreviewLength)}…'
+        : text;
+    return 'HTTP $statusCode: $preview';
   }
 }

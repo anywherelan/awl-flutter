@@ -45,7 +45,7 @@ class _KnownPeerSettingsScreenState extends ConsumerState<KnownPeerSettingsScree
         return;
       }
       setState(() {
-        _loadError = e.toString().replaceFirst('Exception: ', '');
+        _loadError = e.toString();
       });
     }
   }
@@ -460,7 +460,7 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
             _buildRemoteFlagTile(
               context,
               icon: Icons.logout_rounded,
-              label: 'Allows us as their exit node',
+              label: 'Allows this device to use them as an exit node',
               value: widget.remoteAllowsUsAsExitNode!,
             ),
             _buildRemoteFlagTile(
@@ -472,7 +472,7 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
             Padding(
               padding: const EdgeInsets.only(top: 8, left: 16, right: 8),
               child: Text(
-                'Only this device can change these from their device. Both must be allowed '
+                'Only they can change these, from their device. Both must be allowed '
                 'for them to appear in your VPN gateway picker.',
                 style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),

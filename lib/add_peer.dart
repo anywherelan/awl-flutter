@@ -121,7 +121,8 @@ class _AddPeerDialogViewState extends State<AddPeerDialogView> {
   final _formKey = GlobalKey<FormState>();
   final _focusAlias = FocusNode();
 
-  String _serverError = "";
+  String _submitError = '';
+  bool _inFlight = false;
   bool _allowUsingAsExitNode = false;
 
   /// Parsed invite link, when the input field holds one.
@@ -185,9 +186,14 @@ class _AddPeerDialogViewState extends State<AddPeerDialogView> {
   }
 
   void _onPressAdd() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_inFlight || !_formKey.currentState!.validate()) {
       return;
     }
+
+    setState(() {
+      _inFlight = true;
+      _submitError = '';
+    });
 
     final invite = _invite;
     final response = await widget.onSubmit(
@@ -200,15 +206,11 @@ class _AddPeerDialogViewState extends State<AddPeerDialogView> {
       ),
     );
     if (!mounted) return;
-    if (response == "") {
-      _serverError = "";
-      _formKey.currentState!.validate();
-      widget.onDone?.call();
-    } else {
-      _serverError = response;
-      _formKey.currentState!.validate();
-      _serverError = "";
-    }
+    setState(() {
+      _inFlight = false;
+      _submitError = response;
+    });
+    if (response.isEmpty) widget.onDone?.call();
   }
 
   void _scanQR() async {
@@ -235,7 +237,7 @@ class _AddPeerDialogViewState extends State<AddPeerDialogView> {
       content: SizedBox(width: 450, child: _buildForm(context, hasInput, isInvite, redeemsInvite)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: _onPressAdd, child: const Text('Add peer')),
+        FilledButton(onPressed: _inFlight ? null : _onPressAdd, child: const Text('Add peer')),
       ],
     );
   }
@@ -257,8 +259,6 @@ class _AddPeerDialogViewState extends State<AddPeerDialogView> {
                 return 'Please enter an invite link or peer id';
               } else if (_linkError != null) {
                 return _linkError;
-              } else if (_serverError != "") {
-                return _serverError;
               }
               return null;
             },
@@ -363,6 +363,13 @@ class _AddPeerDialogViewState extends State<AddPeerDialogView> {
               ),
             ),
           ],
+          // Last, next to the button that was pressed: it is about the action,
+          // not about a field, and above the link it read as part of the note.
+          if (_submitError.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SubmitError('Could not add the peer: $_submitError'),
+            ),
         ],
       ),
     );
