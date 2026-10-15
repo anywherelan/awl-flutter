@@ -1,5 +1,6 @@
 import 'package:anywherelan/common.dart';
 import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/notifications.dart' show showAuthRequestDialog;
 import 'package:anywherelan/peer_settings_screen.dart' show KnownPeerSettingsScreen;
 import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/qr_dialog.dart';
@@ -32,6 +33,7 @@ class PeersListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final knownPeers = ref.watch(knownPeersProvider).valueOrNull;
+    final requests = ref.watch(authRequestsProvider).valueOrNull ?? const <AuthRequest>[];
     final myPeerInfo = ref.watch(myPeerInfoProvider).valueOrNull;
     final proxyExitPeerID = myPeerInfo?.socks5.usingPeerID;
     final gatewayExitPeerID = (myPeerInfo?.vpnGateway.clientEnabled ?? false)
@@ -47,11 +49,13 @@ class PeersListPage extends ConsumerWidget {
 
         return PeersListView(
           peers: knownPeers,
+          requests: requests,
           showCounter: showCounter,
           proxyExitPeerID: proxyExitPeerID,
           gatewayExitPeerID: gatewayExitPeerID,
           onPeerSettings: (peer) => _onPeerSettings(context, peer),
           onShowQR: (peer) => _onShowQR(context, peer),
+          onRespond: (request) => showAuthRequestDialog(context, request),
         );
       },
     );
@@ -63,20 +67,26 @@ class PeersListPage extends ConsumerWidget {
 /// directly with fixture data.
 class PeersListView extends StatefulWidget {
   final List<KnownPeer>? peers;
+
+  /// Incoming friend requests, listed above the peers.
+  final List<AuthRequest> requests;
   final bool showCounter;
   final String? proxyExitPeerID;
   final String? gatewayExitPeerID;
   final Future<void> Function(KnownPeer)? onPeerSettings;
   final Future<void> Function(KnownPeer)? onShowQR;
+  final Future<void> Function(AuthRequest)? onRespond;
 
   const PeersListView({
     super.key,
     required this.peers,
+    this.requests = const [],
     this.showCounter = true,
     this.proxyExitPeerID,
     this.gatewayExitPeerID,
     this.onPeerSettings,
     this.onShowQR,
+    this.onRespond,
   });
 
   @override
@@ -88,8 +98,9 @@ class _PeersListViewState extends State<PeersListView> {
 
   @override
   Widget build(BuildContext context) {
-    final knownPeers = widget.peers;
-    if (knownPeers == null || knownPeers.isEmpty) {
+    final knownPeers = widget.peers ?? const <KnownPeer>[];
+    final requests = widget.requests;
+    if (knownPeers.isEmpty && requests.isEmpty) {
       final colorScheme = Theme.of(context).colorScheme;
       return Center(
         child: Column(
@@ -115,11 +126,12 @@ class _PeersListViewState extends State<PeersListView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.showCounter)
+          if (widget.showCounter && knownPeers.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: 4, bottom: 12),
               child: buildPeersOnlineIndicator(context, onlineCount, totalCount),
             ),
+          ...requests.map(_buildRequestCard),
           ...knownPeers.map((item) {
             var isExpanded = _expandedState[item.peerID] ?? false;
             return _buildPeerCard(item, isExpanded);
@@ -141,6 +153,70 @@ class _PeersListViewState extends State<PeersListView> {
     if (!peer.confirmed) return unknownStatusColor(context);
     if (!peer.connected) return errorColor;
     return successColor;
+  }
+
+  /// A request is not a peer yet: the same card, but nothing to expand and no
+  /// status, only the one way to answer it.
+  Widget _buildRequestCard(AuthRequest request) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final name = request.name.trim();
+    void respond() => widget.onRespond?.call(request);
+
+    return Card(
+      margin: EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: unknownStatusColor(context), width: 4)),
+        ),
+        child: InkWell(
+          onTap: respond,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // The peer's own text, so one line however long it is.
+                      Text(
+                        name.isNotEmpty ? name : 'Unnamed peer',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Incoming friend request',
+                        style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8),
+                // Outlined and pill-sized: as tall as the status pills of the
+                // peers below, but not filled like them, since it is not a status.
+                OutlinedButton(
+                  onPressed: respond,
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    minimumSize: Size(0, 32),
+                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    textStyle: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  child: Text('Respond'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildPeerCard(KnownPeer peer, bool isExpanded) {

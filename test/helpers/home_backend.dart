@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:anywherelan/api.dart';
+import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop_mobile.dart' as interop;
 import 'package:flutter_test/flutter_test.dart';
@@ -10,9 +11,11 @@ import 'package:mocktail/mocktail.dart';
 import '../fixtures/fixture_reader.dart';
 import 'mock_http_client.dart';
 
-/// The backend behind the home screen, as far as its four polled endpoints go:
+/// The backend behind the home screen, as far as its five polled endpoints go:
 /// answers from the fixtures until [down] is set, then refuses every
-/// connection the way a stopped server does.
+/// connection the way a stopped server does. Incoming friend requests are
+/// [authRequests], empty unless a test adds some; answering one
+/// (`peers/accept_peer`) takes it off the list, as the backend does.
 ///
 /// Create it in `setUp`: it also puts back the globals the home screen reads
 /// (`serverAddress`, `isServerAvailable`, the running flag behind the drawer),
@@ -20,6 +23,7 @@ import 'mock_http_client.dart';
 class HomeBackend {
   final client = MockHttpClient();
   bool down = false;
+  final authRequests = <AuthRequest>[];
 
   HomeBackend() {
     serverAddress = 'http://test.local';
@@ -39,6 +43,17 @@ class HomeBackend {
         headers: {'content-type': 'application/json; charset=utf-8'},
       );
     });
+
+    when(() => client.send(any())).thenAnswer((invocation) async {
+      final request = invocation.positionalArguments.single as http.Request;
+      if (down) throw http.ClientException('Connection refused', request.url);
+      if (request.url.path != acceptPeerInvitationPath) {
+        throw StateError('unexpected POST ${request.url.path}');
+      }
+      final peerID = (jsonDecode(request.body) as Map<String, dynamic>)['PeerID'];
+      authRequests.removeWhere((req) => req.peerID == peerID);
+      return http.StreamedResponse(Stream.value(utf8.encode('{}')), 200);
+    });
   }
 
   String _body(String path) {
@@ -51,6 +66,8 @@ class HomeBackend {
         return loadFixture('available_proxies.json');
       case listAvailableVPNGatewaysPath:
         return '{"VPNGateways": []}';
+      case getAuthRequestsPath:
+        return jsonEncode(authRequests);
     }
     throw StateError('unexpected GET $path');
   }

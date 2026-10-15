@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:typed_data';
 
-import 'package:anywherelan/api.dart';
 import 'package:anywherelan/common.dart';
 import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/providers.dart';
@@ -15,37 +14,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 /// Notifies about incoming friend requests: system notifications on Android,
-/// overlays on web. What is shown follows `auth_requests`: a request that
+/// overlays on web. It does not poll: [update] is fed every successful poll of
+/// [authRequestsProvider]. What is shown follows that list: a request that
 /// disappears takes its notification with it, and everything goes when the
 /// server becomes unavailable, since nothing can be answered without it.
 class NotificationsService {
-  /// Null on web, and on Android when the plugin failed to initialize: polling
-  /// runs either way, there is just no system notification to show.
+  /// Null on web, and on Android when the plugin failed to initialize: there is
+  /// just no system notification to show then.
   FlutterLocalNotificationsPlugin? _notificationsPlugin;
   NotificationDetails? _notificationDetails;
-
-  Timer? _timer;
-  final _timerIntervalShort = const Duration(seconds: 3);
-  final _timerIntervalLong = const Duration(seconds: 8);
 
   List<AuthRequest> _lastRequests = [];
 
   /// Web only: the overlay shown for each peer ID, so it can be withdrawn.
   final Map<String, OverlaySupportEntry> _overlays = {};
 
-  final ApiClient _api;
-
-  NotificationsService(this._api);
-
   Future<void> init() async {
     if (!kIsWeb) {
       await _initMobilePlugin();
     }
     isServerAvailable.addListener(_onServerAvailabilityChanged);
-
-    // A lifecycle change may have started a timer while the plugin initialized.
-    _timer?.cancel();
-    _timer = Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
   }
 
   Future<void> _initMobilePlugin() async {
@@ -65,9 +53,11 @@ class NotificationsService {
       return;
     }
     _notificationsPlugin = plugin;
-    // Left over from a previous run and possibly stale; the first poll shows
-    // again whatever is still pending.
+    // Left over from a previous run and possibly stale. Forgetting what was
+    // seen makes the next poll show whatever is still pending, including
+    // requests polled before the plugin was ready to show them.
     await _cancelAllMobile();
+    _lastRequests = [];
 
     var androidPlatformChannelSpecifics = AndroidNotificationDetails(
       'friend_requests',
@@ -92,31 +82,15 @@ class NotificationsService {
     );
   }
 
-  void close() async {
-    _timer?.cancel();
+  void close() {
     isServerAvailable.removeListener(_onServerAvailabilityChanged);
   }
 
-  void setTimerIntervalShort() async {
-    _timer?.cancel();
-    _timer = Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
-  }
-
-  void setTimerIntervalLong() async {
-    _timer?.cancel();
-    _timer = Timer.periodic(_timerIntervalLong, (Timer t) => _checkForNotifications());
-  }
-
-  void _checkForNotifications() async {
-    final List<AuthRequest> requests;
-    try {
-      requests = await _api.fetchAuthRequests();
-    } catch (_) {
-      // Not the same as an empty list: nothing is withdrawn on a failed poll.
-      // A server that is really gone is handled by [_onServerAvailabilityChanged].
-      return;
-    }
-
+  /// The pending requests, as the latest successful poll found them. A failed
+  /// poll is not passed on: it is not an empty list, and withdrawing everything
+  /// on one would be wrong. A server that is really gone is handled by
+  /// [_onServerAvailabilityChanged].
+  Future<void> update(List<AuthRequest> requests) async {
     final diff = diffAuthRequests(_lastRequests, requests);
     _lastRequests = requests;
 
@@ -182,6 +156,8 @@ class NotificationsService {
     }
   }
 
+  // Opening the request leaves the overlay in place: it goes once the request
+  // is answered or disappears from the server, so closing the dialog keeps it.
   void _showOverlayNotification(AuthRequest req) {
     final text = authRequestNotificationText(req, web: true);
     final entry = showOverlayNotification((context) {
@@ -195,8 +171,8 @@ class NotificationsService {
             ),
             title: Text(text.title),
             subtitle: Text(text.body),
-            trailing: IconButton(icon: Icon(Icons.add), onPressed: () => _answer(req)),
-            onTap: () => _answer(req),
+            trailing: IconButton(icon: Icon(Icons.add), onPressed: () => _open(req)),
+            onTap: () => _open(req),
           ),
         ),
       );
@@ -212,16 +188,13 @@ class NotificationsService {
     _overlays[req.peerID] = entry;
   }
 
-  /// Opens the request. Its notification stays until the request is answered
-  /// or disappears from the server, so closing the dialog keeps it.
-  Future<void> _answer(AuthRequest req) async {
-    if (await _showAuthRequestDialog(req)) {
-      // Without waiting up to a poll for the server to drop it.
-      await _withdraw(req.peerID);
-    }
+  void _open(AuthRequest req) {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    unawaited(showAuthRequestDialog(context, req));
   }
 
-  void _onSelectMobileNotification(NotificationResponse notificationResponse) async {
+  void _onSelectMobileNotification(NotificationResponse notificationResponse) {
     if (notificationResponse.payload == null) {
       return;
     }
@@ -230,19 +203,18 @@ class NotificationsService {
       (obj) => obj.peerID == payload,
       orElse: () => AuthRequest(payload, "", ""),
     );
-    await _answer(authReq);
+    _open(authReq);
   }
 }
 
-/// True once the request was answered, false if the dialog was closed without.
-Future<bool> _showAuthRequestDialog(AuthRequest req) async {
-  final context = navigatorKey.currentContext;
-  if (context == null) return false;
-  final answered = await showDialog<bool>(
+/// Opens [req] for an answer. Whatever opens it, the answer refreshes the
+/// requests and the peers (see [AuthRequestDialog]), and the request's card
+/// and notification go with the refresh.
+Future<void> showAuthRequestDialog(BuildContext context, AuthRequest req) {
+  return showDialog<void>(
     context: context,
     builder: (context) => AuthRequestDialog(request: req),
   );
-  return answered ?? false;
 }
 
 /// Adapter for [AuthRequestDialogView]: owns the API call. The pure
@@ -257,8 +229,17 @@ class AuthRequestDialog extends ConsumerStatefulWidget {
 }
 
 class _AuthRequestDialogState extends ConsumerState<AuthRequestDialog> {
-  Future<String> _onSubmit(FriendRequestReply reply) {
-    return ref.read(apiProvider).replyFriendRequest(reply);
+  Future<String> _onSubmit(FriendRequestReply reply) async {
+    final requests = ref.read(authRequestsProvider.notifier);
+    final peers = ref.read(knownPeersProvider.notifier);
+    final error = await ref.read(apiProvider).replyFriendRequest(reply);
+    if (error.isEmpty) {
+      // Without waiting for the next poll: the request leaves the list and its
+      // notification at once, and an accepted peer joins the peers list.
+      unawaited(requests.refresh());
+      unawaited(peers.refresh());
+    }
+    return error;
   }
 
   @override
@@ -266,7 +247,7 @@ class _AuthRequestDialogState extends ConsumerState<AuthRequestDialog> {
     return AuthRequestDialogView(
       request: widget.request,
       onSubmit: _onSubmit,
-      onDone: () => Navigator.pop(context, true),
+      onDone: () => Navigator.pop(context),
     );
   }
 }

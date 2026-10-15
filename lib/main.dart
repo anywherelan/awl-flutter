@@ -140,8 +140,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   void initState() {
     super.initState();
 
-    _notificationsService = notif.NotificationsService(ref.read(apiProvider));
+    _notificationsService = notif.NotificationsService();
     unawaited(_notificationsService.init());
+    // Loading and errors are skipped: a failed poll is not an empty list.
+    ref.listenManual(authRequestsProvider, (_, next) {
+      if (next.isLoading || next.hasError || !next.hasValue) return;
+      unawaited(_notificationsService.update(next.requireValue));
+    }, fireImmediately: true);
     _deepLinkService = DeepLinkService(_onDeepLink);
     _deepLinkService.init();
     WidgetsBinding.instance.addObserver(this);
@@ -179,11 +184,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       case AppLifecycleState.detached:
       case AppLifecycleState.paused:
         ref.read(pollingPolicyProvider.notifier).state = PollingPolicy.paused;
-        _notificationsService.setTimerIntervalLong();
         break;
       case AppLifecycleState.resumed:
         ref.read(pollingPolicyProvider.notifier).state = PollingPolicy.active;
-        _notificationsService.setTimerIntervalShort();
         break;
     }
   }

@@ -2,6 +2,7 @@
 /// server stops answering.
 library;
 
+import 'package:anywherelan/entities.dart';
 import 'package:anywherelan/connection_error.dart';
 import 'package:anywherelan/main.dart';
 import 'package:anywherelan/providers.dart';
@@ -42,6 +43,23 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
   }
+
+  group('an incoming friend request', () {
+    testWidgets('answered from its card, leaves the list without waiting for a poll', (tester) async {
+      backend.authRequests.add(AuthRequest(otherPeerID, 'pixel-7', '10.66.0.4'));
+      await pumpHome(tester, phoneSize);
+      await tester.tap(find.text('Peers'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Respond'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('Accept')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('pixel-7'), findsNothing);
+    });
+  });
 
   group('HomeLayout on a phone', () {
     testWidgets('offers to add a peer on the Peers tab', (tester) async {

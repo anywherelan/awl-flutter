@@ -43,6 +43,62 @@ void main() {
       expect(find.text('$onlineCount/${peers.length} online'), findsOneWidget);
     });
 
+    testWidgets('an incoming request is listed above the peers and not counted as one', (tester) async {
+      final peers = _loadPeers();
+      await pumpAppWidget(
+        tester,
+        PeersListView(peers: peers, requests: [AuthRequest(otherPeerID, 'pixel-7', '')]),
+        size: desktopSize,
+      );
+
+      expect(find.text('pixel-7'), findsOneWidget);
+      expect(find.text('Incoming friend request'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('pixel-7')).dy,
+        lessThan(tester.getTopLeft(find.text(peers.first.displayName)).dy),
+      );
+      final onlineCount = peers.where((p) => p.connected && p.confirmed).length;
+      expect(find.text('$onlineCount/${peers.length} online'), findsOneWidget);
+    });
+
+    testWidgets('a request without a name comes from an unnamed peer', (tester) async {
+      await pumpAppWidget(
+        tester,
+        PeersListView(peers: _loadPeers(), requests: [AuthRequest(otherPeerID, '  ', '')]),
+        size: desktopSize,
+      );
+
+      expect(find.text('Unnamed peer'), findsOneWidget);
+    });
+
+    testWidgets('Respond and a tap on the card both open the request', (tester) async {
+      final request = AuthRequest(otherPeerID, 'pixel-7', '');
+      final opened = <AuthRequest>[];
+      await pumpAppWidget(
+        tester,
+        PeersListView(peers: _loadPeers(), requests: [request], onRespond: (req) async => opened.add(req)),
+        size: desktopSize,
+      );
+
+      await tester.tap(find.text('Respond'));
+      await tester.tap(find.text('pixel-7'));
+      await tester.pump();
+
+      expect(opened, [request, request]);
+    });
+
+    testWidgets('requests are listed before there is any peer, with no empty state', (tester) async {
+      await pumpAppWidget(
+        tester,
+        PeersListView(peers: const [], requests: [AuthRequest(otherPeerID, 'pixel-7', '')]),
+        size: desktopSize,
+      );
+
+      expect(find.text('pixel-7'), findsOneWidget);
+      expect(find.text('No known peers'), findsNothing);
+      expect(find.textContaining('online'), findsNothing);
+    });
+
     testWidgets('expanding a peer reveals action buttons that fire callbacks', (tester) async {
       final peers = _loadPeers();
       KnownPeer? settingsPeer;

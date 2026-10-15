@@ -13,8 +13,7 @@ final httpClientProvider = Provider<http.Client>((ref) {
   return client;
 });
 
-/// Single [ApiClient] that wraps [httpClientProvider]. All non-Riverpod
-/// call sites (e.g. [NotificationsService]) receive this via constructor.
+/// Single [ApiClient] that wraps [httpClientProvider].
 final apiProvider = Provider<ApiClient>((ref) {
   return ApiClient(ref.watch(httpClientProvider));
 });
@@ -33,15 +32,19 @@ enum PollingPolicy { active, paused }
 
 final pollingPolicyProvider = StateProvider<PollingPolicy>((_) => PollingPolicy.active);
 
-/// Base class for the three backend polling notifiers. Performs an
-/// initial fetch on build, then polls at a fixed 3s cadence while
-/// [pollingPolicyProvider] is `active`. No backoff on failure: the
-/// backend is always localhost and fast recovery is the priority.
+/// Base class for the backend polling notifiers. Performs an initial fetch on
+/// build, then polls at a fixed 3s cadence while [pollingPolicyProvider] is
+/// `active`, and at [backgroundInterval] (by default not at all) while it is
+/// `paused`. No backoff on failure: the backend is always localhost and fast
+/// recovery is the priority.
 abstract class _PollingAsyncNotifier<T> extends AsyncNotifier<T> {
   static const _interval = Duration(seconds: 3);
   Timer? _timer;
 
   Future<T> fetch();
+
+  /// How often to poll in the background; null stops polling there.
+  Duration? get backgroundInterval => null;
 
   @override
   Future<T> build() async {
@@ -51,8 +54,9 @@ abstract class _PollingAsyncNotifier<T> extends AsyncNotifier<T> {
     try {
       return await _guardedFetch();
     } finally {
-      if (policy == PollingPolicy.active) {
-        _timer = Timer.periodic(_interval, (_) => _tick());
+      final interval = policy == PollingPolicy.active ? _interval : backgroundInterval;
+      if (interval != null) {
+        _timer = Timer.periodic(interval, (_) => _tick());
       }
     }
   }
@@ -69,7 +73,7 @@ abstract class _PollingAsyncNotifier<T> extends AsyncNotifier<T> {
   }
 
   Future<void> _tick() async {
-    if (ref.read(pollingPolicyProvider) != PollingPolicy.active) return;
+    if (ref.read(pollingPolicyProvider) != PollingPolicy.active && backgroundInterval == null) return;
     state = await AsyncValue.guard(_guardedFetch);
   }
 
@@ -120,6 +124,22 @@ final availableVPNGatewaysProvider =
       AvailableVPNGatewaysNotifier.new,
     );
 
+/// Incoming friend requests. Shown as cards in the peers list and as
+/// notifications by [NotificationsService], which listens to this provider;
+/// it keeps polling in the background because a notification is most useful
+/// there.
+class AuthRequestsNotifier extends _PollingAsyncNotifier<List<AuthRequest>> {
+  @override
+  Duration? get backgroundInterval => const Duration(seconds: 8);
+
+  @override
+  Future<List<AuthRequest>> fetch() => ref.read(apiProvider).fetchAuthRequests();
+}
+
+final authRequestsProvider = AsyncNotifierProvider<AuthRequestsNotifier, List<AuthRequest>>(
+  AuthRequestsNotifier.new,
+);
+
 /// Invite links owned by this device. Deliberately *not* polled: invites only
 /// change when this app creates or revokes one, which refreshes it explicitly
 /// with `ref.invalidate(invitesProvider)`.
@@ -146,9 +166,10 @@ Future<void> refreshProviders(ProviderContainer container) => Future.wait([
   container.read(knownPeersProvider.notifier).refresh(),
   container.read(availableProxiesProvider.notifier).refresh(),
   container.read(availableVPNGatewaysProvider.notifier).refresh(),
+  container.read(authRequestsProvider.notifier).refresh(),
 ]);
 
-/// Retry refreshing all three providers every 200ms until all succeed
+/// Retry refreshing all polling providers every 200ms until all succeed
 /// (up to ~2s). Used after server start/restart to give the backend time
 /// to warm up. Stops as soon as one full round succeeds.
 Future<void> refreshProvidersRepeated(ProviderContainer container) async {
