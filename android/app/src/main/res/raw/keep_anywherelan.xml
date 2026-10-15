@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The notification icon is looked up by name from Dart, where the resource
+     shrinker cannot see the reference; without this it is stripped from release
+     builds and the notifications plugin fails to initialize. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/app_icon" />

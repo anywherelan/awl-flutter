@@ -141,7 +141,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     super.initState();
 
     _notificationsService = notif.NotificationsService(ref.read(apiProvider));
-    _notificationsService.init();
+    unawaited(_notificationsService.init());
     _deepLinkService = DeepLinkService(_onDeepLink);
     _deepLinkService.init();
     WidgetsBinding.instance.addObserver(this);

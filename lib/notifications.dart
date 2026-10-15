@@ -15,7 +15,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 class NotificationsService {
-  late FlutterLocalNotificationsPlugin _notificationsPlugin;
+  /// Null on web, and on Android when the plugin failed to initialize: polling
+  /// runs either way, there is just no system notification to show.
+  FlutterLocalNotificationsPlugin? _notificationsPlugin;
   NotificationDetails? _notificationDetails;
 
   Timer? _timer;
@@ -28,36 +30,53 @@ class NotificationsService {
 
   NotificationsService(this._api);
 
-  void init() async {
-    if (kIsWeb) {
-      // nothing
-    } else {
-      _notificationsPlugin = FlutterLocalNotificationsPlugin();
-      var initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
+  Future<void> init() async {
+    if (!kIsWeb) {
+      await _initMobilePlugin();
+    }
 
-      var initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-      await _notificationsPlugin.initialize(
+    // A lifecycle change may have started a timer while the plugin initialized.
+    _timer?.cancel();
+    _timer = Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
+  }
+
+  Future<void> _initMobilePlugin() async {
+    final plugin = FlutterLocalNotificationsPlugin();
+    var initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
+
+    var initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    try {
+      await plugin.initialize(
         initializationSettings,
         onDidReceiveNotificationResponse: _onSelectMobileNotification,
         // we don't use onBackground callback because when application starts we show request again
         // it's way easier than initialize application state here correctly. also it's not common case
       );
-
-      var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'friend_requests',
-        'Friend requests',
-        importance: Importance.high,
-        priority: Priority.high,
-        ticker: 'ticker',
-      );
-      _notificationDetails = NotificationDetails(android: androidPlatformChannelSpecifics);
-
-      _notificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+    } catch (e, s) {
+      debugPrint('NotificationsService: failed to initialize notifications plugin: $e\n$s');
+      return;
     }
+    _notificationsPlugin = plugin;
 
-    _timer = Timer.periodic(_timerIntervalShort, (Timer t) => _checkForNotifications());
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'friend_requests',
+      'Friend requests',
+      importance: Importance.high,
+      priority: Priority.high,
+      ticker: 'ticker',
+    );
+    _notificationDetails = NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    // Not awaited: the answer may take as long as the user does.
+    unawaited(
+      plugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission()
+          .catchError((Object e) {
+            debugPrint('NotificationsService: failed to request notifications permission: $e');
+            return null;
+          }),
+    );
   }
 
   void close() async {
@@ -96,19 +115,26 @@ class NotificationsService {
   }
 
   Future<void> _showMobileNotification(AuthRequest req) async {
+    final plugin = _notificationsPlugin;
+    if (plugin == null) return;
+
     var notificationId = generateNotificationId(req.peerID);
     developer.log(
       'Showing auth request notification $notificationId for ${req.name}',
       name: 'NotificationsService',
     );
 
-    await _notificationsPlugin.show(
-      notificationId,
-      'Incoming friend request',
-      'from ${req.name} with peerId ${req.peerID}',
-      _notificationDetails,
-      payload: req.peerID,
-    );
+    try {
+      await plugin.show(
+        notificationId,
+        'Incoming friend request',
+        'from ${req.name} with peerId ${req.peerID}',
+        _notificationDetails,
+        payload: req.peerID,
+      );
+    } catch (e, s) {
+      debugPrint('NotificationsService: failed to show notification: $e\n$s');
+    }
   }
 
   Future<void> _showOverlayNotification(AuthRequest req) async {
