@@ -11,7 +11,8 @@ Please report issues at the [anywherelan issue tracker](https://github.com/anywh
 - Route per-app traffic through a remote device as a SOCKS5 proxy.
 - Automatic NAT traversal, with a fallback to community relays when a direct path isn't possible.
 - TLS 1.3 encryption (QUIC or TCP+TLS).
-- Add peers by scanning a QR code.
+- Built-in DNS: reach your devices as `laptop.awl` instead of IP.
+- Add peers by scanning a QR code, or with an invite link that adds the device without a manual accept.
 
 ## Platforms
 

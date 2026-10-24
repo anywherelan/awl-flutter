@@ -1,6 +1,6 @@
-Anywherelan (awl) is a mesh VPN that lets you connect to any of your devices at the IP level, wherever they are. It works similarly to tinc, direct WireGuard or Tailscale, but fully peer-to-peer — there are no central coordination servers to trust or set up. Your traffic goes directly between your devices.
+Anywherelan (awl) is a mesh VPN that lets you connect to any of your devices at the IP level, wherever they are. It works similarly to tinc, direct WireGuard or Tailscale, but fully peer-to-peer: there are no central coordination servers to trust or set up. Your traffic goes directly between your devices.
 
-You can also route traffic through a remote device — either per-app as a SOCKS5 proxy, or all of your device's traffic at once as a full-tunnel VPN gateway (exit node).
+You can also route traffic through a remote device, either per-app as a SOCKS5 proxy, or all of your device's traffic at once as a full-tunnel VPN gateway (exit node).
 
 <b>Some use cases</b>
 <ul>
@@ -15,14 +15,16 @@ You can also route traffic through a remote device — either per-app as a SOCKS
 
 <b>Features</b>
 <ul>
-<li>Fully peer-to-peer. No third-party coordination servers — your traffic stays between your devices.</li>
+<li>Fully peer-to-peer. No third-party coordination servers: your traffic stays between your devices.</li>
 <li>Route traffic through a remote device like a SOCKS5 proxy.</li>
 <li>Full-tunnel VPN gateway: route all of your device's traffic through a remote exit node.</li>
 <li>Easy to use: install the app, scan the QR code of another device, and you are connected.</li>
+<li>Invite links: share a link or a QR code, and the other device joins without a manual accept.</li>
+<li>Built-in DNS: reach your devices by name, like laptop.awl, instead of typing IP addresses.</li>
 <li>Built-in NAT traversal.</li>
 <li>If both devices are behind NAT and direct P2P is not possible, encrypted traffic is relayed through community relays.</li>
 <li>TLS 1.3 encryption for all transports (QUIC and TCP).</li>
-<li>ed25519 peer authentication — a peer id is the device's public key.</li>
+<li>ed25519 peer authentication: a peer id is the device's public key.</li>
 <li>Cross-platform: Android, Windows, Linux, macOS.</li>
 </ul>
 

@@ -1,0 +1,9 @@
+Invite links: share a link or QR code, and the other device joins without a manual accept.
+
+.awl names now work on Android, like http://laptop.awl.
+
+Friend request notifications now work, and pending requests are shown in the peer list. Blocked peers can be unblocked.
+
+Share logs from the Diagnostics screen.
+
+Fixed TCP hole punching and several security issues. Much less background traffic to offline devices.
