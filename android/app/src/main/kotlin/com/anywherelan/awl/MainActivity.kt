@@ -1,8 +1,11 @@
 package com.anywherelan.awl
 
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
+import android.util.Log
 import androidx.annotation.NonNull
 import anywherelan.Anywherelan
 import anywherelan.SocketProtector
@@ -101,6 +104,58 @@ class MainActivity : FlutterActivity() {
                         result.error("error", e.message, null)
                     }
                 }
+                "get_installed_apps" -> {
+                    // Launcher-visible apps for the per-app VPN filter picker.
+                    // Needs QUERY_ALL_PACKAGES (see the manifest): without it
+                    // Android 11+ package visibility hides all but a handful of
+                    // packages. Our own package is excluded — filtering it out
+                    // would cut the app's non-protected traffic (the tunnel
+                    // sockets themselves are always protect()ed).
+                    val pm = context.packageManager
+                    val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                    val seen = HashSet<String>()
+                    val apps = ArrayList<Map<String, Any>>()
+                    for (ri in pm.queryIntentActivities(launcher, 0)) {
+                        val pkg = ri.activityInfo?.packageName ?: continue
+                        if (pkg == context.packageName || !seen.add(pkg)) continue
+                        apps.add(mapOf("pkg" to pkg, "label" to ri.loadLabel(pm).toString()))
+                    }
+                    apps.sortBy { (it["label"] as String).lowercase() }
+                    result.success(apps)
+                }
+                "get_app_filter" -> {
+                    val prefs = appFilterPrefs()
+                    result.success(
+                        mapOf(
+                            "mode" to (prefs.getString("mode", "none") ?: "none"),
+                            "packages" to (prefs.getStringSet("packages", emptySet()) ?: emptySet()).toList(),
+                        )
+                    )
+                }
+                "set_app_filter" -> {
+                    try {
+                        val mode = call.argument<String>("mode") ?: "none"
+                        val packages = (call.argument<List<String>>("packages") ?: emptyList()).toSet()
+                        // An empty selection is equivalent to "no filter".
+                        val effectiveMode = if (packages.isEmpty()) "none" else mode
+                        appFilterPrefs().edit()
+                            .putString("mode", effectiveMode)
+                            .putStringSet("packages", packages)
+                            .apply()
+                        // Do NOT hot re-establish the TUN here. A second
+                        // Builder.establish() on a live full-tunnel VPN makes
+                        // ConnectivityService fail to retire the old routes
+                        // ("Exception in removeRoute: No such device"), the new
+                        // interface comes up without a default route and the
+                        // device loses all connectivity — awl then cannot even
+                        // dial its peers. The host app restarts the VPN session
+                        // instead (stop_server + start_server), which applies
+                        // the saved filter through the clean startup path.
+                        result.success(if (vpnService != null) "restart_required" else null)
+                    } catch (e: Exception) {
+                        result.error("error", e.message, null)
+                    }
+                }
                 "stop_server" -> {
                     Anywherelan.stopServer()
                     vpnService = null
@@ -180,12 +235,54 @@ class MainActivity : FlutterActivity() {
             service.setUnderlyingNetworks(null)
         }
 
+        // Per-app VPN filter ("Proxy apps" screen), persisted by the
+        // "set_app_filter" channel method; re-applied on every establish.
+        applyAppFilter(builder)
+
         var tunFd = 0
         builder.establish().use { tun ->
             if (tun == null) throw Exception("TUN_CREATION_ERROR")
             tunFd = tun.detachFd()
         }
         return tunFd
+    }
+
+    // ---------------------------------------------------------------------
+    // Per-app VPN filter ("Proxy apps"), modeled on tinc-android's TunConfigurator.
+    // Exactly one of the two Android list modes is applied to a Builder (mixing
+    // addAllowed/addDisallowed throws IllegalStateException):
+    //   denylist  - "all except selected": addDisallowedApplication
+    //   allowlist - "only selected":       addAllowedApplication
+    // Both calls exist since API 21 and behave symmetrically in Vpn.java, so both
+    // modes are offered on every version we support (minSdk 24).
+    // State lives in SharedPreferences; establishTun re-applies it on every
+    // (re-)establishment, so the filter is taken from the saved value both at
+    // startup and after the host restarts the server to apply a new one.
+    private fun appFilterPrefs() =
+        context.getSharedPreferences("vpn_app_filter", Context.MODE_PRIVATE)
+
+    private fun applyAppFilter(builder: VpnService.Builder) {
+        val prefs = appFilterPrefs()
+        val mode = prefs.getString("mode", "none") ?: "none"
+        if (mode == "none") return
+        val packages = prefs.getStringSet("packages", emptySet()) ?: emptySet()
+        if (mode != "allowlist" && mode != "denylist") return
+        var applied = 0
+        for (pkg in packages) {
+            try {
+                if (mode == "allowlist") {
+                    builder.addAllowedApplication(pkg)
+                } else {
+                    builder.addDisallowedApplication(pkg)
+                }
+                applied++
+            } catch (e: PackageManager.NameNotFoundException) {
+                Log.w("VpnAppFilter", "not installed, skipping: $pkg")
+            } catch (e: IllegalStateException) {
+                Log.w("VpnAppFilter", "cannot add $pkg: ${e.message}")
+            }
+        }
+        Log.i("VpnAppFilter", "mode=$mode applied=$applied total=${packages.size}")
     }
 
     // hostFromAddress extracts the bare IP from a "host:port" upstream DNS

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:anywherelan/app_shell.dart';
 import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
+import 'package:anywherelan/vpn_app_filter_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
@@ -162,6 +163,17 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                     ),
                   );
                 }
+              },
+            ),
+          if (!kIsWeb)
+            ListTile(
+              title: Text("Proxy apps"),
+              subtitle: const Text(
+                "Choose which apps use the VPN connection: all, all except selected, or only selected.",
+              ),
+              leading: const Icon(Icons.apps_rounded),
+              onTap: () {
+                Navigator.pushNamed(context, VpnAppFilterScreen.routeName);
               },
             ),
           if (!kIsWeb)

@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'dart:io' as io;
 
 import 'package:anywherelan/api.dart';
+import 'package:anywherelan/server_interop/vpn_app_filter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -70,4 +71,40 @@ Future<String> reconfigureVpnImpl() async {
   }
 
   return "";
+}
+
+Future<List<VpnAppEntry>> getInstalledAppsImpl() async {
+  if (!io.Platform.isAndroid) return const [];
+  final raw = await platform.invokeMethod<List<dynamic>>('get_installed_apps');
+  return (raw ?? const <dynamic>[]).map((e) {
+    final m = e as Map<Object?, Object?>;
+    return VpnAppEntry(m['pkg'] as String, m['label'] as String);
+  }).toList();
+}
+
+Future<VpnAppFilterState> getAppFilterImpl() async {
+  if (!io.Platform.isAndroid) {
+    return const VpnAppFilterState("none", []);
+  }
+  final m = await platform.invokeMethod<Map<Object?, dynamic>>('get_app_filter');
+  if (m == null) return const VpnAppFilterState("none", []);
+  final packages = (m['packages'] as List<dynamic>? ?? const <dynamic>[]).cast<String>().toList();
+  return VpnAppFilterState(m['mode'] as String? ?? "none", packages);
+}
+
+Future<String> setAppFilterImpl(String mode, List<String> packages) async {
+  if (!io.Platform.isAndroid) return "";
+  try {
+    // The platform returns "restart_required" when a VPN interface is live:
+    // the filter can only be applied by re-establishing, which the host does
+    // by restarting the server (see _save in vpn_app_filter_screen.dart).
+    final result = await platform.invokeMethod<String>('set_app_filter', {
+      "mode": mode,
+      "packages": packages,
+    });
+    return result ?? "";
+  } catch (e, s) {
+    developer.log('Failed to set app filter', error: e, stackTrace: s, name: 'server_interop');
+    return e.toString();
+  }
 }
