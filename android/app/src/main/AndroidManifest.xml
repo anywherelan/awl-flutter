@@ -5,6 +5,11 @@
 
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- The per-app VPN filter picker lists installed apps; on Android 11+
+         PackageManager cannot see other apps without this permission. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
     <!-- Pulled in transitively by camera_android_camerax (via flutter_zxing's QR scanner),
          but we never record audio (CameraController uses enableAudio: false). Strip it. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />

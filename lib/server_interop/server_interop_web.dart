@@ -3,6 +3,7 @@
 
 import 'package:anywherelan/api.dart';
 import 'package:anywherelan/server_interop/config.dart' as conf;
+import 'package:anywherelan/server_interop/vpn_app_filter.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:web/web.dart' as web;
 
@@ -35,4 +36,16 @@ Future<String> reconfigureVpnImpl() async {
   // Web has no VPN interface; nothing to reconfigure. Returning "" (rather than
   // throwing) lets callers invoke this unconditionally without a platform guard.
   return "";
+}
+
+Future<List<VpnAppEntry>> getInstalledAppsImpl() async {
+  throw UnsupportedError('Unsupported for web');
+}
+
+Future<VpnAppFilterState> getAppFilterImpl() async {
+  throw UnsupportedError('Unsupported for web');
+}
+
+Future<String> setAppFilterImpl(String mode, List<String> packages) async {
+  throw UnsupportedError('Unsupported for web');
 }

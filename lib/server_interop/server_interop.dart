@@ -4,6 +4,10 @@ import 'server_interop_stub.dart'
     // ignore: uri_does_not_exist
     if (dart.library.html) 'package:anywherelan/server_interop/server_interop_web.dart';
 
+import 'vpn_app_filter.dart';
+
+export 'vpn_app_filter.dart';
+
 Future<String> initApp() async {
   return initAppImpl();
 }
@@ -31,4 +35,21 @@ Future<String> importConfig(String config) async {
 /// error string.
 Future<String> reconfigureVpn() async {
   return reconfigureVpnImpl();
+}
+
+/// Launcher-visible apps for the per-app VPN filter picker (Android only).
+Future<List<VpnAppEntry>> getInstalledApps() async {
+  return getInstalledAppsImpl();
+}
+
+/// The current per-app VPN filter state (Android only).
+Future<VpnAppFilterState> getAppFilter() async {
+  return getAppFilterImpl();
+}
+
+/// Persists the per-app VPN filter. Returns "" on success, "restart_required"
+/// when a live VPN interface means the caller must restart the server for the
+/// filter to take effect, or an error string.
+Future<String> setAppFilter(String mode, List<String> packages) async {
+  return setAppFilterImpl(mode, packages);
 }

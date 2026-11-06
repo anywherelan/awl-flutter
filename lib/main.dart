@@ -15,6 +15,7 @@ import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/qr_dialog.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
 import 'package:anywherelan/settings_screen.dart';
+import 'package:anywherelan/vpn_app_filter_screen.dart';
 import 'package:anywherelan/status_tab.dart';
 import 'package:anywherelan/theme.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -85,6 +86,7 @@ class MyApp extends StatelessWidget {
         DebugScreen.routeName: (context) => DebugScreen(),
         LogsScreen.routeName: (context) => LogsScreen(),
         AppSettingsScreen.routeName: (context) => AppSettingsScreen(),
+        VpnAppFilterScreen.routeName: (context) => const VpnAppFilterScreen(),
         BlockedPeersScreen.routeName: (context) => BlockedPeersScreen(),
         InvitesScreen.routeName: (context) => InvitesScreen(),
       },
