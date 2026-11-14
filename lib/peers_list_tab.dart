@@ -356,7 +356,8 @@ class _PeersListViewState extends State<PeersListView> {
     if (!item.connected && item.confirmed) {
       details.add(MapEntry("LAST SEEN", "${formatDuration(item.lastSeen.difference(DateTime.now()))} ago"));
     }
-    details.add(MapEntry("VPN ADDRESS", "${item.domainName}.awl · ${item.ipAddr}"));
+    final domain = "${item.domainName}.awl";
+    details.add(MapEntry("VPN ADDRESS", item.ipAddr.isEmpty ? domain : "$domain · ${item.ipAddr}"));
     // Connections handled separately (a widget, not a simple string).
     details.add(MapEntry("USE AS EXIT", item.allowedUsingAsExitNode ? "Allowed" : "Denied"));
     details.add(MapEntry("OFFER AS EXIT", item.weAllowUsingAsExitNode ? "Allowed" : "Denied"));

@@ -315,7 +315,8 @@ class _AddPeerDialogViewState extends State<AddPeerDialogView> {
               controller: _ipAddrTextController,
               decoration: InputDecoration(
                 labelText: 'Local IP address',
-                helperText: 'optional, example: 10.66.0.2',
+                helperText: peerAddressHint,
+                helperMaxLines: 3,
               ),
               autovalidateMode: AutovalidateMode.onUnfocus,
               validator: (String? value) {
