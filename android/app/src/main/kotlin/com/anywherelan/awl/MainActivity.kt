@@ -3,6 +3,7 @@ package com.anywherelan.awl
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
+import android.util.Log
 import androidx.annotation.NonNull
 import anywherelan.Anywherelan
 import anywherelan.SocketProtector
@@ -17,6 +18,7 @@ import java.net.URISyntaxException
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "anywherelan"
+    private val TAG = "MainActivity"
 
     // The active VpnService instance, retained so the TUN can be re-established
     // at runtime (see establishTun / the "reconfigure_vpn" method). Null when no
@@ -75,6 +77,9 @@ class MainActivity : FlutterActivity() {
                         val protector: SocketProtector? =
                             if (service != null) VpnSocketProtector(service) else null
                         Anywherelan.startServer(tunFd, protector)
+                        if (service != null && tunFd != 0) {
+                            rebuildTunIfConfigChanged(service, config)
+                        }
                         val apiAddress = Anywherelan.getApiAddress()
                         result.success(apiAddress)
                     } catch (e: Exception) {
@@ -90,12 +95,8 @@ class MainActivity : FlutterActivity() {
                             result.success(null)
                             return@setMethodCallHandler
                         }
-                        // Re-establish the TUN with the routes for the current
-                        // (already-persisted) gateway state and hot-swap the fresh
-                        // fd into the running backend. P2P stays up: its sockets
-                        // are already protected and the swap replaces only the fd.
-                        val newFd = establishTun(service, config)
-                        Anywherelan.updateTunDevice(newFd)
+                        // Routes for the current (already-persisted) gateway state.
+                        replaceTun(service, config)
                         result.success(null)
                     } catch (e: Exception) {
                         result.error("error", e.message, null)
@@ -126,9 +127,9 @@ class MainActivity : FlutterActivity() {
     // returns its file descriptor. Routes depend on gateway client mode: when
     // on, route everything (0.0.0.0/0 + ::/0); when off, addAddress already
     // routes the awl subnet on-link, so no explicit route is added. The fd is
-    // detached and handed to the Go side, which owns and closes it. Used both at
-    // startup and by "reconfigure_vpn" for runtime gateway toggling, where a
-    // fresh establish() is a seamless handover that swaps only the tun fd.
+    // detached and handed to the Go side, which owns and closes it. Used at
+    // startup and by replaceTun, where a fresh establish() is a seamless
+    // handover that swaps only the tun fd.
     private fun establishTun(service: MyVpnService, config: AppConfig): Int {
         val ipNetParts = config.vpn.ipNet.split("/")
         if (ipNetParts.size != 2) {
@@ -140,7 +141,7 @@ class MainActivity : FlutterActivity() {
         val builder: VpnService.Builder = service.builder
         builder.setSession(config.vpn.interfaceName)
         builder.addAddress(networkAddress, networkAddressMask)
-        builder.setMtu(3500)
+        builder.setMtu(config.vpn.mtu)
 
         if (config.vpnGateway.clientEnabled) {
             builder.addRoute("0.0.0.0", 0)
@@ -186,6 +187,30 @@ class MainActivity : FlutterActivity() {
             tunFd = tun.detachFd()
         }
         return tunFd
+    }
+
+    // replaceTun builds a TUN from config and hot-swaps its fd into the running
+    // backend. P2P stays up: its sockets are already protected and the swap
+    // replaces only the fd.
+    private fun replaceTun(service: MyVpnService, config: AppConfig) {
+        val newFd = establishTun(service, config)
+        Anywherelan.updateTunDevice(newFd)
+    }
+
+    // The Go side may change the config while starting: on the first start it
+    // derives this device's address, and it turns gateway client mode off when
+    // the gateway peer is unusable. The TUN was built before that, so it is
+    // rebuilt from the running config. A failure is only logged: the server is
+    // already up and keeps the old interface.
+    private fun rebuildTunIfConfigChanged(service: MyVpnService, startConfig: AppConfig) {
+        try {
+            val config = AppConfig.fromJson(Anywherelan.getConfig())
+            if (config != startConfig) {
+                replaceTun(service, config)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Rebuild VPN interface after server start", e)
+        }
     }
 
     // hostFromAddress extracts the bare IP from a "host:port" upstream DNS
