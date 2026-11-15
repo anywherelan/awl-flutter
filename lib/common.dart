@@ -92,6 +92,10 @@ class ExitNodePermissionField extends StatelessWidget {
   }
 }
 
+/// Helper under a peer's address field while it is empty: the backend then
+/// assigns the address the peer announces on the first status exchange.
+const peerAddressHint = 'Optional. By default, the address the peer announces.';
+
 const copyFailedMessage = kIsWeb
     ? 'Could not copy. Select the text and press Ctrl+C.'
     : 'Could not copy to clipboard.';

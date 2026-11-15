@@ -364,10 +364,7 @@ class _AuthRequestDialogViewState extends State<AuthRequestDialogView> {
           SizedBox(height: 16),
           TextFormField(
             controller: _ipAddrTextController,
-            decoration: InputDecoration(
-              labelText: 'Local IP address',
-              helperText: 'optional, example: 10.66.0.2',
-            ),
+            decoration: InputDecoration(labelText: 'Local IP address', helperText: 'Optional'),
             autovalidateMode: AutovalidateMode.onUnfocus,
             validator: (String? value) {
               if (value == null || value.isEmpty) {

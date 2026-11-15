@@ -8,6 +8,8 @@ class KnownPeer {
   final String peerID;
   final String displayName;
   final String version;
+
+  /// Empty until the first status exchange with the peer.
   final String ipAddr;
   final String domainName;
   final bool connected;
@@ -336,6 +338,8 @@ class KnownPeerConfig {
   final String peerId;
   final String name;
   final String alias;
+
+  /// Empty until the first status exchange with the peer.
   final String ipAddr;
   final String domainName;
   final bool weAllowUsingAsExitNode;
@@ -364,6 +368,8 @@ class UpdateKnownPeerConfigRequest {
   final String peerID;
   final String alias;
   final String domainName;
+
+  /// Empty keeps the current address.
   final String ipAddr;
   final bool allowUsingAsExitNode;
 

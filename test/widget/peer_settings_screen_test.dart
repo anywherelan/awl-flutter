@@ -142,6 +142,68 @@ void main() {
       expect(captured!.allowUsingAsExitNode, !cfg.weAllowUsingAsExitNode);
     });
 
+    testWidgets('a peer without an address yet saves with the field empty', (tester) async {
+      final cfg = _loadConfig();
+      final noAddress = KnownPeerConfig(
+        cfg.peerId,
+        cfg.name,
+        cfg.alias,
+        '',
+        cfg.domainName,
+        cfg.weAllowUsingAsExitNode,
+        cfg.inviteID,
+      );
+      UpdateKnownPeerConfigRequest? captured;
+
+      await pumpAppWidget(
+        tester,
+        PeerSettingsView(
+          peerConfig: noAddress,
+          onSave: (payload) async {
+            captured = payload;
+            return '';
+          },
+        ),
+        size: desktopSize,
+      );
+      expect(find.text(peerAddressHint), findsOneWidget);
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'Alias'), 'renamed');
+      await tester.tap(find.text('Save changes'));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      expect(captured!.alias, 'renamed');
+      expect(captured!.ipAddr, '');
+    });
+
+    testWidgets('an existing address cannot be erased', (tester) async {
+      // The backend keeps the current address when it gets an empty one, so
+      // saving an erased field would look done and change nothing.
+      final cfg = _loadConfig();
+      var saveCalls = 0;
+
+      await pumpAppWidget(
+        tester,
+        PeerSettingsView(
+          peerConfig: cfg,
+          onSave: (_) async {
+            saveCalls++;
+            return '';
+          },
+        ),
+        size: desktopSize,
+      );
+      expect(find.text(peerAddressHint), findsNothing);
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'Local IP address'), '');
+      await tester.tap(find.text('Save changes'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Please enter an IP address'), findsOneWidget);
+      expect(saveCalls, 0);
+    });
+
     testWidgets('Save changes shows error snackbar when onSave returns error', (tester) async {
       final cfg = _loadConfig();
       await pumpAppWidget(

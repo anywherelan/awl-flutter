@@ -153,6 +153,8 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
 
   final _generalFormKey = GlobalKey<FormState>();
 
+  bool get _hasAddress => widget.peerConfig.ipAddr.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
@@ -390,13 +392,16 @@ class _PeerSettingsViewState extends State<PeerSettingsView> {
               controller: _ipAddrTextController,
               decoration: InputDecoration(
                 labelText: 'Local IP address',
-                helperText: 'Example: 10.66.0.2',
+                helperText: _hasAddress ? null : peerAddressHint,
+                helperMaxLines: 3,
                 filled: true,
               ),
               autovalidateMode: AutovalidateMode.onUnfocus,
               validator: (String? value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter an IP address';
+                  // The backend reads an empty address as "keep the current one",
+                  // so an erased address would silently stay.
+                  return _hasAddress ? 'Please enter an IP address' : null;
                 }
 
                 try {

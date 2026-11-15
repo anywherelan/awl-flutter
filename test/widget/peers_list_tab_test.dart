@@ -133,6 +133,28 @@ void main() {
       expect(qrPeer!.peerID, peers.first.peerID);
     });
 
+    testWidgets('VPN address of an expanded peer is its name and IP address', (tester) async {
+      final peer = _loadPeers().first;
+      await pumpAppWidget(tester, PeersListView(peers: [peer]), size: desktopSize);
+
+      await tester.tap(find.text(peer.displayName));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(SelectableText, '${peer.domainName}.awl · ${peer.ipAddr}'), findsOneWidget);
+    });
+
+    testWidgets('VPN address of a peer without an IP address yet is its name alone', (tester) async {
+      final json = (loadFixtureJson('known_peers.json') as List<dynamic>).first as Map<String, dynamic>;
+      final peer = KnownPeer.fromJson({...json, 'IpAddr': ''});
+      await pumpAppWidget(tester, PeersListView(peers: [peer]), size: desktopSize);
+
+      await tester.tap(find.text(peer.displayName));
+      await tester.pumpAndSettle();
+
+      // The card's subtitle is the same name, so look in the details only.
+      expect(find.widgetWithText(SelectableText, '${peer.domainName}.awl'), findsOneWidget);
+    });
+
     // Exit/gateway badges pick their layout from the header's actual width:
     // full labels inline with the name, short labels inline, or full labels
     // on their own row below the subtitle when even short ones don't fit.
