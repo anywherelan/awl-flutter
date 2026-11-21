@@ -121,6 +121,8 @@ class _MyDrawerState extends ConsumerState<MyDrawer> {
       title: Text(running ? 'Stop' : 'Start', style: Theme.of(context).textTheme.labelLarge),
       onTap: () async {
         final container = ProviderScope.containerOf(context);
+        if (isServerRunning() && !await _confirmStopWithAlwaysOn(context)) return;
+        if (!context.mounted) return;
         _closeDrawerIfModal(context);
         var message = '';
         var isError = false;
@@ -149,6 +151,33 @@ class _MyDrawerState extends ConsumerState<MyDrawer> {
         );
       },
     );
+  }
+
+  /// With Always-on VPN Android keeps awl running, so stopping it is asked
+  /// about first: Android may start it again, and with "Block connections
+  /// without VPN" the device has no internet until it does. Returns whether to
+  /// stop.
+  Future<bool> _confirmStopWithAlwaysOn(BuildContext context) async {
+    final status = await alwaysOnStatus();
+    if (!status.alwaysOn || !context.mounted) return true;
+
+    final body = status.lockdown
+        ? 'Always-on VPN with "Block connections without VPN" is enabled for Anywherelan.'
+              ' While it is stopped, this device has no internet connection.'
+        : 'Always-on VPN is enabled for Anywherelan, so Android may start it again,'
+              ' for example after a restart.';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Stop Anywherelan?'),
+        content: Text(body),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Stop')),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 
   Widget _restartAction(BuildContext context) {

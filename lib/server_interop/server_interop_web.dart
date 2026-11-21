@@ -2,6 +2,7 @@
 // `server_interop.dart`.
 
 import 'package:anywherelan/api.dart';
+import 'package:anywherelan/server_interop/server_interop.dart' show AlwaysOnStatus;
 import 'package:anywherelan/server_interop/config.dart' as conf;
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:web/web.dart' as web;
@@ -24,6 +25,18 @@ Future<void> stopServerImpl() async {
 }
 
 bool isServerRunningImpl() {
+  throw UnsupportedError('Unsupported for web');
+}
+
+Future<bool> syncServerStateImpl() async {
+  throw UnsupportedError('Unsupported for web');
+}
+
+Future<AlwaysOnStatus> alwaysOnStatusImpl() async {
+  throw UnsupportedError('Unsupported for web');
+}
+
+Future<String> openVpnSettingsImpl() async {
   throw UnsupportedError('Unsupported for web');
 }
 

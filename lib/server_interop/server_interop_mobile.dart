@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'dart:io' as io;
 
 import 'package:anywherelan/api.dart';
+import 'package:anywherelan/server_interop/server_interop.dart' show AlwaysOnStatus;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -44,6 +45,44 @@ Future<void> stopServerImpl() async {
 
 bool isServerRunningImpl() {
   return serverRunning;
+}
+
+Future<bool> syncServerStateImpl() async {
+  try {
+    final String apiAddress = await platform.invokeMethod('server_status');
+    final running = apiAddress != "";
+    if (running) serverAddress = "http://$apiAddress";
+    final changed = running != serverRunning;
+    serverRunning = running;
+    return changed;
+  } catch (e, s) {
+    developer.log('Failed to read server status', error: e, stackTrace: s, name: 'server_interop');
+    return false;
+  }
+}
+
+Future<AlwaysOnStatus> alwaysOnStatusImpl() async {
+  try {
+    final status = await platform.invokeMapMethod<String, bool>('always_on_status');
+    return AlwaysOnStatus(
+      alwaysOn: status?['alwaysOn'] ?? false,
+      lockdown: status?['lockdown'] ?? false,
+      routesAllTraffic: status?['routesAllTraffic'] ?? false,
+    );
+  } catch (e, s) {
+    developer.log('Failed to read always-on status', error: e, stackTrace: s, name: 'server_interop');
+    return const AlwaysOnStatus(alwaysOn: false, lockdown: false);
+  }
+}
+
+Future<String> openVpnSettingsImpl() async {
+  try {
+    await platform.invokeMethod('open_vpn_settings');
+  } catch (e, s) {
+    developer.log('Failed to open vpn settings', error: e, stackTrace: s, name: 'server_interop');
+    return e.toString();
+  }
+  return "";
 }
 
 Future<String> importConfigImpl(String config) async {

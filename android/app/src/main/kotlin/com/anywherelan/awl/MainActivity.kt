@@ -1,29 +1,23 @@
 package com.anywherelan.awl
 
+import android.app.Activity
 import android.content.Intent
 import android.net.VpnService
-import android.os.Build
-import android.util.Log
+import android.provider.Settings
 import androidx.annotation.NonNull
 import anywherelan.Anywherelan
-import anywherelan.SocketProtector
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.BinaryMessenger.TaskQueue
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.StandardMethodCodec
-import java.net.URI
-import java.net.URISyntaxException
 
 
+// MainActivity bridges the Flutter UI to MyVpnService, which owns the awl
+// backend. The activity only asks for the VPN permission, which needs an
+// activity to show its dialog.
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "anywherelan"
-    private val TAG = "MainActivity"
-
-    // The active VpnService instance, retained so the TUN can be re-established
-    // at runtime (see establishTun / the "reconfigure_vpn" method). Null when no
-    // VPN interface is active.
-    private var vpnService: MyVpnService? = null
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -40,6 +34,7 @@ class MainActivity : FlutterActivity() {
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "start_server" -> {
+                    // Already running, e.g. started by Always-on VPN at boot.
                     val startedApiAddress = Anywherelan.getApiAddress()
                     if (startedApiAddress != "") {
                         result.success(startedApiAddress)
@@ -48,64 +43,69 @@ class MainActivity : FlutterActivity() {
 
                     Anywherelan.setup(this.filesDir.absolutePath)
                     val config = AppConfig.fromJson(Anywherelan.getConfig())
-                    var tunFd = 0
-
                     if (!config.vpn.disableVPNInterface) {
-                        val service = MyVpnService()
-                        vpnService = service
                         val requestPermissionIntent = VpnService.prepare(this.context)
                         if (requestPermissionIntent != null) {
-                            result.error("error", "vpn not authorized", null)
-                            this.startActivityForResult(requestPermissionIntent, 4444)
+                            // Ask once and answer the call when the user has
+                            // decided, in onActivityResult.
+                            synchronized(pendingStartLock) {
+                                if (pendingStart != null) {
+                                    result.error("error", "vpn permission request already open", null)
+                                    return@setMethodCallHandler
+                                }
+                                pendingStart = result
+                            }
+                            this.startActivityForResult(requestPermissionIntent, VPN_PERMISSION_REQUEST)
                             return@setMethodCallHandler
                         }
-                        context.startService(Intent(context, MyVpnService::class.java))
-
-                        tunFd = establishTun(service, config)
                     }
 
-                    try {
-                        // Always register the protector when a VPN interface is
-                        // active, regardless of the current gateway state. The Go
-                        // side marks every libp2p socket at dial time; if the user
-                        // later toggles gateway client mode on at runtime, the
-                        // connections opened before the toggle must already be
-                        // protected, otherwise they would loop back through the
-                        // 0.0.0.0/0 route. When gateway is off, protect() is a
-                        // no-op (libp2p traffic does not traverse the TUN anyway).
-                        val service = vpnService
-                        val protector: SocketProtector? =
-                            if (service != null) VpnSocketProtector(service) else null
-                        Anywherelan.startServer(tunFd, protector)
-                        if (service != null && tunFd != 0) {
-                            rebuildTunIfConfigChanged(service, config)
-                        }
-                        val apiAddress = Anywherelan.getApiAddress()
-                        result.success(apiAddress)
-                    } catch (e: Exception) {
-                        result.error("error", e.message, null)
-                    }
+                    startAwl(result)
                 }
                 "reconfigure_vpn" -> {
                     try {
-                        val service = vpnService
-                        val config = AppConfig.fromJson(Anywherelan.getConfig())
-                        if (config.vpn.disableVPNInterface || service == null) {
-                            // No active VPN interface to reconfigure.
-                            result.success(null)
-                            return@setMethodCallHandler
-                        }
-                        // Routes for the current (already-persisted) gateway state.
-                        replaceTun(service, config)
+                        MyVpnService.instance?.reconfigure()
                         result.success(null)
                     } catch (e: Exception) {
                         result.error("error", e.message, null)
                     }
                 }
                 "stop_server" -> {
-                    Anywherelan.stopServer()
-                    vpnService = null
+                    val service = MyVpnService.instance
+                    if (service != null) {
+                        service.stop()
+                    } else {
+                        Anywherelan.stopServer()
+                    }
                     result.success(null)
+                }
+                "server_status" -> {
+                    // The API address of the running backend, "" when stopped.
+                    // awl may start and stop without the app (Always-on VPN,
+                    // the VPN being revoked), so the app asks on resume. The
+                    // lockdown option may have changed meanwhile in the VPN
+                    // settings.
+                    MyVpnService.instance?.updateNotification()
+                    result.success(Anywherelan.getApiAddress())
+                }
+                "always_on_status" -> {
+                    val service = MyVpnService.instance
+                    service?.updateNotification()
+                    result.success(
+                        mapOf(
+                            "alwaysOn" to (service?.isAlwaysOnEnabled() ?: false),
+                            "lockdown" to (service?.isLockdownModeEnabled() ?: false),
+                            "routesAllTraffic" to (service?.routesAllTraffic ?: false),
+                        )
+                    )
+                }
+                "open_vpn_settings" -> {
+                    try {
+                        startActivity(Intent(Settings.ACTION_VPN_SETTINGS))
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("error", e.message, null)
+                    }
                 }
                 "import_config" -> {
                     try {
@@ -123,141 +123,40 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    // establishTun (re)creates the VpnService TUN interface from config and
-    // returns its file descriptor. Routes depend on gateway client mode: when
-    // on, route everything (0.0.0.0/0 + ::/0); when off, addAddress already
-    // routes the awl subnet on-link, so no explicit route is added. The fd is
-    // detached and handed to the Go side, which owns and closes it. Used at
-    // startup and by replaceTun, where a fresh establish() is a seamless
-    // handover that swaps only the tun fd.
-    private fun establishTun(service: MyVpnService, config: AppConfig): Int {
-        val ipNetParts = config.vpn.ipNet.split("/")
-        if (ipNetParts.size != 2) {
-            throw Exception("Invalid ipNet format: ${config.vpn.ipNet}")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != VPN_PERMISSION_REQUEST) return
+        val result = synchronized(pendingStartLock) {
+            pendingStart.also { pendingStart = null }
+        } ?: return
+        if (resultCode == Activity.RESULT_OK) {
+            // Off the main thread: start waits for the service, which starts
+            // on the main thread.
+            Thread { startAwl(result) }.start()
+        } else {
+            result.error("error", "vpn not authorized", null)
         }
-        val networkAddress = ipNetParts[0]
-        val networkAddressMask = ipNetParts[1].toInt()
-
-        val builder: VpnService.Builder = service.builder
-        builder.setSession(config.vpn.interfaceName)
-        builder.addAddress(networkAddress, networkAddressMask)
-        builder.setMtu(config.vpn.mtu)
-
-        if (config.vpnGateway.clientEnabled) {
-            builder.addRoute("0.0.0.0", 0)
-            builder.addRoute("::", 0)
-        }
-
-        // The Go core owns an in-tunnel DNS IP (netstack interceptor in the
-        // TUN read path): .awl names are answered locally, everything else is
-        // forwarded to the configured upstream — in gateway client mode
-        // through the tunnel, so DNS does not leak. The IP is inside the awl
-        // subnet that addAddress already routes on-link, so no extra addRoute
-        // is needed. An empty string means DNS is off or the Go side could
-        // not set the interceptor up (e.g. no free IP in the subnet).
-        val dnsServerIP = if (!config.dns.disableDNS) Anywherelan.dnsServerIP() else ""
-        if (dnsServerIP.isNotEmpty()) {
-            builder.addDnsServer(dnsServerIP)
-            // TODO: builder.addSearchDomain("awl") — would resolve bare
-            //  short names (e.g. "mypeer") without the .awl suffix.
-        } else if (config.vpnGateway.clientEnabled) {
-            // No interceptor (DNS disabled — the kill switch — or the Go side
-            // failed to set it up) while full-tunnel mode is on: pin DNS to
-            // the configured upstream so queries go through the TUN (and the
-            // exit node) instead of leaking to the device's own resolver.
-            val dnsHost = hostFromAddress(config.dns.upstreamDNSAddress)
-            if (dnsHost.isNotEmpty()) {
-                builder.addDnsServer(dnsHost)
-            }
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            builder.setBlocking(true)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            builder.setMetered(false)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            service.setUnderlyingNetworks(null)
-        }
-
-        var tunFd = 0
-        builder.establish().use { tun ->
-            if (tun == null) throw Exception("TUN_CREATION_ERROR")
-            tunFd = tun.detachFd()
-        }
-        return tunFd
     }
 
-    // replaceTun builds a TUN from config and hot-swaps its fd into the running
-    // backend. P2P stays up: its sockets are already protected and the swap
-    // replaces only the fd.
-    private fun replaceTun(service: MyVpnService, config: AppConfig) {
-        val newFd = establishTun(service, config)
-        Anywherelan.updateTunDevice(newFd)
-    }
-
-    // The Go side may change the config while starting: on the first start it
-    // derives this device's address, and it turns gateway client mode off when
-    // the gateway peer is unusable. The TUN was built before that, so it is
-    // rebuilt from the running config. A failure is only logged: the server is
-    // already up and keeps the old interface.
-    private fun rebuildTunIfConfigChanged(service: MyVpnService, startConfig: AppConfig) {
+    private fun startAwl(result: MethodChannel.Result) {
+        var service: MyVpnService? = null
         try {
-            val config = AppConfig.fromJson(Anywherelan.getConfig())
-            if (config != startConfig) {
-                replaceTun(service, config)
-            }
+            service = MyVpnService.start(this)
+            val apiAddress = service.startAwl()
+            result.success(apiAddress)
         } catch (e: Exception) {
-            Log.e(TAG, "Rebuild VPN interface after server start", e)
+            service?.stop()
+            result.error("error", e.message, null)
         }
     }
 
-    // hostFromAddress extracts the bare IP from a "host:port" upstream DNS
-    // address (config stores host:port for the Go resolver; VpnService.addDnsServer
-    // wants a bare IP). Parsing is delegated to java.net.URI: the "//" prefix
-    // makes the string a network authority, so getHost() splits off the port.
-    // URI returns IPv6 hosts bracketed per RFC 2732, so strip the brackets.
-    // Returns "" for blank input and falls back to the trimmed input if it is
-    // not a parseable authority.
-    private fun hostFromAddress(addr: String): String {
-        val trimmed = addr.trim()
-        if (trimmed.isEmpty()) return ""
-        return try {
-            URI("//$trimmed").host?.removeSurrounding("[", "]") ?: trimmed
-        } catch (e: URISyntaxException) {
-            trimmed
-        }
-    }
-}
+    companion object {
+        private const val VPN_PERMISSION_REQUEST = 4444
 
-class MyVpnService : android.net.VpnService() {
-    val builder: Builder
-        get() = Builder()
-
-    override fun onDestroy() {
-        Anywherelan.stopServer()
-        super.onDestroy()
-    }
-}
-
-// VpnSocketProtector adapts the VpnService.protect(fd) method to the
-// gomobile-generated anywherelan.SocketProtector interface. Defined as a
-// wrapper rather than implemented directly on MyVpnService so that the Go
-// method name (protectSocket) does not collide with VpnService.protect when
-// the gomobile binding lower-cases it for Java.
-//
-// Note: SocketProtector is a top-level interface in the gomobile-generated
-// `anywherelan` Java package, NOT a nested class of `Anywherelan`. The
-// `Anywherelan` class only holds package-level functions (Setup, GetConfig,
-// StartServerWithProtector, …); Go interfaces become sibling top-level
-// interfaces in the same Java package.
-class VpnSocketProtector(private val vpnService: VpnService) : SocketProtector {
-    // gomobile maps Go int32 to Java int, so the parameter type here is Int,
-    // not Long. (Go int would map to Long; we deliberately used int32 in
-    // SocketProtector.ProtectSocket to keep the parameter the same width as
-    // VpnService.protect(int) for a clean delegation.)
-    override fun protectSocket(fd: Int): Boolean {
-        return vpnService.protect(fd)
+        // The start_server call waiting for the answer to the VPN permission
+        // request. Kept here rather than in the activity, since the answer may
+        // reach a new activity instance (e.g. after a rotation).
+        private val pendingStartLock = Any()
+        private var pendingStart: MethodChannel.Result? = null
     }
 }

@@ -18,6 +18,20 @@ import 'package:overlay_support/overlay_support.dart';
 /// [authRequestsProvider]. What is shown follows that list: a request that
 /// disappears takes its notification with it, and everything goes when the
 /// server becomes unavailable, since nothing can be answered without it.
+/// Completed when the app's first start of the server is done, including the
+/// VPN permission request, so that the notifications permission is asked
+/// after it instead of at the same time.
+final firstServerStartDone = Completer<void>();
+
+/// Completed once the notifications permission has been asked at startup, or
+/// there is none to ask, so that the first-run name dialog opens after it
+/// instead of at the same time.
+final startupPermissionsDone = Completer<void>();
+
+void _completeStartupPermissions() {
+  if (!startupPermissionsDone.isCompleted) startupPermissionsDone.complete();
+}
+
 class NotificationsService {
   /// Null on web, and on Android when the plugin failed to initialize: there is
   /// just no system notification to show then.
@@ -30,7 +44,9 @@ class NotificationsService {
   final Map<String, OverlaySupportEntry> _overlays = {};
 
   Future<void> init() async {
-    if (!kIsWeb) {
+    if (kIsWeb) {
+      _completeStartupPermissions();
+    } else {
       await _initMobilePlugin();
     }
     isServerAvailable.addListener(_onServerAvailabilityChanged);
@@ -50,6 +66,7 @@ class NotificationsService {
       );
     } catch (e, s) {
       debugPrint('NotificationsService: failed to initialize notifications plugin: $e\n$s');
+      _completeStartupPermissions();
       return;
     }
     _notificationsPlugin = plugin;
@@ -72,13 +89,17 @@ class NotificationsService {
 
     // Not awaited: the answer may take as long as the user does.
     unawaited(
-      plugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission()
+      firstServerStartDone.future
+          .then(
+            (_) => plugin
+                .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+                ?.requestNotificationsPermission(),
+          )
           .catchError((Object e) {
             debugPrint('NotificationsService: failed to request notifications permission: $e');
             return null;
-          }),
+          })
+          .whenComplete(_completeStartupPermissions),
     );
   }
 
