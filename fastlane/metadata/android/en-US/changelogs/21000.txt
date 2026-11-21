@@ -1,0 +1,7 @@
+Devices can connect directly on the same Wi-Fi. awl connects to the first known device up to 4 seconds sooner after startup.
+
+New devices get a VPN IP from their ID. Large UDP packets now get through, and the VPN uses up to 7% less CPU.
+
+Some phones used mobile data to answer discovery requests. awl skips those replies by default.
+
+New installs use MTU 1400. Older installs keep 3500 on upgrade. Change vpn.mtu on either the older or newer installs so all your devices use the same MTU.
