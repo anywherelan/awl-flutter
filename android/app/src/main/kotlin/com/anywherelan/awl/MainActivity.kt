@@ -3,19 +3,21 @@ package com.anywherelan.awl
 import android.app.Activity
 import android.content.Intent
 import android.net.VpnService
+import android.os.Build
 import android.provider.Settings
 import androidx.annotation.NonNull
-import anywherelan.Anywherelan
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.BinaryMessenger.TaskQueue
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.StandardMethodCodec
+import java.util.concurrent.CompletionException
+import java.util.concurrent.ExecutionException
 
 
 // MainActivity bridges the Flutter UI to MyVpnService, which owns the awl
 // backend. The activity only asks for the VPN permission, which needs an
-// activity to show its dialog.
+// activity to show its dialog, and forwards everything else to the service.
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "anywherelan"
 
@@ -35,15 +37,13 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "start_server" -> {
                     // Already running, e.g. started by Always-on VPN at boot.
-                    val startedApiAddress = Anywherelan.getApiAddress()
+                    val startedApiAddress = MyVpnService.apiAddress
                     if (startedApiAddress != "") {
                         result.success(startedApiAddress)
                         return@setMethodCallHandler
                     }
 
-                    Anywherelan.setup(this.filesDir.absolutePath)
-                    val config = AppConfig.fromJson(Anywherelan.getConfig())
-                    if (!config.vpn.disableVPNInterface) {
+                    if (MyVpnService.needsVpnInterface(this)) {
                         val requestPermissionIntent = VpnService.prepare(this.context)
                         if (requestPermissionIntent != null) {
                             // Ask once and answer the call when the user has
@@ -63,21 +63,10 @@ class MainActivity : FlutterActivity() {
                     startAwl(result)
                 }
                 "reconfigure_vpn" -> {
-                    try {
-                        MyVpnService.instance?.reconfigure()
-                        result.success(null)
-                    } catch (e: Exception) {
-                        result.error("error", e.message, null)
-                    }
+                    runOnService(result) { MyVpnService.reconfigure().get() }
                 }
                 "stop_server" -> {
-                    val service = MyVpnService.instance
-                    if (service != null) {
-                        service.stop()
-                    } else {
-                        Anywherelan.stopServer()
-                    }
-                    result.success(null)
+                    runOnService(result) { MyVpnService.stop().get() }
                 }
                 "server_status" -> {
                     // The API address of the running backend, "" when stopped.
@@ -85,14 +74,16 @@ class MainActivity : FlutterActivity() {
                     // the VPN being revoked), so the app asks on resume. The
                     // lockdown option may have changed meanwhile in the VPN
                     // settings.
-                    MyVpnService.instance?.updateNotification()
-                    result.success(Anywherelan.getApiAddress())
+                    MyVpnService.owner?.updateNotification()
+                    result.success(MyVpnService.apiAddress)
                 }
                 "always_on_status" -> {
-                    val service = MyVpnService.instance
-                    service?.updateNotification()
+                    // Android reports Always-on VPN only since Android 10, and
+                    // only to a running VPN service.
+                    val service = MyVpnService.owner
                     result.success(
                         mapOf(
+                            "known" to (service != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q),
                             "alwaysOn" to (service?.isAlwaysOnEnabled() ?: false),
                             "lockdown" to (service?.isLockdownModeEnabled() ?: false),
                             "routesAllTraffic" to (service?.routesAllTraffic ?: false),
@@ -108,13 +99,8 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 "import_config" -> {
-                    try {
-                        val text = call.argument<String>("config")
-                        Anywherelan.importConfig(text)
-                        result.success(null)
-                    } catch (e: Exception) {
-                        result.error("error", e.message, null)
-                    }
+                    val text = call.argument<String>("config")
+                    runOnService(result) { MyVpnService.importConfig(this, text).get() }
                 }
                 else -> {
                     result.notImplemented()
@@ -130,25 +116,35 @@ class MainActivity : FlutterActivity() {
             pendingStart.also { pendingStart = null }
         } ?: return
         if (resultCode == Activity.RESULT_OK) {
-            // Off the main thread: start waits for the service, which starts
-            // on the main thread.
-            Thread { startAwl(result) }.start()
+            startAwl(result)
         } else {
             result.error("error", "vpn not authorized", null)
         }
     }
 
     private fun startAwl(result: MethodChannel.Result) {
-        var service: MyVpnService? = null
-        try {
-            service = MyVpnService.start(this)
-            val apiAddress = service.startAwl()
-            result.success(apiAddress)
-        } catch (e: Exception) {
-            service?.stop()
-            result.error("error", e.message, null)
+        MyVpnService.start(applicationContext).whenComplete { apiAddress, e ->
+            if (e == null) {
+                result.success(apiAddress)
+            } else {
+                result.error("error", unwrap(e).message, null)
+            }
         }
     }
+
+    // runOnService answers the call with the outcome of a request the service
+    // ran on its worker.
+    private fun runOnService(result: MethodChannel.Result, request: () -> Unit) {
+        try {
+            request()
+            result.success(null)
+        } catch (e: Exception) {
+            result.error("error", unwrap(e).message, null)
+        }
+    }
+
+    private fun unwrap(e: Throwable): Throwable =
+        if ((e is ExecutionException || e is CompletionException) && e.cause != null) e.cause!! else e
 
     companion object {
         private const val VPN_PERMISSION_REQUEST = 4444

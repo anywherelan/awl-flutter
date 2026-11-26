@@ -4,23 +4,31 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
-import android.os.SystemClock
 import android.util.Log
 import anywherelan.Anywherelan
 import anywherelan.SocketProtector
 import java.net.URI
 import java.net.URISyntaxException
+import java.util.concurrent.Callable
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 // MyVpnService owns the awl backend and its VPN interface. It runs as a
 // foreground service, so awl keeps running while the app is in the background,
 // and it is what Android starts on its own: at boot when Always-on VPN is
-// enabled for the app. The Flutter UI does not start awl itself; MainActivity
-// asks this service to (see start).
+// enabled for the app. The Flutter UI does not call the backend itself;
+// MainActivity forwards its requests to this service (see start, stop,
+// reconfigure and importConfig).
+//
+// Every call into the backend runs on one worker thread, in the order the
+// requests arrive: starts by the app and by Android, stop, revoke,
+// reconfigure and import. The gomobile functions share global state without
+// locking, and a start by Android may overlap a request from the app.
 //
 // START_STICKY brings awl back after its process died only while it runs
 // without a VPN interface. With one, Android unbinds from the service as soon
@@ -32,106 +40,171 @@ class MyVpnService : VpnService() {
     companion object {
         private const val TAG = "MyVpnService"
 
-        // Marks a start requested by the app. The app then calls startAwl itself
-        // to get the API address (or the error) back; any other start comes from
-        // the system and starts awl from onStartCommand.
+        // Marks a start requested by the app. Any other start comes from the
+        // system: Always-on VPN (action android.net.VpnService) or a sticky
+        // restart (null intent).
         private const val ACTION_START_FROM_APP = "com.anywherelan.awl.START_FROM_APP"
 
         private const val NOTIFICATION_CHANNEL_ID = "awl_vpn_service"
         private const val NOTIFICATION_ID = 1
 
-        private val instanceLock = Object()
+        private val worker = Executors.newSingleThreadScheduledExecutor()
 
-        // The instance that handled the latest start. Null once it stopped. A
-        // stopped instance may linger until onDestroy, so a restart must not
-        // pick it up: it is cleared in stop, not in onDestroy.
+        // The state below is written only on the worker.
+
+        // The instance that handled the latest start, null once it stopped.
         @Volatile
-        var instance: MyVpnService? = null
+        private var instance: MyVpnService? = null
+
+        // The instance that started the running backend, null while stopped.
+        @Volatile
+        var owner: MyVpnService? = null
             private set
 
-        // start starts the service in the foreground and returns its instance,
-        // ready for startAwl. Blocks until the service handled the start, so it
-        // must not be called on the main thread (onStartCommand runs there).
-        fun start(context: Context): MyVpnService {
-            val intent = Intent(context, MyVpnService::class.java).setAction(ACTION_START_FROM_APP)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
-            return awaitInstance(5000) ?: throw Exception("VPN service did not start")
-        }
+        // The API address of the running backend, "" while it is stopped or
+        // still starting. Published only once the backend and its VPN
+        // interface are ready, so the app never reads a half-started API.
+        @Volatile
+        var apiAddress = ""
+            private set
 
-        private fun publishInstance(service: MyVpnService?) {
-            synchronized(instanceLock) {
-                instance = service
-                instanceLock.notifyAll()
-            }
-        }
+        // False after a stop from the app, so that a start by the app that is
+        // still on its way to the service is dropped.
+        private var wantRunning = false
 
-        private fun awaitInstance(timeoutMs: Long): MyVpnService? {
-            val deadline = SystemClock.elapsedRealtime() + timeoutMs
-            synchronized(instanceLock) {
-                while (true) {
-                    instance?.let { return it }
-                    val left = deadline - SystemClock.elapsedRealtime()
-                    if (left <= 0) return null
-                    instanceLock.wait(left)
+        // Starts by the app waiting for the service to start the backend.
+        private val pendingStarts = mutableListOf<CompletableFuture<String>>()
+
+        // start asks the service to start the backend and completes with its
+        // API address, or the error.
+        fun start(context: Context): CompletableFuture<String> {
+            val result = CompletableFuture<String>()
+            worker.execute {
+                wantRunning = true
+                if (apiAddress != "") {
+                    result.complete(apiAddress)
+                    return@execute
+                }
+                pendingStarts.add(result)
+                val intent = Intent(context, MyVpnService::class.java).setAction(ACTION_START_FROM_APP)
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(intent)
+                    } else {
+                        context.startService(intent)
+                    }
+                } catch (e: Exception) {
+                    failPendingStarts(e)
                 }
             }
+            return result
+        }
+
+        // stop stops the backend and the service, also when a start is still
+        // on its way. Safe to repeat.
+        fun stop(): Future<*> = worker.submit {
+            wantRunning = false
+            failPendingStarts(Exception("stopped"))
+            instance?.stopOnWorker()
+        }
+
+        // reconfigure re-applies the VPN routes for the current
+        // (already-persisted) config, e.g. after the user toggled gateway
+        // client mode.
+        fun reconfigure(): Future<*> = worker.submit { owner?.reconfigureOnWorker() }
+
+        // needsVpnInterface tells whether the config has the VPN interface
+        // enabled, so that starting the backend needs the VPN permission.
+        fun needsVpnInterface(context: Context): Boolean = worker.submit(Callable {
+            Anywherelan.setup(context.filesDir.absolutePath)
+            !AppConfig.fromJson(Anywherelan.getConfig()).vpn.disableVPNInterface
+        }).get()
+
+        // importConfig fails when the backend runs, e.g. when Always-on VPN
+        // started it again after the app stopped it for the import.
+        fun importConfig(context: Context, config: String?): Future<*> = worker.submit {
+            Anywherelan.setup(context.filesDir.absolutePath)
+            Anywherelan.importConfig(config)
+        }
+
+        private fun completePendingStarts(apiAddress: String) {
+            pendingStarts.forEach { it.complete(apiAddress) }
+            pendingStarts.clear()
+        }
+
+        private fun failPendingStarts(e: Exception) {
+            pendingStarts.forEach { it.completeExceptionally(e) }
+            pendingStarts.clear()
         }
     }
 
-    // Whether this instance started the running backend. An instance stopped
-    // for a restart is destroyed after the new one already started awl again;
-    // its onDestroy must leave that backend alone.
-    private var ownsAwl = false
+    // The start id of the latest start this instance handled, to stop the
+    // service only when no newer start is on its way.
+    private var handledStartId = 0
+
+    override fun onCreate() {
+        super.onCreate()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "VPN service",
+                NotificationManager.IMPORTANCE_LOW,
+            )
+            channel.description = "Shown while Anywherelan is running"
+            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
-        publishInstance(this)
-
-        if (intent?.action != ACTION_START_FROM_APP) {
-            // Started by the system: Always-on VPN (action
-            // android.net.VpnService) or a sticky restart (null intent). Nobody
-            // waits for the result, so a failure stops the service.
-            Thread {
-                try {
-                    startAwl()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Start awl on system request", e)
-                    stop()
-                }
-            }.start()
-        }
+        val fromApp = intent?.action == ACTION_START_FROM_APP
+        worker.execute { startOnWorker(fromApp, startId) }
         return START_STICKY
     }
 
     override fun onRevoke() {
         // Another VPN app took over, or the user disconnected awl in the system
-        // VPN settings. The interface is gone, so stop the backend with it. Off
-        // the main thread: stop waits for a start that may still be running.
-        Thread { stop() }.start()
+        // VPN settings. The interface is gone, so stop the backend with it.
+        worker.execute { if (instance === this) stopOnWorker() }
     }
 
     override fun onDestroy() {
-        if (ownsAwl) {
-            stopAwl()
+        worker.execute {
+            stopBackendIfOwner()
+            if (instance === this) instance = null
         }
         super.onDestroy()
     }
 
-    // startAwl starts the backend with a VPN interface built from its config
-    // and returns its API address. Does nothing but return the address when
-    // awl already runs, e.g. when the app opens after Always-on VPN started it.
-    @Synchronized
-    fun startAwl(): String {
-        val startedApiAddress = Anywherelan.getApiAddress()
-        if (startedApiAddress != "") {
-            ownsAwl = true
-            return startedApiAddress
+    private fun startOnWorker(fromApp: Boolean, startId: Int) {
+        instance = this
+        handledStartId = startId
+        if (fromApp && !wantRunning) {
+            // The app stopped awl before this start arrived.
+            removeService()
+            return
         }
+        // A start by Android counts as wanted: Always-on VPN asked for it.
+        wantRunning = true
+        try {
+            if (apiAddress == "") {
+                startBackend()
+            } else {
+                // Already running, e.g. the app asked after Always-on VPN
+                // started it.
+                owner = this
+            }
+            completePendingStarts(apiAddress)
+        } catch (e: Exception) {
+            Log.e(TAG, "Start awl", e)
+            failPendingStarts(e)
+            removeService()
+        }
+    }
 
+    // startBackend starts the backend with a VPN interface built from its
+    // config and publishes its API address.
+    private fun startBackend() {
         Anywherelan.setup(filesDir.absolutePath)
         val config = AppConfig.fromJson(Anywherelan.getConfig())
         var tunFd = 0
@@ -154,43 +227,41 @@ class MyVpnService : VpnService() {
         // traffic does not traverse the TUN anyway).
         val protector: SocketProtector? = if (tunFd != 0) VpnSocketProtector(this) else null
         Anywherelan.startServer(tunFd, protector)
-        ownsAwl = true
+        owner = this
+        routesAllTraffic = tunFd != 0 && config.vpnGateway.clientEnabled
         if (tunFd != 0) {
             rebuildTunIfConfigChanged(config)
-            updateNotification()
         }
-        return Anywherelan.getApiAddress()
+        apiAddress = Anywherelan.getApiAddress()
+        updateNotification()
     }
 
-    @Synchronized
-    private fun stopAwl() {
+    // stopBackendIfOwner stops the backend if this instance started it. An
+    // instance stopped for a restart may be destroyed after a new one started
+    // the backend again; it must leave that backend alone.
+    private fun stopBackendIfOwner() {
+        if (owner !== this) return
+        apiAddress = ""
+        owner = null
+        routesAllTraffic = false
         Anywherelan.stopServer()
-        ownsAwl = false
     }
 
-    // stop stops the backend and the service with it, removing the VPN
-    // interface and the notification.
-    fun stop() {
-        stopAwl()
-        synchronized(instanceLock) {
-            if (instance === this) publishInstance(null)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(Service.STOP_FOREGROUND_REMOVE)
-        } else {
-            @Suppress("DEPRECATION")
-            stopForeground(true)
-        }
-        stopSelf()
+    // stopOnWorker stops the backend and the service with it, removing the
+    // VPN interface and the notification.
+    private fun stopOnWorker() {
+        stopBackendIfOwner()
+        removeService()
     }
 
-    // reconfigure re-applies the VPN routes for the current (already-persisted)
-    // config, e.g. after the user toggled gateway client mode.
-    @Synchronized
-    fun reconfigure() {
-        if (Anywherelan.getApiAddress() == "") {
-            return
-        }
+    // removeService stops the service unless a newer start is on its way,
+    // which then runs on the worker after this.
+    private fun removeService() {
+        if (instance === this) instance = null
+        stopSelfResult(handledStartId)
+    }
+
+    private fun reconfigureOnWorker() {
         val config = AppConfig.fromJson(Anywherelan.getConfig())
         if (config.vpn.disableVPNInterface) {
             // No active VPN interface to reconfigure.
@@ -210,18 +281,19 @@ class MyVpnService : VpnService() {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isLockdownEnabled
 
     // Whether the VPN interface routes all traffic (gateway client mode), set
-    // by establishTun. Without it, awl routes only its own subnet, so with
-    // "Block connections without VPN" only awl peers are reachable.
+    // once the interface is installed in the backend. Without it, awl routes
+    // only its own subnet, so with "Block connections without VPN" only awl
+    // peers are reachable.
     @Volatile
     var routesAllTraffic = false
         private set
 
     // updateNotification shows in the notification whether connections
     // without VPN are blocked. Called after the VPN interface changes and when
-    // the app reads the status, e.g. on return from the VPN settings, where
-    // the option may have changed.
+    // the app returns to the foreground, e.g. from the VPN settings, where the
+    // option may have changed.
     fun updateNotification() {
-        if (instance !== this) return
+        if (owner !== this) return
         getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
     }
 
@@ -251,7 +323,6 @@ class MyVpnService : VpnService() {
             builder.addRoute("0.0.0.0", 0)
             builder.addRoute("::", 0)
         }
-        routesAllTraffic = config.vpnGateway.clientEnabled
 
         // The Go core owns an in-tunnel DNS IP (netstack interceptor in the
         // TUN read path): .awl names are answered locally, everything else is
@@ -300,6 +371,7 @@ class MyVpnService : VpnService() {
     private fun replaceTun(config: AppConfig) {
         val newFd = establishTun(config)
         Anywherelan.updateTunDevice(newFd)
+        routesAllTraffic = config.vpnGateway.clientEnabled
     }
 
     // The Go side may change the config while starting: on the first start it
@@ -343,13 +415,6 @@ class MyVpnService : VpnService() {
 
     private fun buildNotification(): Notification {
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                "VPN service",
-                NotificationManager.IMPORTANCE_LOW,
-            )
-            channel.description = "Shown while Anywherelan is running"
-            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
             Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
         } else {
             @Suppress("DEPRECATION")

@@ -241,15 +241,17 @@ class _AlwaysOnVpnTileState extends State<_AlwaysOnVpnTile> with WidgetsBindingO
         ' in the Android VPN settings. If you also choose "Block connections without VPN",'
         ' only your Anywherelan peers are reachable, unless you use a VPN gateway.';
     // Android reports the setting only to a running VPN, so a stopped awl
-    // shows just the explanation.
+    // shows just the explanation. Before Android 10 it reports nothing.
     if (!isServerRunning()) return howTo;
     final status = _status;
-    if (status != null && status.lockdown) {
+    if (status == null) return howTo;
+    if (!status.known) return 'Check the Android VPN settings. $howTo';
+    if (status.lockdown) {
       return status.routesAllTraffic
           ? 'On. Connections without VPN are blocked; all traffic goes through the VPN gateway.'
           : 'On. Connections without VPN are blocked: only your Anywherelan peers are reachable.';
     }
-    if (status?.alwaysOn ?? false) return 'On.';
+    if (status.alwaysOn) return 'On.';
     return 'Off. $howTo';
   }
 

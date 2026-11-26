@@ -29,8 +29,10 @@ Future<bool> syncServerState() async {
 }
 
 /// Always-on VPN as set for this app in the Android VPN settings. Android only
-/// reports it to a running VPN service, so both are false while awl is stopped.
+/// reports it to a running VPN service, and only since Android 10; [known] is
+/// false otherwise, and then so are the others.
 class AlwaysOnStatus {
+  final bool known;
   final bool alwaysOn;
   final bool lockdown;
 
@@ -38,7 +40,12 @@ class AlwaysOnStatus {
   /// routes only its own network, so with lockdown only peers are reachable.
   final bool routesAllTraffic;
 
-  const AlwaysOnStatus({required this.alwaysOn, required this.lockdown, this.routesAllTraffic = false});
+  const AlwaysOnStatus({
+    required this.known,
+    required this.alwaysOn,
+    required this.lockdown,
+    this.routesAllTraffic = false,
+  });
 }
 
 Future<AlwaysOnStatus> alwaysOnStatus() async {

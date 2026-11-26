@@ -32,9 +32,9 @@ Future<String> initServerImpl() async {
   return "";
 }
 
+// Safe to call when the server already stopped, e.g. when Android stopped it
+// while the app still showed it as running.
 Future<void> stopServerImpl() async {
-  assert(serverRunning, "calling stopServer to not running server");
-
   try {
     await platform.invokeMethod('stop_server');
   } catch (e, s) {
@@ -65,13 +65,14 @@ Future<AlwaysOnStatus> alwaysOnStatusImpl() async {
   try {
     final status = await platform.invokeMapMethod<String, bool>('always_on_status');
     return AlwaysOnStatus(
+      known: status?['known'] ?? false,
       alwaysOn: status?['alwaysOn'] ?? false,
       lockdown: status?['lockdown'] ?? false,
       routesAllTraffic: status?['routesAllTraffic'] ?? false,
     );
   } catch (e, s) {
     developer.log('Failed to read always-on status', error: e, stackTrace: s, name: 'server_interop');
-    return const AlwaysOnStatus(alwaysOn: false, lockdown: false);
+    return const AlwaysOnStatus(known: false, alwaysOn: false, lockdown: false);
   }
 }
 
