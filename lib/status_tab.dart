@@ -4,6 +4,7 @@ import 'package:anywherelan/clipboard_interop/clipboard_interop.dart';
 import 'package:anywherelan/common.dart';
 import 'package:anywherelan/connection_error.dart';
 import 'package:anywherelan/entities.dart';
+import 'package:anywherelan/notifications.dart' show startupPermissionsDone;
 import 'package:anywherelan/providers.dart';
 import 'package:anywherelan/qr_dialog.dart';
 import 'package:anywherelan/server_interop/server_interop.dart';
@@ -87,12 +88,17 @@ class _StatusPageState extends ConsumerState<StatusPage> {
         }
 
         // First-run auto-popup: open settings dialog when the server is up
-        // but the user hasn't picked a name yet.
+        // but the user hasn't picked a name yet, after the permission requests
+        // so that the dialogs come one at a time.
         if (peerInfo != null) {
           final serverIsUp = peerInfo.uptime.inMicroseconds > 0;
           if (!_openedSetupDialog && serverIsUp && peerInfo.name.isEmpty) {
             _openedSetupDialog = true;
-            Future.delayed(Duration(seconds: 2), () => _onShowSettings(peerInfo, firstSetup: true));
+            unawaited(
+              Future.delayed(Duration(seconds: 2)).then((_) => startupPermissionsDone.future).then((_) {
+                if (mounted) _onShowSettings(peerInfo, firstSetup: true);
+              }),
+            );
           }
         }
 

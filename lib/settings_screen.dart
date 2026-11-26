@@ -164,6 +164,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                 }
               },
             ),
+          if (!kIsWeb) const _AlwaysOnVpnTile(),
           if (!kIsWeb)
             ListTile(
               title: Text("Request ignore battery optimizations"),
@@ -192,6 +193,85 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Starting awl at boot and keeping it running is Android's Always-on VPN,
+/// turned on in the system VPN settings; the app has no setting of its own for
+/// it. This tile explains that and opens those settings. The status is read
+/// again on return from them.
+class _AlwaysOnVpnTile extends StatefulWidget {
+  const _AlwaysOnVpnTile();
+
+  @override
+  State<_AlwaysOnVpnTile> createState() => _AlwaysOnVpnTileState();
+}
+
+class _AlwaysOnVpnTileState extends State<_AlwaysOnVpnTile> with WidgetsBindingObserver {
+  AlwaysOnStatus? _status;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _loadStatus();
+  }
+
+  Future<void> _loadStatus() async {
+    final status = await alwaysOnStatus();
+    if (!mounted) return;
+    setState(() => _status = status);
+  }
+
+  String _subtitle() {
+    const howTo =
+        'Start Anywherelan when the device boots and keep it running with "Always-on VPN"'
+        ' in the Android VPN settings. If you also choose "Block connections without VPN",'
+        ' only your Anywherelan peers are reachable, unless you use a VPN gateway.';
+    // Android reports the setting only to a running VPN, so a stopped awl
+    // shows just the explanation. Before Android 10 it reports nothing.
+    if (!isServerRunning()) return howTo;
+    final status = _status;
+    if (status == null) return howTo;
+    if (!status.known) return 'Check the Android VPN settings. $howTo';
+    if (status.lockdown) {
+      return status.routesAllTraffic
+          ? 'On. Connections without VPN are blocked; all traffic goes through the VPN gateway.'
+          : 'On. Connections without VPN are blocked: only your Anywherelan peers are reachable.';
+    }
+    if (status.alwaysOn) return 'On.';
+    return 'Off. $howTo';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: const Text("Always-on VPN"),
+      subtitle: Text(_subtitle()),
+      leading: const Icon(Icons.restart_alt),
+      trailing: const Icon(Icons.open_in_new),
+      onTap: () async {
+        final error = await openVpnSettings();
+        if (error == "" || !context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            content: Text("Failed to open VPN settings: $error"),
+          ),
+        );
+      },
     );
   }
 }

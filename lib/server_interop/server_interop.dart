@@ -20,6 +20,44 @@ bool isServerRunning() {
   return isServerRunningImpl();
 }
 
+/// Reads whether the backend runs from the platform instead of trusting the
+/// last start or stop made from the app: on Android it also starts and stops
+/// without the app (Always-on VPN, the VPN being revoked). Returns true when the
+/// running state changed.
+Future<bool> syncServerState() async {
+  return syncServerStateImpl();
+}
+
+/// Always-on VPN as set for this app in the Android VPN settings. Android only
+/// reports it to a running VPN service, and only since Android 10; [known] is
+/// false otherwise, and then so are the others.
+class AlwaysOnStatus {
+  final bool known;
+  final bool alwaysOn;
+  final bool lockdown;
+
+  /// Whether the VPN routes all traffic (gateway client mode). Without it awl
+  /// routes only its own network, so with lockdown only peers are reachable.
+  final bool routesAllTraffic;
+
+  const AlwaysOnStatus({
+    required this.known,
+    required this.alwaysOn,
+    required this.lockdown,
+    this.routesAllTraffic = false,
+  });
+}
+
+Future<AlwaysOnStatus> alwaysOnStatus() async {
+  return alwaysOnStatusImpl();
+}
+
+/// Opens the Android VPN settings, where Always-on VPN is turned on. Returns ""
+/// on success or an error string.
+Future<String> openVpnSettings() async {
+  return openVpnSettingsImpl();
+}
+
 Future<String> importConfig(String config) async {
   return importConfigImpl(config);
 }

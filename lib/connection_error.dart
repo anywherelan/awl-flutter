@@ -15,7 +15,14 @@ Widget showDefaultServerConnectionError(BuildContext context) {
             if (startResponse != "") {
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(backgroundColor: Theme.of(context).colorScheme.error, content: Text(startResponse)),
+                SnackBar(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  content: Text(
+                    startResponse.contains("vpn not authorized")
+                        ? "Anywherelan needs the VPN connection request to be accepted to run."
+                        : startResponse,
+                  ),
+                ),
               );
             } else {
               await refreshProvidersRepeated(container);

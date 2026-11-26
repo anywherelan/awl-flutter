@@ -89,7 +89,9 @@
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
-            <meta-data android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON" android:value="false"/>
+            <!-- MyVpnService starts awl on its own, so Android may start it
+                 at boot and keep it running (Always-on VPN). -->
+            <meta-data android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON" android:value="true"/>
         </service>
     </application>
 </manifest>

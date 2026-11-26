@@ -35,37 +35,32 @@ void main() async {
   runApp(UncontrolledProviderScope(container: _container, child: MyApp()));
 }
 
+/// Starts the server once at launch. On the first launch Android asks for the
+/// VPN permission, and the start waits for the answer. When the user declines,
+/// the home screen offers Start, which asks again; any other failure is shown
+/// once.
 Future<void> initAndroid() async {
-  while (true) {
-    var dialogTitle = "";
-    var dialogBody = "";
-    var stopLoop = false;
-    var startError = await initApp();
+  try {
+    final startError = await initApp();
     if (isServerRunning()) {
       await refreshProviders(_container);
       unawaited(refreshProvidersRepeated(_container));
       return;
-    } else if (startError.contains("vpn not authorized")) {
-      dialogTitle = "You need to accept vpn connection to use this app";
-    } else {
-      dialogTitle = "Failed to start server";
-      dialogBody = startError;
-      stopLoop = true;
     }
+    if (startError.contains("vpn not authorized")) return;
 
     await showDialog(
       context: notif.navigatorKey.currentContext!,
       builder: (context) {
         return AlertDialog(
-          title: Text(dialogTitle),
-          content: dialogBody != "" ? SelectableText(dialogBody) : null,
+          title: const Text("Failed to start server"),
+          content: SelectableText(startError),
           actions: [TextButton(child: Text('OK'), onPressed: () => Navigator.pop(context))],
         );
       },
     );
-
-    if (stopLoop) return;
-    await Future.delayed(Duration(seconds: 6));
+  } finally {
+    if (!notif.firstServerStartDone.isCompleted) notif.firstServerStartDone.complete();
   }
 }
 
@@ -187,7 +182,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         break;
       case AppLifecycleState.resumed:
         ref.read(pollingPolicyProvider.notifier).state = PollingPolicy.active;
+        if (!kIsWeb) unawaited(_syncServerState());
         break;
+    }
+  }
+
+  /// While the app was away awl may have been started (Always-on VPN at boot)
+  /// or stopped (another VPN app took over) without it.
+  Future<void> _syncServerState() async {
+    final container = ProviderScope.containerOf(context);
+    final changed = await syncServerState();
+    if (!changed || !mounted) return;
+    setState(() {});
+    if (isServerRunning()) {
+      unawaited(refreshProvidersRepeated(container));
+    } else {
+      unawaited(refreshProviders(container).catchError((_) {}));
     }
   }
 

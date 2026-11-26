@@ -120,14 +120,21 @@ class _MyDrawerState extends ConsumerState<MyDrawer> {
       leading: Icon(running ? Icons.stop_circle_outlined : Icons.play_circle_outline),
       title: Text(running ? 'Stop' : 'Start', style: Theme.of(context).textTheme.labelLarge),
       onTap: () async {
+        // The action the user tapped, even if Android started or stopped awl
+        // since the drawer was built: Stop never turns into a start.
+        final stop = running;
         final container = ProviderScope.containerOf(context);
+        if (stop && await _stopInVpnSettings(context)) return;
+        if (!context.mounted) return;
         _closeDrawerIfModal(context);
         var message = '';
         var isError = false;
-        if (isServerRunning()) {
+        if (stop) {
           await stopServer();
           message = 'Server stopped';
           unawaited(refreshProviders(container).catchError((_) {}));
+        } else if (isServerRunning()) {
+          message = 'Server started';
         } else {
           final startResponse = await initServer();
           if (startResponse == '') {
@@ -149,6 +156,36 @@ class _MyDrawerState extends ConsumerState<MyDrawer> {
         );
       },
     );
+  }
+
+  /// With Always-on VPN Android keeps awl running and would start it again,
+  /// so it is stopped in the Android VPN settings instead: this explains that
+  /// and offers to open them. Returns whether it handled the stop (always,
+  /// when Always-on VPN is enabled), so the caller must not stop awl itself.
+  Future<bool> _stopInVpnSettings(BuildContext context) async {
+    final status = await alwaysOnStatus();
+    if (!status.alwaysOn || !context.mounted) return false;
+
+    final lockdown = status.lockdown
+        ? ' With "Block connections without VPN", this device has no internet'
+              ' connection while Anywherelan is disconnected.'
+        : '';
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Always-on VPN is enabled'),
+        content: Text(
+          'Android keeps Anywherelan running and would start it again. To stop it,'
+          ' turn off Always-on VPN or disconnect in the Android VPN settings.$lockdown',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Open VPN settings')),
+        ],
+      ),
+    );
+    if (open ?? false) await openVpnSettings();
+    return true;
   }
 
   Widget _restartAction(BuildContext context) {
