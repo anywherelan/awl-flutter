@@ -74,7 +74,7 @@ class MainActivity : FlutterActivity() {
                     // the VPN being revoked), so the app asks on resume. The
                     // lockdown option may have changed meanwhile in the VPN
                     // settings.
-                    MyVpnService.owner?.updateNotification()
+                    MyVpnService.refreshNotification()
                     result.success(MyVpnService.apiAddress)
                 }
                 "always_on_status" -> {

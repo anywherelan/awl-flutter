@@ -17,6 +17,8 @@ import java.util.concurrent.Callable
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 // MyVpnService owns the awl backend and its VPN interface. It runs as a
 // foreground service, so awl keeps running while the app is in the background,
@@ -47,6 +49,9 @@ class MyVpnService : VpnService() {
 
         private const val NOTIFICATION_CHANNEL_ID = "awl_vpn_service"
         private const val NOTIFICATION_ID = 1
+
+        // How often the notification shows the tunnel speeds anew.
+        private const val TUNNEL_STATS_INTERVAL_SECONDS = 3L
 
         private val worker = Executors.newSingleThreadScheduledExecutor()
 
@@ -113,6 +118,13 @@ class MyVpnService : VpnService() {
         // client mode.
         fun reconfigure(): Future<*> = worker.submit { owner?.reconfigureOnWorker() }
 
+        // refreshNotification shows the current lockdown state in the
+        // notification, e.g. on return from the VPN settings, where the
+        // option may have changed.
+        fun refreshNotification() {
+            worker.execute { owner?.updateNotification() }
+        }
+
         // needsVpnInterface tells whether the config has the VPN interface
         // enabled, so that starting the backend needs the VPN permission.
         fun needsVpnInterface(context: Context): Boolean = worker.submit(Callable {
@@ -142,6 +154,14 @@ class MyVpnService : VpnService() {
     // service only when no newer start is on its way.
     private var handledStartId = 0
 
+    // Refreshes the tunnel speeds in the notification while the backend runs
+    // with a VPN interface.
+    private var tunnelStatsTask: ScheduledFuture<*>? = null
+
+    // The text the notification shows, to post it only when it changes.
+    @Volatile
+    private var notificationText: String? = null
+
     override fun onCreate() {
         super.onCreate()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -156,7 +176,7 @@ class MyVpnService : VpnService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIFICATION_ID, buildNotification())
+        startForeground(NOTIFICATION_ID, buildNotification(notificationText))
         val fromApp = intent?.action == ACTION_START_FROM_APP
         worker.execute { startOnWorker(fromApp, startId) }
         return START_STICKY
@@ -234,6 +254,14 @@ class MyVpnService : VpnService() {
         }
         apiAddress = Anywherelan.getApiAddress()
         updateNotification()
+        if (tunFd != 0) {
+            tunnelStatsTask = worker.scheduleWithFixedDelay(
+                { updateNotification() },
+                TUNNEL_STATS_INTERVAL_SECONDS,
+                TUNNEL_STATS_INTERVAL_SECONDS,
+                TimeUnit.SECONDS,
+            )
+        }
     }
 
     // stopBackendIfOwner stops the backend if this instance started it. An
@@ -241,6 +269,8 @@ class MyVpnService : VpnService() {
     // the backend again; it must leave that backend alone.
     private fun stopBackendIfOwner() {
         if (owner !== this) return
+        tunnelStatsTask?.cancel(false)
+        tunnelStatsTask = null
         apiAddress = ""
         owner = null
         routesAllTraffic = false
@@ -289,12 +319,19 @@ class MyVpnService : VpnService() {
         private set
 
     // updateNotification shows in the notification whether connections
-    // without VPN are blocked. Called after the VPN interface changes and when
-    // the app returns to the foreground, e.g. from the VPN settings, where the
-    // option may have changed.
-    fun updateNotification() {
+    // without VPN are blocked, or else the tunnel speeds. Runs on the worker:
+    // after the VPN interface changes, every few seconds for the speeds, and
+    // when the app returns to the foreground (see refreshNotification).
+    private fun updateNotification() {
         if (owner !== this) return
-        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
+        val text = if (isLockdownModeEnabled()) {
+            "Connections without VPN are blocked"
+        } else {
+            Anywherelan.getTunnelStats()?.let { "↓ ${it.rateInIEC} · ↑ ${it.rateOutIEC}" }
+        }
+        if (text == notificationText) return
+        notificationText = text
+        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification(text))
     }
 
     // establishTun (re)creates the VpnService TUN interface from config and
@@ -413,7 +450,7 @@ class MyVpnService : VpnService() {
         return PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
     }
 
-    private fun buildNotification(): Notification {
+    private fun buildNotification(text: String?): Notification {
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
         } else {
@@ -425,8 +462,8 @@ class MyVpnService : VpnService() {
             .setContentTitle("Anywherelan is running")
             .setContentIntent(openAppIntent())
             .setOngoing(true)
-        if (isLockdownModeEnabled()) {
-            builder.setContentText("Connections without VPN are blocked")
+        if (text != null) {
+            builder.setContentText(text)
         }
         return builder.build()
     }
